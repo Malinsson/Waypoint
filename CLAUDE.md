@@ -69,7 +69,7 @@ Rules:
 ## Repository structure
 
 ```
-roadtrip-planner/
+Waypoint/
 ├── CLAUDE.md
 ├── specs/                # one spec per feature area (auth, trips, python-service, ...)
 ├── .gitignore
@@ -105,8 +105,9 @@ Update this section as soon as scripts exist.
 ```bash
 # Backend
 cd backend && npm run dev        # tsx watch src/index.ts
-cd backend && npm run build      # tsc
-cd backend && npm test
+cd backend && npm run build      # tsc, outputs to dist/
+cd backend && npm start          # node dist/index.js (production)
+cd backend && npm test           # not set up yet
 
 # Frontend
 cd frontend && npm run dev       # Vite dev server
@@ -142,6 +143,8 @@ VITE_API_URL=http://localhost:3000
 ---
 
 ## Data models (draft, refine in `specs/`)
+
+**Auth**: `specs/auth.md`
 
 **User**: `email` (unique), `passwordHash`, `displayName`, `createdAt`
 
