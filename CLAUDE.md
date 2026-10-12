@@ -143,6 +143,8 @@ VITE_API_URL=http://localhost:3000
 
 ## Data models (draft, refine in `specs/`)
 
+**Auth**: `specs/auth-md`
+
 **User**: `email` (unique), `passwordHash`, `displayName`, `createdAt`
 
 **Trip**: `owner` (ref User), `title`, `status` (`planned` | `completed`), `destinations[]`, `route` (GeoJSON LineString), `legs[]` (distance, duration), `accommodationPreferences` (`types[]`), `suggestedStops[]`, `rating` (1-5, optional), `createdAt`
