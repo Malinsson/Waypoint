@@ -1,18 +1,20 @@
-import { NavLink, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
+import Header from './components/Header.tsx'
 import HomePage from './pages/HomePage.tsx'
+import LoginPage from './pages/LoginPage.tsx'
 import PlanPage from './pages/PlanPage.tsx'
+import RegisterPage from './pages/RegisterPage.tsx'
 
 function App() {
   return (
     <>
-      <nav>
-        <NavLink to="/">Home</NavLink>
-        <NavLink to="/plan">Plan</NavLink>
-      </nav>
+      <Header />
       <main>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
         </Routes>
       </main>
     </>

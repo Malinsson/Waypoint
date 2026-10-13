@@ -20,6 +20,37 @@ nav a.active {
   font-weight: bold;
 }
 
+/* Pushes the account links to the right edge of the nav */
+.nav-account {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 24rem;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.form-field .error {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.notice {
+  padding: 0.5rem 1rem;
+  border-left: 4px solid #f9a825;
+}
+
 main {
   padding: 1rem 2rem;
 }
