@@ -16,4 +16,6 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
   mongodbUri: requireEnv("MONGODB_URI"),
   corsOrigin: requireEnv("CORS_ORIGIN"),
+  jwtSecret: requireEnv("JWT_SECRET"),
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
 };
