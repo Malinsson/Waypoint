@@ -50,7 +50,7 @@ Python service (Flask): break-point calculation
 
 Rules:
 
-1. **The frontend only talks to Express.** Never call Geoapify, the Python service, or MongoDB directly from the browser. The one exception is the browser Geolocation API, which stays in the frontend; the resulting coordinates are sent to Express like any other input.
+1. **The frontend only talks to Express.** Never call Geoapify, the Python service, or MongoDB directly from the browser. There are two exceptions: the browser Geolocation API, which stays in the frontend (the resulting coordinates are sent to Express like any other input), and map tiles, which OpenLayers loads directly from OpenStreetMap (public, keyless, and pointless to proxy).
 2. **All external API calls go through the Facade** (see Design patterns). No `fetch` to Geoapify scattered around the code.
 3. **Express orchestrates.** The Python service is stateless and has no database access. Express sends it data and receives a result.
 4. **API keys and secrets live only in the backend**, loaded from environment variables.
