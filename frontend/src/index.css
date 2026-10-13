@@ -24,6 +24,11 @@ main {
   padding: 1rem 2rem;
 }
 
+/* OpenLayers draws nothing in a container without an explicit height */
+.map {
+  height: 70vh;
+}
+
 .error {
   color: #c62828;
 }
