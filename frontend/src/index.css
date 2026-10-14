@@ -60,6 +60,75 @@ main {
   height: 70vh;
 }
 
+/* Plan page: side panel next to a large map */
+.plan-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* On narrow screens the panel sits above the map */
+@media (max-width: 800px) {
+  .plan-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.plan-panel h1 {
+  margin-top: 0;
+}
+
+.add-destination-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-destination-row input {
+  flex: 1;
+}
+
+/* Numbers are written out in the components, so hide the list markers */
+.candidates,
+.destination-list,
+.leg-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.candidates button {
+  width: 100%;
+  margin-bottom: 0.25rem;
+  text-align: left;
+}
+
+.destination-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.banner {
+  padding: 0.5rem 1rem;
+  border-left: 4px solid currentColor;
+}
+
+.leg-list li {
+  margin-bottom: 0.5rem;
+}
+
 .error {
   color: #c62828;
 }
