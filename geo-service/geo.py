@@ -54,7 +54,10 @@ def point_at_distance(coordinates, cumulative, target):
     for i in range(1, len(cumulative)):
         if cumulative[i] >= target:
             # Interpolate between coordinates[i-1] and coordinates[i]
-            ratio = (target - cumulative[i - 1]) / (cumulative[i] - cumulative[i - 1])
+            segment_length = cumulative[i] - cumulative[i - 1]
+            if segment_length == 0:
+                continue
+            ratio = (target - cumulative[i - 1]) / segment_length
             lon = coordinates[i - 1][0] + ratio * (coordinates[i][0] - coordinates[i - 1][0])
             lat = coordinates[i - 1][1] + ratio * (coordinates[i][1] - coordinates[i - 1][1])
             return (lon, lat)
