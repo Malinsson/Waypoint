@@ -119,7 +119,7 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
     map.getView().fit(line.getExtent(), { padding: FIT_PADDING })
   }, [route])
 
-  return <div ref={containerRef} className="map" />
+  return <div ref={containerRef} className="map" tabIndex={0} />
 }
 
 export default MapView
