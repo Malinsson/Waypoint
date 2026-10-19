@@ -22,6 +22,9 @@ The MVP must work with the simplest behavior: visit the destinations in the orde
 - As a guest, I get a clear message if an address cannot be found, no route exists, or a service is down.
 - As a guest, I can start a new plan from scratch with one click.
 - As a logged-in user the flow is identical, plus a "Save trip" button (see `trips-and-ratings.md`).
+- As a guest, I see suggestions while I type a destination, so I don't have to guess the exact spelling (Should).
+- As a guest, I can search for landmarks and tourist attractions by name, not only addresses and cities (Should).
+- As a guest, I can pick a suggestion with the mouse or the keyboard (Should).
 
 ## Acceptance criteria
 
@@ -31,6 +34,19 @@ Destinations and geocoding
 - [ ] [Must] If no match is found, the user sees "We could not find that address" and nothing is added.
 - [ ] [Must] A destination can be removed, and the markers and numbering update.
 - [ ] [Should] The start can be filled from the browser's location (see Geolocation below).
+
+Autocomplete
+- [ ] [Should] After the user has typed at least 3 characters and paused for about 300 ms, up to 5 suggestions are shown in a dropdown under the field.
+- [ ] [Should] Suggestions include addresses, cities, and points of interest (landmarks, attractions). Each has a label and an icon based on its `kind`.
+- [ ] [Should] Choosing a suggestion adds the destination directly with its coordinates. No second geocoding request is made.
+- [ ] [Should] The dropdown works with the keyboard: arrow up/down moves the highlight, Enter selects, Escape closes it.
+- [ ] [Should] If the user keeps typing, responses to older requests are ignored or cancelled, so outdated suggestions never replace newer ones.
+- [ ] [Should] If there are no matches, the dropdown shows "No results".
+- [ ] [Should] If the suggestion request fails (network error, rate limit, service down), the field still works: the user can press Enter to run the normal geocode search (`POST /api/geocode`), and a short message explains that suggestions are unavailable.
+- [ ] [Should] Suggestions are biased towards the current map center when it is known, so nearby places rank higher.
+- [ ] [Should] The suggestion endpoint is rate limited, so that a burst of typing cannot use up the daily Geoapify quota.
+- [ ] [Should] The dropdown uses correct combobox semantics (`role="combobox"`, `aria-expanded`, `aria-activedescendant`, options with `role="option"`) so that it works with screen readers.
+- [ ] [Could] Recently chosen places are shown when the field is focused and empty.
 
 Ordering
 - [ ] [Must] Without optimization, destinations are visited in exactly the order shown in the list. The first is the start and the last is the end.
@@ -158,6 +174,40 @@ Field meaning:
 
 Errors: 400 `VALIDATION_ERROR`, 422 `GEOCODING_FAILED`, 422 `ROUTE_NOT_FOUND`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
 
+
+### GET /api/geocode/autocomplete
+
+Auth: `optionalAuth`. Rate limited per IP (see Configuration).
+
+Query parameters:
+- `text` (required): the text typed so far, trimmed, 3-200 characters.
+- `lat`, `lon` (optional, both or neither): map center used as a ranking bias.
+- `lang` (optional): two-letter language code, default `sv`.
+
+Response 200:
+````json
+{
+  "results": [
+    { "label": "Liseberg, Gothenburg, Sweden", "location": [11.9916, 57.6955], "kind": "poi" },
+    { "label": "Lisebergsgatan, Gothenburg, Sweden", "location": [11.9890, 57.6951], "kind": "address" }
+  ]
+}
+````
+
+An empty `results` array (not an error) means nothing matched.
+
+Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
+
+### Change to POST /api/geocode
+
+Each result now also carries `kind`, so that both endpoints return the same type:
+
+````json
+{ "label": "...", "location": [11.99, 57.69], "kind": "address" }
+````
+
+`kind` is one of `address`, `city`, `poi`. The Facade maps Geoapify's result types to these three values. Landmarks and attractions are not filtered out (do not restrict the search to addresses or cities only).
+
 ### Orchestration inside Express
 
 1. Validate the body with Zod.
@@ -193,12 +243,26 @@ interface GeoapifyFacade {
   getRoute(waypoints: LonLat[], options?: { optimizeStops?: boolean }): Promise<RouteResult>;
   findAccommodation(point: LonLat, radiusMeters: number, types: AccommodationType[]): Promise<Accommodation[]>;
 }
+
+type GeocodeResult = { label: string; location: LonLat; kind: 'address' | 'city' | 'poi' };
+
+interface GeoapifyFacade {
+  // geocode now returns GeocodeResult[] instead of { label, location }[]
+  geocode(query: string): Promise<GeocodeResult[]>;
+  autocomplete(
+    text: string,
+    options?: { bias?: LonLat; lang?: string; limit?: number }
+  ): Promise<GeocodeResult[]>;
+  // getRoute and findAccommodation unchanged
+}
 ```
 
 Notes for the implementation (details stay inside the Facade):
 - Geoapify's routing request has an option to reorder the intermediate stops. According to the Geoapify documentation, the first and last waypoint stay fixed and only the stops in between are reordered. Check the current documentation for the exact parameter and response fields when implementing.
 - The routing request takes waypoints as `latitude,longitude` while our code and the response use `[longitude, latitude]`. Convert in the Facade only, and nowhere else.
 - Map the order Geoapify reports back to indices of the input array, so the rest of the code only sees `waypointOrder`.
+- `autocomplete` uses Geoapify's autocomplete endpoint, which is built for partial input, while `geocode` uses the regular search endpoint. Both return the same normalized type, and `geocode` and `autocomplete` share the code that maps Geoapify results to `kind`.
+- The API key stays in the backend. The browser never calls Geoapify, and Geoapify's own autocomplete package (which expects the key in the browser) is not used.
 
 ## Data
 
@@ -212,6 +276,7 @@ Validation (Zod):
 - `options.maxDrivingHours`: number from 1 to 16, default 6.
 - `options.accommodationTypes`: array of allowed types, default `["hotel"]`.
 - `/api/geocode` `query`: trimmed string, 2-200 characters.
+- `/api/geocode/autocomplete`: `text` trimmed string of 3-200 characters; `lat` and `lon` numbers in range and given together; `lang` a two-letter code.
 
 ## Ordering rules
 
@@ -242,6 +307,11 @@ Geoapify's stop optimization keeps the first and last waypoint fixed. If the use
 
 This is a Could. Only consider it after week 4 and only if the core flow and the Should items are stable. It would need its own spec (`specs/route-ordering.md`) and a new Python endpoint.
 
+## Configuration
+
+- Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing.
+- Frontend: debounce 300 ms, minimum 3 characters, maximum 5 suggestions.
+
 ## UI behavior
 
 Layout: the Plan page has a side panel (destinations, options, results) and a large map. On narrow screens the panel sits above the map.
@@ -261,6 +331,13 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - **State:** held in React state. A page reload loses it (storing it in `sessionStorage` is a Could).
 - **Save button:** visible to everyone. For guests it opens the login prompt from `specs/auth.md`.
 - **Geolocation (Should):** a "Use my location" button next to the first destination. If permission is denied or the position is unavailable, show a message and let the user type an address instead.
+- **Search field:** a single field with a dropdown. While a request is running, show a small spinner inside the field. The dropdown closes on Escape, on selection, and when the field loses focus.
+- **Suggestions list:** each row shows an icon for `kind` (address, city, point of interest) and the label. The highlighted row is visible and follows the arrow keys.
+- **Selecting:** adds the destination at once and clears the field, with a numbered marker on the map. No extra "confirm" step is needed.
+- **Enter without a selection:** runs the normal `POST /api/geocode` search and shows the candidate list from the existing flow.
+- **Cancelling requests:** every new keystroke cancels the previous request (`AbortController`). A request that finishes after a newer one has started is ignored.
+- **Waking the backend:** when the Plan page opens, the frontend sends a quiet `GET /api/health` in the background, so that a sleeping Render service is already awake when the user starts typing.
+- **Fallback message:** if suggestions fail, show a small line under the field ("Suggestions are unavailable, press Enter to search"), not an error banner.
 
 ## Edge cases
 
@@ -285,7 +362,17 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - Very long route: the Python service must handle thousands of coordinates without issues.
 - A break point lands in an area with no accommodation: shown with an empty-state message.
 - User double-clicks "Plan trip": ignore the second request while one is running.
-- Address with unusual characters (a-ring, a-umlaut, o-umlaut, apostrophes): must be passed URL-encoded to Geoapify.
+- Backend asleep (Render cold start): the first suggestion request can take a long time. The user can keep typing and press Enter. The background wake-up request on page load reduces the chance of this.
+- Slow network: older requests are cancelled, and the dropdown keeps showing the previous suggestions or a spinner, never mixed results from different texts.
+- User types very fast, then pastes a long address: debounce means only the final text is sent.
+- Text shorter than 3 characters: no request is sent, the dropdown is closed.
+- Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when the Facade calls Geoapify.
+- Same place shown twice with different labels: show both, but remove exact duplicates (same label and coordinates).
+- Geoapify daily quota is used up: the endpoint returns 503 `UPSTREAM_RATE_LIMITED`, the field falls back to Enter-to-search, and the message explains it.
+- Rate limit hit (429): the field falls back to Enter-to-search for a short while and does not retry in a tight loop.
+- User selects a suggestion and then edits the text: the already added destination is unchanged, and the field starts a new search.
+- Browser autofill or password managers suggesting their own values: set `autocomplete="off"` on the field so it does not clash with our dropdown.
+- A suggestion with a point of interest outside the area Geoapify can route in: it is still added, and the route request returns `ROUTE_NOT_FOUND` later, as usual.
 
 ## Tests
 
@@ -295,6 +382,10 @@ Automated (Should):
 - Ordering with a mocked Facade: a changed `waypointOrder` produces the right `order` and `inputIndex`, the first and last destinations stay in place, and an unchanged order gives `orderOptimized: false`.
 - Optimization failure: the plan falls back to the given order and returns an `ORDER_OPTIMIZATION_UNAVAILABLE` warning.
 - Facade tests with recorded sample responses (so tests do not use up the Geoapify quota), including the mapping from Geoapify's reported order to input indices.
+- Zod validation of the autocomplete query: too short text, text too long, only one of `lat`/`lon`, out-of-range coordinates.
+- Facade `autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, the limit is respected, and exact duplicates are removed.
+- Rate limiting: the 61st request in a minute from one IP returns 429 (use a low limit in the test configuration).
+- Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API).
 
 Manual (Must unless marked):
 - Happy path: Stockholm, Gothenburg, Malmo. The route appears, long legs show break points, break points show hotel suggestions.
@@ -307,6 +398,12 @@ Manual (Must unless marked):
 - (Should) Enter 5 destinations in a clearly bad order, plan with optimization on and then off, and compare the totals. The optimized route should not be worse. Record the numbers for the report.
 - (Should) Move a destination manually and check that the toggle switches, the markers renumber, and the next plan keeps that order.
 - (Should) Press "Use my order instead" after an optimized plan and check that the original order returns.
+- Type "Lisebe" and see Liseberg among the suggestions. Type a street and see addresses. Type a city and see the city.
+- Use only the keyboard: type, arrow down, Enter, and see the destination added.
+- Throttle the network in the browser's developer tools and check that old results never replace new ones.
+- Stop the backend and check that the field still works with Enter and shows the fallback message.
+- Type quickly for a minute and check that the rate limit protects the quota without breaking the field.
+- Check the number of Geoapify requests used after a normal planning session and compare it with the daily quota.
 
 ## Out of scope
 
@@ -316,7 +413,6 @@ Manual (Must unless marked):
 - Multi-day itineraries with arrival times, opening hours, prices, availability, or booking
 - Live traffic
 - Dragging the route or waypoints on the map
-- Autocomplete as you type (a Could, mind the Geoapify quota)
 - Saving, favorites, ratings (other specs)
 
 ## Open questions
@@ -330,6 +426,11 @@ Manual (Must unless marked):
 - Should geocoding be biased towards Sweden or Europe? Check how Geoapify ranks results for ambiguous place names and decide.
 - Cache geocoding results (in memory or in MongoDB) to save quota? Decide only if the quota becomes a problem.
 - Is 10 destinations a sensible maximum? It limits quota use and keeps the UI simple.
+- How does Geoapify count autocomplete requests against the daily credit quota? Check the pricing page before changing debounce or minimum length.
+- What are good rate limit values? 60 per minute per IP is a guess. Check against real typing behavior.
+- How well do landmarks rank next to street addresses? If attractions are buried, consider two groups in the dropdown ("Places" and "Addresses") or a small toggle before the field.
+- Which Geoapify result types map to `poi`? Check real responses and adjust the mapping in the Facade.
+- Should suggestions be restricted to a country or region by default (for example Sweden or Europe)? Decide after testing ambiguous names.
 
 ## Things I must be able to explain (oral exam)
 
@@ -342,6 +443,11 @@ Manual (Must unless marked):
 - Why the response needs both `order` and `inputIndex`, and what would break without client-side ids.
 - Why collecting the user's order and optimizing it are two separate steps.
 - Why the planning endpoints use `optionalAuth`.
+- Why autocomplete goes through Express instead of using Geoapify's browser package directly, and what the trade-off is (API key exposure and quota control versus extra latency and cold starts).
+- What debounce is, why minimum length and a request limit matter for the quota, and why stale responses must be ignored or cancelled (race conditions).
+- How the rate limit protects the quota, and why it returns 429.
+- Why selecting a suggestion needs no second geocoding request.
+- What `kind` is, and why both endpoints return the same normalized type.
 
 ## Definition of Done
 
@@ -350,3 +456,6 @@ Follow the Definition of Done in `CLAUDE.md`. For this spec specifically, also c
 - [ ] No Geoapify key appears in the browser's network tab or in the repository.
 - [ ] Every failure case in Edge cases that is marked as handled has been triggered at least once by hand.
 - [ ] Marker numbers, list numbers, legs, and break points all match after an optimized plan and after a manual move.
+- [ ] Suggestions work with mouse and keyboard in the deployed version, including after the backend has been asleep.
+- [ ] The Geoapify key does not appear in the browser's network tab while typing.
+- [ ] A normal planning session stays well below the daily Geoapify quota.
