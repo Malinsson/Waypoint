@@ -74,6 +74,17 @@ Planning
 - [ ] [Should] If the Python service or the accommodation search fails, the route is still returned with a warning instead of failing the whole request.
 - [ ] [Should] Clicking a leg, break point, or accommodation in the list highlights it on the map.
 
+Places (accommodation and attractions)
+- [ ] [Must] Accommodation near a break point is found with the Geoapify Places API, through the Facade only. No other code calls Places.
+- [ ] [Must] Results are normalized to our own `Accommodation` type (not raw Geoapify features), sorted by distance from the break point, with at most 5 results.
+- [ ] [Must] Places without a name are dropped, and duplicates (same Geoapify place id) are removed.
+- [ ] [Must] If no places are found within 10 km, one retry is made with 25 km. If still nothing is found, the result is an empty list, not an error.
+- [ ] [Must] A failed Places request never fails the whole plan: the break point is returned with an empty list and an `ACCOMMODATION_UNAVAILABLE` warning.
+- [ ] [Must] The distance shown to the user is labeled as straight-line distance from the stop ("about 3 km from the stop"), not driving distance.
+- [ ] [Should] When several accommodation types are requested, they are searched in one request per break point (several categories in one call), and each result gets its `type` from the categories in the response.
+- [ ] [Should] A plan creates at most 10 accommodation searches in total. If the route has more break points, accommodation is searched for the first 10 and a `TOO_MANY_BREAK_POINTS` warning is added.
+- [ ] [Could] `POST /api/places/attractions` returns sights and tourist attractions around a point. A "Sights nearby" button on a destination shows them in a list with an "Add as stop" action.
+
 Errors and states
 - [ ] [Must] A loading state is shown while planning. The button is disabled to prevent double submits.
 - [ ] [Must] Invalid input returns 400 `VALIDATION_ERROR`. An address that cannot be geocoded returns 422 `GEOCODING_FAILED` with the index of the failing destination. A pair of points with no drivable route returns 422 `ROUTE_NOT_FOUND`.
@@ -208,6 +219,59 @@ Each result now also carries `kind`, so that both endpoints return the same type
 
 `kind` is one of `address`, `city`, `poi`. The Facade maps Geoapify's result types to these three values. Landmarks and attractions are not filtered out (do not restrict the search to addresses or cities only).
 
+### Change to the plan response (accommodation items)
+
+Each accommodation item now also carries an `id` (the Geoapify place id, so it can later be stored as a favorite) and an optional `address`:
+
+````json
+{
+  "id": "51a3...",
+  "name": "Hotel Example",
+  "type": "hotel",
+  "location": [15.61, 58.41],
+  "distanceMeters": 900,
+  "address": "Storgatan 1, Jonkoping"
+}
+````
+
+`distanceMeters` is the straight-line distance from the break point, not a driving distance.
+
+New warning code: `TOO_MANY_BREAK_POINTS`.
+
+### POST /api/places/attractions (Could)
+
+Auth: `optionalAuth`. Rate limited per IP (same mechanism as the autocomplete endpoint).
+
+Request:
+````json
+{
+  "location": [11.9746, 57.7089],
+  "radiusMeters": 5000,
+  "limit": 20,
+  "lang": "sv"
+}
+````
+
+Response 200:
+````json
+{
+  "results": [
+    {
+      "id": "7c1e...",
+      "name": "Liseberg",
+      "kind": "attraction",
+      "location": [11.9916, 57.6955],
+      "distanceMeters": 2100,
+      "categories": ["tourism", "tourism.attraction"]
+    }
+  ]
+}
+````
+
+An empty `results` array (not an error) means nothing was found. Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
+
+When the user adds a result as a stop, the destination gets `kind: "poi"` and keeps its `id`.
+
 ### Orchestration inside Express
 
 1. Validate the body with Zod.
@@ -255,6 +319,32 @@ interface GeoapifyFacade {
   ): Promise<GeocodeResult[]>;
   // getRoute and findAccommodation unchanged
 }
+
+type AccommodationType = 'hotel' | 'hostel' | 'camping' | 'parking';
+
+interface Accommodation {
+  id: string;                 // Geoapify place id
+  name: string;
+  type: AccommodationType;
+  location: LonLat;
+  distanceMeters: number;     // straight line from the search point
+  address?: string;
+}
+
+interface Place {
+  id: string;
+  name: string;
+  kind: 'attraction';
+  location: LonLat;
+  distanceMeters: number;
+  categories: string[];
+}
+
+interface GeoapifyFacade {
+  // existing: geocode, autocomplete, getRoute
+  findAccommodation(point: LonLat, radiusMeters: number, types: AccommodationType[]): Promise<Accommodation[]>;
+  findAttractions(point: LonLat, radiusMeters: number, limit?: number): Promise<Place[]>;   // Could
+}
 ```
 
 Notes for the implementation (details stay inside the Facade):
@@ -263,6 +353,25 @@ Notes for the implementation (details stay inside the Facade):
 - Map the order Geoapify reports back to indices of the input array, so the rest of the code only sees `waypointOrder`.
 - `autocomplete` uses Geoapify's autocomplete endpoint, which is built for partial input, while `geocode` uses the regular search endpoint. Both return the same normalized type, and `geocode` and `autocomplete` share the code that maps Geoapify results to `kind`.
 - The API key stays in the backend. The browser never calls Geoapify, and Geoapify's own autocomplete package (which expects the key in the browser) is not used.
+- Places is a separate Geoapify API from geocoding: `GET /v2/places` with `categories` (required), `filter`, `bias`, `limit`, `lang`, and an optional `name` filter. The Facade builds the query and hides all of this.
+- Search area and ranking: `filter` limits results to a circle around the point, and `bias=proximity:<lon>,<lat>` ranks by closeness. Check the current documentation for the exact filter syntax before implementing. Coordinates in these parameters are written longitude first.
+- The distance returned by Places is measured in a straight line from the bias point. Do not present it as driving distance.
+- Categories are hierarchical: asking for `accommodation` returns all its subcategories, and asking for `accommodation.hotel` only hotels. Prefer the narrow categories from the table below, so that results match what the user asked for.
+- The Facade maps categories in the response back to our `AccommodationType`. A place with several categories gets the first match in the order of the user's preference.
+- Normalization: drop places without a name, remove duplicates by place id, sort by distance, apply the limit.
+- Use one request for all requested types (several categories in one call) to save quota.
+
+## Category mapping
+
+Source of truth is Geoapify’s category list. Verify each value there before relying on it.
+
+| Our type | Geoapify category | Notes |
+|---|---|---|
+| `hotel` | `accommodation.hotel` | Start narrow. Add `accommodation.guest_house` and `accommodation.motel` if too few results are found (see Open questions) |
+| `hostel` | `accommodation.hostel` | |
+| `camping` | `camping.camp_site` | Check whether `camping.caravan_site` should be included for motorhomes |
+| `parking` | `parking.cars` | Does not say whether overnight stays are allowed. Treat as a known limitation, see below |
+| attraction (Could) | `tourism.sights`, `tourism.attraction` | Parent categories include their subcategories |
 
 ## Data
 
@@ -277,6 +386,7 @@ Validation (Zod):
 - `options.accommodationTypes`: array of allowed types, default `["hotel"]`.
 - `/api/geocode` `query`: trimmed string, 2-200 characters.
 - `/api/geocode/autocomplete`: `text` trimmed string of 3-200 characters; `lat` and `lon` numbers in range and given together; `lang` a two-letter code.
+- `/api/places/attractions`: `location` two numbers in range, `radiusMeters` 500-25000 (default 5000), `limit` 1-50 (default 20), `lang` a two-letter code (default `sv`).
 
 ## Ordering rules
 
@@ -311,6 +421,10 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 
 - Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing.
 - Frontend: debounce 300 ms, minimum 3 characters, maximum 5 suggestions.
+- Search radius: 10 km first, one retry at 25 km. Maximum 5 accommodation results per break point.
+- At most 10 accommodation searches per plan.
+- Timeout for each Places request: 10 seconds.
+- Attractions: default radius 5 km, default limit 20, maximum radius 25 km, maximum limit 50.
 
 ## UI behavior
 
@@ -338,6 +452,11 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - **Cancelling requests:** every new keystroke cancels the previous request (`AbortController`). A request that finishes after a newer one has started is ignored.
 - **Waking the backend:** when the Plan page opens, the frontend sends a quiet `GET /api/health` in the background, so that a sleeping Render service is already awake when the user starts typing.
 - **Fallback message:** if suggestions fail, show a small line under the field ("Suggestions are unavailable, press Enter to search"), not an error banner.
+- **Accommodation list:** under each break point, show up to 5 places with name, type icon, and "about X km from the stop". The distance label is clear that it is a straight line.
+- **Empty state:** "No accommodation found nearby" with no error styling. If the search failed, show the warning instead ("Accommodation could not be loaded for this stop").
+- **Too many break points:** a short notice says accommodation is shown for the first 10 stops only.
+- **Highlighting:** clicking a place highlights its marker, and clicking a marker highlights the list item.
+- **Sights nearby (Could):** a small button on each destination opens a list of attractions around it. Each row has name, distance, and an "Add as stop" button. Adding a stop does not re-plan automatically, the user presses "Plan trip" again.
 
 ## Edge cases
 
@@ -373,6 +492,16 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - User selects a suggestion and then edits the text: the already added destination is unchanged, and the field starts a new search.
 - Browser autofill or password managers suggesting their own values: set `autocomplete="off"` on the field so it does not clash with our dropdown.
 - A suggestion with a point of interest outside the area Geoapify can route in: it is still added, and the route request returns `ROUTE_NOT_FOUND` later, as usual.
+- Places returns a place without a name: dropped. If all results are dropped, treat it as "no results" and retry with the larger radius.
+- Same place returned twice: removed by place id.
+- A place has several accommodation categories: it gets one `type`, chosen by the user's preference order.
+- Break point in a very remote area: empty list after both radii, shown with the empty-state message.
+- A long route with a short driving limit gives many break points: capped at 10 searches, with the `TOO_MANY_BREAK_POINTS` warning.
+- Geoapify quota exceeded during a plan: the accommodation part is skipped with a warning, and the route and break points are still returned.
+- Places returns an unexpected shape: the Facade throws a typed error, which the orchestration turns into `ACCOMMODATION_UNAVAILABLE`.
+- Parking results: the category does not guarantee that overnight parking is allowed. Show the type label "Parking" without claiming that sleeping there is allowed.
+- Place names in another script or language: shown as returned. `lang` only affects languages Geoapify supports.
+- The same attraction found near two neighboring destinations: allowed in both lists.
 
 ## Tests
 
@@ -386,6 +515,10 @@ Automated (Should):
 - Facade `autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, the limit is respected, and exact duplicates are removed.
 - Rate limiting: the 61st request in a minute from one IP returns 429 (use a low limit in the test configuration).
 - Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API).
+- Facade `findAccommodation` with a recorded Places response: categories map to the right `type`, unnamed places are dropped, duplicates removed, results sorted by distance, limit applied.
+- Query building: the generated request contains the right categories, a longitude-first filter and bias, the limit, and the language. Test this by inspecting the URL the Facade would call, without sending it.
+- Orchestration with a mocked Facade: empty result at 10 km triggers one retry at 25 km, an empty result at 25 km gives an empty list, a Facade error gives an `ACCOMMODATION_UNAVAILABLE` warning, and more than 10 break points gives `TOO_MANY_BREAK_POINTS` and exactly 10 searches.
+- Zod validation for `/api/places/attractions` (Could).
 
 Manual (Must unless marked):
 - Happy path: Stockholm, Gothenburg, Malmo. The route appears, long legs show break points, break points show hotel suggestions.
@@ -404,6 +537,11 @@ Manual (Must unless marked):
 - Stop the backend and check that the field still works with Enter and shows the fallback message.
 - Type quickly for a minute and check that the rate limit protects the quota without breaking the field.
 - Check the number of Geoapify requests used after a normal planning session and compare it with the daily quota.
+- Plan a route with a break point near a town and check that hotels appear and sit close to the stop on the map.
+- Plan a route through a sparsely populated area and check that the retry at 25 km happens and that an empty list shows the empty-state message.
+- Use a wrong key and check that the route is still returned with a warning.
+- Check that no result without a name is shown, and that distances are labeled as straight-line.
+- (Could) Search sights near Gothenburg and check that well-known attractions appear. Do not assume that a specific one is always present.
 
 ## Out of scope
 
@@ -431,6 +569,12 @@ Manual (Must unless marked):
 - How well do landmarks rank next to street addresses? If attractions are buried, consider two groups in the dropdown ("Places" and "Addresses") or a small toggle before the field.
 - Which Geoapify result types map to `poi`? Check real responses and adjust the mapping in the Facade.
 - Should suggestions be restricted to a country or region by default (for example Sweden or Europe)? Decide after testing ambiguous names.
+- Should `hotel` include `accommodation.guest_house` and `accommodation.motel`? Test on a few real routes and compare the results with only `accommodation.hotel`.
+- Which category covers motorhome pitches (`camping.caravan_site`?), and does Geoapify have any way to tell that overnight parking is allowed? Check the category and condition lists. If not, remove `parking` from the MVP or label it clearly.
+- What is the exact filter syntax for a circle around a point, and how many credits does a Places request cost compared with geocoding? Check the documentation and pricing page before fixing the limit of 10 searches per plan.
+- Does `distanceMeters` need a driving-distance version? Straight-line may mislead near water or across mountains. Revisit if testing shows odd results.
+- Should the break point be moved to the nearest town before searching, so that results are more useful? This belongs to the Could list in `python-service.md`.
+- Should attraction results be cached by rounded coordinates to save quota? Decide only if the quota becomes a problem.
 
 ## Things I must be able to explain (oral exam)
 
@@ -448,6 +592,12 @@ Manual (Must unless marked):
 - How the rate limit protects the quota, and why it returns 429.
 - Why selecting a suggestion needs no second geocoding request.
 - What `kind` is, and why both endpoints return the same normalized type.
+- How the Places API differs from the Geocoding API (search by category and area instead of by text).
+- What hierarchical categories mean, and why the Facade uses narrow categories.
+- Why distance from Places is a straight line, and what that means for the user.
+- Why several types are searched in one request, and why the number of searches per plan is capped.
+- Why a Places failure gives a warning, not an error.
+- Why the Facade, and not the controller, maps Geoapify categories to our own types.
 
 ## Definition of Done
 
@@ -459,3 +609,6 @@ Follow the Definition of Done in `CLAUDE.md`. For this spec specifically, also c
 - [ ] Suggestions work with mouse and keyboard in the deployed version, including after the backend has been asleep.
 - [ ] The Geoapify key does not appear in the browser's network tab while typing.
 - [ ] A normal planning session stays well below the daily Geoapify quota.
+- [ ] The category names used in the Facade have been checked against Geoapify's current category list.
+- [ ] A real route shows hotels near its break points in the deployed version, and the empty-state and warning cases have been triggered at least once by hand.
+- [ ] A normal planning session (including the 25 km retry) stays well below the daily Geoapify quota.
