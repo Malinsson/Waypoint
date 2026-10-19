@@ -1,0 +1,24 @@
+.addDestination {
+  margin-bottom: 1rem;
+}
+
+.addDestinationRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.addDestinationRow input {
+  flex: 1;
+}
+
+/* Numbers are written out in the components, so hide the list markers */
+.candidates {
+  list-style: none;
+  padding-left: 0;
+}
+
+.candidates button {
+  width: 100%;
+  margin-bottom: 0.25rem;
+  text-align: left;
+}

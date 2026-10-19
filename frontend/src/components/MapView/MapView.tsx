@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 // Renamed so it does not shadow JavaScript's built-in Map
+import styles from './MapView.module.css'
 import OlMap from 'ol/Map'
 import View from 'ol/View'
 import Feature from 'ol/Feature'
@@ -12,7 +13,7 @@ import VectorSource from 'ol/source/Vector'
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
 import { fromLonLat } from 'ol/proj'
 import 'ol/ol.css'
-import type { LonLat } from '../types/api.ts'
+import type { LonLat } from '../../types/api.ts'
 
 export type MapMarker = {
   id: string
@@ -119,7 +120,7 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
     map.getView().fit(line.getExtent(), { padding: FIT_PADDING })
   }, [route])
 
-  return <div ref={containerRef} className="map" tabIndex={0} />
+  return <div ref={containerRef} className={styles.map} tabIndex={0} />
 }
 
 export default MapView

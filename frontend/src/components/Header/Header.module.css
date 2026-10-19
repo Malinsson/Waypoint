@@ -1,0 +1,19 @@
+nav {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #ccc;
+}
+
+/* NavLink adds the "active" class to the link for the current page */
+nav a.active {
+  font-weight: bold;
+}
+
+/* Pushes the account links to the right edge of the nav */
+.nav-account {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: auto;
+}

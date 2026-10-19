@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import FormField from '../components/FormField.tsx'
+import FormField from '../components/FormField/FormField.tsx'
 import { useAuth } from '../context/auth-context.ts'
 import { hasErrors, validateRegister, type FieldErrors } from '../utils/auth-validation.ts'
 

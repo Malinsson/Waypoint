@@ -1,4 +1,5 @@
-import type { Destination } from '../types/api.ts'
+import type { Destination } from '../../types/api.ts'
+import styles from './DestinationList.module.css'
 
 type DestinationListProps = {
   destinations: Destination[]
@@ -15,7 +16,7 @@ function DestinationList({ destinations, onRemove, disabled }: DestinationListPr
     <>
       {/* The number is written out (not left to <ol>) so it is always
           visible and clearly matches the number on the map marker */}
-      <ol className="destination-list">
+      <ol className={styles.destinationList}>
         {destinations.map((destination, index) => (
           <li key={destination.id}>
             <span className="destination-name">

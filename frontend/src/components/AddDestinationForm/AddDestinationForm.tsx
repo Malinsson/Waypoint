@@ -1,6 +1,7 @@
+import styles from './AddDestinationForm.module.css'
 import { useState, type FormEvent } from 'react'
-import { geocodeAddress } from '../api/trips.ts'
-import type { GeocodeResult } from '../types/api.ts'
+import { geocodeAddress } from '../../api/trips.ts'
+import type { GeocodeResult } from '../../types/api.ts'
 
 type AddDestinationFormProps = {
   onAdd: (result: GeocodeResult) => void
@@ -47,10 +48,10 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
   }
 
   return (
-    <div className="add-destination">
+    <div className={styles.addDestination}>
       <form onSubmit={handleSubmit}>
         <label htmlFor="destination-query">Add a destination</label>
-        <div className="add-destination-row">
+        <div className={styles.addDestinationRow}>
           <input
             id="destination-query"
             type="text"

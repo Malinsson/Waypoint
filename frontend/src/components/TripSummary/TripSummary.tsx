@@ -1,5 +1,6 @@
-import type { PlanResponse } from '../types/api.ts'
-import { formatDistance, formatDuration } from '../utils/format.ts'
+import type { PlanResponse } from '../../types/api.ts'
+import { formatDistance, formatDuration } from '../../utils/format.ts'
+import styles from './TripSummary.module.css'
 
 type TripSummaryProps = {
   plan: PlanResponse
@@ -16,7 +17,7 @@ function TripSummary({ plan }: TripSummaryProps) {
           {formatDistance(route.distanceMeters)} · {formatDuration(route.durationSeconds)} driving
         </strong>
       </p>
-      <ul className="leg-list">
+      <ul className={styles.legList}>
         {route.legs.map((leg) => {
           // fromIndex/toIndex are positions in plan.destinations
           const from = destinations[leg.fromIndex]

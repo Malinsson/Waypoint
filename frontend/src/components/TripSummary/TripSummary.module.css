@@ -1,0 +1,12 @@
+.legList {
+  list-style: none;
+  padding-left: 0;
+}
+
+.legList li {
+  margin-bottom: 0.5rem;
+}
+
+.error {
+  color: #c62828;
+}

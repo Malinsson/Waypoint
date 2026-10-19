@@ -1,3 +1,5 @@
+import styles from './FormField.module.css'
+
 type FormFieldProps = {
   id: string
   label: string
@@ -13,7 +15,7 @@ function FormField({ id, label, type, value, onChange, error, autoComplete }: Fo
   const errorId = `${id}-error`
 
   return (
-    <div className="form-field">
+    <div className={styles.formField}>
       <label htmlFor={id}>{label}</label>
       <input
         id={id}

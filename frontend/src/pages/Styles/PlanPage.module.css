@@ -1,0 +1,38 @@
+/* Plan page: side panel next to a large map */
+.planLayout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.planPanel h1 {
+  margin-top: 0;
+}
+
+.planActions {
+  display: flex;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.banner {
+    padding: 0.5rem 1rem;
+    border-left: 4px solid currentColor;
+}
+
+.hint {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.error {
+  color: #c62828;
+}
+
+/* On narrow screens the panel sits above the map */
+@media (max-width: 800px) {
+  .planLayout {
+    grid-template-columns: 1fr;
+  }
+}

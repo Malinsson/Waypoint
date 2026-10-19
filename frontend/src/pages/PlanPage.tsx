@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { planTrip } from '../api/trips.ts'
-import AddDestinationForm from '../components/AddDestinationForm.tsx'
-import DestinationList from '../components/DestinationList.tsx'
-import MapView, { type MapMarker } from '../components/MapView.tsx'
-import TripSummary from '../components/TripSummary.tsx'
+import AddDestinationForm from '../components/AddDestinationForm/AddDestinationForm.tsx'
+import DestinationList from '../components/DestinationList/DestinationList.tsx'
+import MapView, { type MapMarker } from '../components/MapView/MapView.tsx'
+import TripSummary from '../components/TripSummary/TripSummary.tsx'
 import type { Destination, GeocodeResult, PlanResponse } from '../types/api.ts'
+import styles from './Styles/PlanPage.module.css'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -74,8 +75,8 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <div className="plan-layout">
-      <aside className="plan-panel">
+    <div className={styles.planLayout}>
+      <aside className={styles.planPanel}>
         <h1>Plan a trip</h1>
 
         <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
@@ -83,7 +84,7 @@ function PlanPage() {
 
         <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
 
-        <div className="plan-actions">
+        <div className={styles.planActions}>
           <button
             type="button"
             onClick={handlePlan}
