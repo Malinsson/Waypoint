@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getHealth } from '../api/health.ts'
-import type { HealthResponse } from '../types/api.ts'
+import { getHealth } from '../../api/health.ts'
+import type { HealthResponse } from '../../types/api.ts'
+import styles from './HomePage.module.css'
 
 // One state value instead of separate loading/data/error flags,
 // so impossible combinations (e.g. loading and error at once) cannot happen
@@ -41,7 +42,7 @@ function HomePage() {
           API: {state.health.status}, Database: {state.health.database}
         </p>
       )}
-      {state.kind === 'error' && <p className="error">{state.message}</p>}
+      {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
     </>
   )
 }

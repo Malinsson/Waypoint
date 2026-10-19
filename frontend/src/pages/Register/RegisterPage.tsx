@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import FormField from '../components/FormField/FormField.tsx'
-import { useAuth } from '../context/auth-context.ts'
-import { hasErrors, validateRegister, type FieldErrors } from '../utils/auth-validation.ts'
+import FormField from '../../components/FormField/FormField.tsx'
+import { useAuth } from '../../context/auth-context.ts'
+import { hasErrors, validateRegister, type FieldErrors } from '../../utils/auth-validation.ts'
+import styles from './RegisterPage.module.css'
 
 function RegisterPage() {
   const { user, loading, register } = useAuth()
@@ -41,7 +42,7 @@ function RegisterPage() {
     <>
       <h1>Create an account</h1>
       {/* noValidate: show our own messages instead of the browser's pop-ups */}
-      <form className="auth-form" onSubmit={handleSubmit} noValidate>
+      <form className={styles.authForm} onSubmit={handleSubmit} noValidate>
         <FormField
           id="displayName"
           label="Display name"
@@ -70,7 +71,7 @@ function RegisterPage() {
           autoComplete="new-password"
         />
         {formError && (
-          <p className="error" role="alert">
+          <p className={styles.error} role="alert">
             {formError}
           </p>
         )}

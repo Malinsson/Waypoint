@@ -11,7 +11,7 @@ nav a.active {
 }
 
 /* Pushes the account links to the right edge of the nav */
-.nav-account {
+.navAccount {
   display: flex;
   gap: 1rem;
   align-items: center;

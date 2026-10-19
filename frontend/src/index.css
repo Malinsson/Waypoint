@@ -44,36 +44,15 @@ body {
   margin: 0;
 }
 
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 24rem;
-}
-
-
-
-.notice {
-  padding: 0.5rem 1rem;
-  border-left: 4px solid #f9a825;
-}
-
 main {
   padding: 1rem 2rem;
 }
 
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+.error {
+  color: #c62828;
+}

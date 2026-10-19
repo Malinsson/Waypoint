@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { planTrip } from '../api/trips.ts'
-import AddDestinationForm from '../components/AddDestinationForm/AddDestinationForm.tsx'
-import DestinationList from '../components/DestinationList/DestinationList.tsx'
-import MapView, { type MapMarker } from '../components/MapView/MapView.tsx'
-import TripSummary from '../components/TripSummary/TripSummary.tsx'
-import type { Destination, GeocodeResult, PlanResponse } from '../types/api.ts'
-import styles from './Styles/PlanPage.module.css'
+import { planTrip } from '../../api/trips.ts'
+import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
+import DestinationList from '../../components/DestinationList/DestinationList.tsx'
+import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
+import TripSummary from '../../components/TripSummary/TripSummary.tsx'
+import type { Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
+import styles from './PlanPage.module.css'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
