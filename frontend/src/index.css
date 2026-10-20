@@ -17,6 +17,9 @@
   --weight-medium: 500;
   --weight-bold: 700;
 
+  --border-light: 1px solid var(--cornsilk);
+  --border-dark: 1px solid var(--charcoal-blue);
+
 
   color-scheme: light dark;
 

@@ -1,12 +1,12 @@
 # Trip Planning (core flow)
 
-Status: draft (v2, adds automatic stop ordering and manual reordering). Priority: Must for the core flow, Should for order optimization and reordering, Could for fully free ordering. Built in weeks 2-3 (destinations, geocoding, route in week 2; break points, accommodation, and ordering in week 3-4). This is the MVP. Related: `CLAUDE.md`, `specs/python-service.md`, `specs/accommodation.md`, `specs/auth.md`, `specs/trips-and-ratings.md`.
+Status: draft (v3, adds Wikidata as a second suggestion source and one merged autocomplete dropdown). Priority: Must for the core flow, Should for order optimization, reordering and autocomplete, Could for fully free ordering. Built in weeks 2-3 (destinations, geocoding, route in week 2; break points, accommodation, and ordering in week 3-4). This is the MVP. Related: `CLAUDE.md`, `specs/python-service.md`, `specs/accommodation.md`, `specs/auth.md`, `specs/trips-and-ratings.md`.
 
 ## Purpose
 
 A visitor enters several destinations in any order, sees them on a map, and gets a driving route. The app can reorder the stops in between to find a better visiting order, and the user can always reorder them by hand. When a leg of the route is longer than the user's driving limit, the app shows where to stop and suggests places to stay near that point. The whole flow works without an account and does not save anything.
 
-The MVP must work with the simplest behavior: visit the destinations in the order they were entered. Ordering optimization is added on top without changing the rest of the flow.
+The MVP must work with the simplest behavior: visit the destinations in the order they were entered. Ordering optimization and autocomplete are added on top without changing the rest of the flow.
 
 ## User stories
 
@@ -24,6 +24,7 @@ The MVP must work with the simplest behavior: visit the destinations in the orde
 - As a logged-in user the flow is identical, plus a "Save trip" button (see `trips-and-ratings.md`).
 - As a guest, I see suggestions while I type a destination, so I don't have to guess the exact spelling (Should).
 - As a guest, I can search for landmarks and tourist attractions by name, not only addresses and cities (Should).
+- As a guest, I see one list of suggestions that mixes addresses, cities, and landmarks, with a short description that helps me tell similar names apart (Should).
 - As a guest, I can pick a suggestion with the mouse or the keyboard (Should).
 
 ## Acceptance criteria
@@ -33,19 +34,25 @@ Destinations and geocoding
 - [ ] [Must] Typing an address and submitting calls `POST /api/geocode` and shows up to 5 candidate matches. Choosing one adds the destination with its coordinates and shows a numbered marker on the map immediately.
 - [ ] [Must] If no match is found, the user sees "We could not find that address" and nothing is added.
 - [ ] [Must] A destination can be removed, and the markers and numbering update.
-- [ ] [Should] The start can be filled from the browser's location (see Geolocation below).
+- [ ] [Should] The start can be filled from the browser's location (see Geolocation in UI behavior).
 
 Autocomplete
-- [ ] [Should] After the user has typed at least 3 characters and paused for about 300 ms, up to 5 suggestions are shown in a dropdown under the field.
-- [ ] [Should] Suggestions include addresses, cities, and points of interest (landmarks, attractions). Each has a label and an icon based on its `kind`.
+- [ ] [Should] After the user has typed at least 3 characters and paused for about 300 ms, up to 8 suggestions are shown in one dropdown under the field.
+- [ ] [Should] Suggestions come from two sources, Geoapify (addresses, cities, points of interest) and Wikidata (named places with coordinates, such as landmarks), and are merged into one list. The user does not see which source a row came from.
+- [ ] [Should] Each row has an icon based on its `kind`, a label, and, when available, a short description (for example "amusement park in Gothenburg, Sweden").
+- [ ] [Should] The same place found by both sources is shown once (see Suggestion merging).
+- [ ] [Should] A well-known landmark searched by its name appears among the first suggestions, ahead of unrelated places with similar names.
 - [ ] [Should] Choosing a suggestion adds the destination directly with its coordinates. No second geocoding request is made.
 - [ ] [Should] The dropdown works with the keyboard: arrow up/down moves the highlight, Enter selects, Escape closes it.
 - [ ] [Should] If the user keeps typing, responses to older requests are ignored or cancelled, so outdated suggestions never replace newer ones.
 - [ ] [Should] If there are no matches, the dropdown shows "No results".
-- [ ] [Should] If the suggestion request fails (network error, rate limit, service down), the field still works: the user can press Enter to run the normal geocode search (`POST /api/geocode`), and a short message explains that suggestions are unavailable.
-- [ ] [Should] Suggestions are biased towards the current map center when it is known, so nearby places rank higher.
-- [ ] [Should] The suggestion endpoint is rate limited, so that a burst of typing cannot use up the daily Geoapify quota.
+- [ ] [Should] If one source fails or is too slow, the suggestions from the other source are still shown, and the response is marked `partial`.
+- [ ] [Should] If both sources fail (network error, rate limit, service down), the field still works: the user can press Enter to run the normal geocode search (`POST /api/geocode`), and a short message explains that suggestions are unavailable.
+- [ ] [Should] Geoapify suggestions are biased towards the current map center when it is known, so nearby places rank higher. Wikidata suggestions are not biased by location.
+- [ ] [Should] Wikidata requests identify the app with a descriptive `User-Agent` header.
+- [ ] [Should] The suggestion endpoint is rate limited, so that a burst of typing cannot use up the daily Geoapify quota or flood Wikidata.
 - [ ] [Should] The dropdown uses correct combobox semantics (`role="combobox"`, `aria-expanded`, `aria-activedescendant`, options with `role="option"`) so that it works with screen readers.
+- [ ] [Could] Wikidata results are cached in memory for a short time (see Configuration).
 - [ ] [Could] Recently chosen places are shown when the field is focused and empty.
 
 Ordering
@@ -110,12 +117,56 @@ Response 200:
 ```json
 {
   "results": [
-    { "label": "Drottninggatan 1, 111 51 Stockholm, Sweden", "location": [18.0686, 59.3293] }
+    { "label": "Drottninggatan 1, 111 51 Stockholm, Sweden", "location": [18.0686, 59.3293], "kind": "address" }
   ]
 }
 ```
 
+`kind` is one of `address`, `city`, `poi`. The Facade maps Geoapify's result types to these three values. Landmarks and attractions are not filtered out (do not restrict the search to addresses or cities only). `kind` is also returned by the autocomplete endpoint, so both endpoints share the same base type.
+
 An empty `results` array (not an error) means nothing was found. Errors: 400 `VALIDATION_ERROR`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
+
+### GET /api/geocode/autocomplete
+
+Auth: `optionalAuth`. Rate limited per IP (see Configuration).
+
+Query parameters:
+- `text` (required): the text typed so far, trimmed, 3-200 characters.
+- `lat`, `lon` (optional, both or neither): map center used as a ranking bias for Geoapify.
+- `lang` (optional): two-letter language code, default `en`. Passed to both Geoapify and Wikidata.
+
+Response 200:
+```json
+{
+  "results": [
+    {
+      "id": "wd:Q1413270",
+      "label": "Liseberg",
+      "description": "amusement park in Gothenburg, Sweden",
+      "location": [11.99, 57.6956],
+      "kind": "poi",
+      "source": "both"
+    },
+    {
+      "id": "geo:51a3...",
+      "label": "Lisebergsgatan, Gothenburg, Sweden",
+      "location": [11.989, 57.6951],
+      "kind": "address",
+      "source": "geoapify"
+    }
+  ],
+  "partial": false
+}
+```
+
+Field meaning:
+- `id`: prefixed by source (`geo:<Geoapify place id>` or `wd:<Wikidata Q-id>`), so ids never collide. For a merged entry the Wikidata id is used.
+- `description`: optional short text that helps the user tell similar names apart. Comes from Wikidata. Geoapify-only entries usually have none.
+- `kind`: `address`, `city`, or `poi`. A Wikidata-only entry is `poi` (see Open questions).
+- `source`: `geoapify`, `wikidata`, or `both`. Used for tests and debugging, not shown to the user.
+- `partial`: `true` when one of the two sources failed or timed out, so the list may be missing results.
+
+An empty `results` array (not an error) means nothing matched. Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE` (both sources failed), 503 `UPSTREAM_RATE_LIMITED` (both sources failed and Geoapify's quota is the reason).
 
 ### POST /api/trips/plan
 
@@ -169,7 +220,14 @@ Response 200 (shape; the exact numbers depend on the route):
       "location": [15.6, 58.4],
       "cumulativeSeconds": 14400,
       "accommodation": [
-        { "name": "Hotel Example", "type": "hotel", "location": [15.61, 58.41], "distanceMeters": 900 }
+        {
+          "id": "51a3...",
+          "name": "Hotel Example",
+          "type": "hotel",
+          "location": [15.61, 58.41],
+          "distanceMeters": 900,
+          "address": "Storgatan 1, Jonkoping"
+        }
       ]
     }
   ],
@@ -181,79 +239,28 @@ Field meaning:
 - `order`: position in the order that was used for the route. Marker numbers, legs (`fromIndex`, `toIndex`), and break points (`legIndex`) all refer to `order`.
 - `inputIndex`: position in the request array. Used to restore the user's own order.
 - `orderOptimized`: `true` only if the app actually reordered something. It is `false` when optimization was not requested, was not possible, or failed.
-- `warnings`: a list of `{ "code": "...", "message": "..." }`, for example `BREAK_POINTS_UNAVAILABLE`, `ACCOMMODATION_UNAVAILABLE`, or `ORDER_OPTIMIZATION_UNAVAILABLE`.
+- accommodation `id`: the Geoapify place id, so it can later be stored as a favorite. `address` is optional.
+- accommodation `distanceMeters`: the straight-line distance from the break point, not a driving distance.
+- `warnings`: a list of `{ "code": "...", "message": "..." }`. Codes: `BREAK_POINTS_UNAVAILABLE`, `ACCOMMODATION_UNAVAILABLE`, `ORDER_OPTIMIZATION_UNAVAILABLE`, `TOO_MANY_BREAK_POINTS`.
 
 Errors: 400 `VALIDATION_ERROR`, 422 `GEOCODING_FAILED`, 422 `ROUTE_NOT_FOUND`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
-
-
-### GET /api/geocode/autocomplete
-
-Auth: `optionalAuth`. Rate limited per IP (see Configuration).
-
-Query parameters:
-- `text` (required): the text typed so far, trimmed, 3-200 characters.
-- `lat`, `lon` (optional, both or neither): map center used as a ranking bias.
-- `lang` (optional): two-letter language code, default `sv`.
-
-Response 200:
-````json
-{
-  "results": [
-    { "label": "Liseberg, Gothenburg, Sweden", "location": [11.9916, 57.6955], "kind": "poi" },
-    { "label": "Lisebergsgatan, Gothenburg, Sweden", "location": [11.9890, 57.6951], "kind": "address" }
-  ]
-}
-````
-
-An empty `results` array (not an error) means nothing matched.
-
-Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
-
-### Change to POST /api/geocode
-
-Each result now also carries `kind`, so that both endpoints return the same type:
-
-````json
-{ "label": "...", "location": [11.99, 57.69], "kind": "address" }
-````
-
-`kind` is one of `address`, `city`, `poi`. The Facade maps Geoapify's result types to these three values. Landmarks and attractions are not filtered out (do not restrict the search to addresses or cities only).
-
-### Change to the plan response (accommodation items)
-
-Each accommodation item now also carries an `id` (the Geoapify place id, so it can later be stored as a favorite) and an optional `address`:
-
-````json
-{
-  "id": "51a3...",
-  "name": "Hotel Example",
-  "type": "hotel",
-  "location": [15.61, 58.41],
-  "distanceMeters": 900,
-  "address": "Storgatan 1, Jonkoping"
-}
-````
-
-`distanceMeters` is the straight-line distance from the break point, not a driving distance.
-
-New warning code: `TOO_MANY_BREAK_POINTS`.
 
 ### POST /api/places/attractions (Could)
 
 Auth: `optionalAuth`. Rate limited per IP (same mechanism as the autocomplete endpoint).
 
 Request:
-````json
+```json
 {
   "location": [11.9746, 57.7089],
   "radiusMeters": 5000,
   "limit": 20,
-  "lang": "sv"
+  "lang": "en"
 }
-````
+```
 
 Response 200:
-````json
+```json
 {
   "results": [
     {
@@ -266,13 +273,13 @@ Response 200:
     }
   ]
 }
-````
+```
 
 An empty `results` array (not an error) means nothing was found. Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
 
-When the user adds a result as a stop, the destination gets `kind: "poi"` and keeps its `id`.
+When the user adds a result as a stop, the destination gets `kind: "poi"`. Whether it also keeps the place id is an open question.
 
-### Orchestration inside Express
+### Orchestration inside Express: planning
 
 1. Validate the body with Zod.
 2. Geocode any destination that only has an address (Facade).
@@ -285,12 +292,52 @@ When the user adds a result as a stop, the destination gets `kind: "poi"` and ke
 7. For each break point, ask the Facade for accommodation matching the requested types (`specs/accommodation.md`). If this fails for a break point, return it with an empty list and an `ACCOMMODATION_UNAVAILABLE` warning.
 8. Return the combined result.
 
-### Facade interface (backend)
+### Orchestration inside Express: autocomplete
 
-The Facade returns **our own normalized types**, never raw Geoapify responses.
+1. Rate limit middleware, then validate the query with Zod. Trim the text and collapse repeated spaces.
+2. Start both lookups at the same time, each with its own timeout:
+   - `GeoapifyFacade.autocomplete(text, { bias, lang, limit })`
+   - `WikidataFacade.searchPlaces(text, { lang, limit })`
+3. Wait for both with `Promise.allSettled`, so that one failure never cancels the other.
+4. If both failed, return 503 (`UPSTREAM_RATE_LIMITED` if Geoapify's quota is the reason, otherwise `UPSTREAM_UNAVAILABLE`). If only one failed, continue with the other list and set `partial: true`. Log which source failed.
+5. Merge the two lists with `mergeSuggestions` (next section) and return at most 8 results.
+
+## Suggestion merging
+
+Implemented as one pure function, `mergeSuggestions(geoapify, wikidata, text, max)` in `backend/src/services/suggestions.ts`, called by the autocomplete controller. It does no network calls, so it is easy to unit test and easy to explain.
+
+Why two sources: Geoapify's autocomplete is built for addresses and places in its own data, and some landmarks are missing or ranked below unrelated places (a search for "Liseberg" can return a suburb or a station first). Wikidata knows landmarks by name and gives a short description, but it has no concept of street addresses. Neither alone is enough.
+
+Rules (a starting point, to be tuned with the manual test list):
+
+1. Clean each list: remove entries without a label or a valid location, and remove exact duplicates inside one list (same label and coordinates).
+2. Find cross-source duplicates. A Geoapify entry and a Wikidata entry are the same place when both hold:
+   - their names are equal after normalization (lowercase, diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
+   - their locations are at most 2 km apart (haversine distance).
+3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `kind` and `location` from Geoapify, `source: "both"`.
+4. Order the result:
+   1. Merged entries first (both sources agree), in the order Wikidata ranked them.
+   2. Then the remaining entries alternate between the two lists, starting with Wikidata, each list keeping its own order. If the text contains a digit (probably an address), the alternation starts with Geoapify instead.
+   3. When one list runs out, the rest of the other list follows.
+5. Cut the list to `max` (8).
+
+What this does not do: it does not show source headers or groups. The dropdown is one list, and the `description` line is what tells similar names apart.
+
+## Facade interfaces (backend)
+
+Both Facades return **our own normalized types**, never raw upstream responses. Express never calls Geoapify or Wikidata except through them.
 
 ```ts
 type LonLat = [number, number];
+
+type GeocodeResult = { label: string; location: LonLat; kind: 'address' | 'city' | 'poi' };
+
+// A suggestion in the autocomplete dropdown. Both Facades produce this type.
+type Suggestion = GeocodeResult & {
+  id: string;                                   // "geo:<place id>" or "wd:<Q-id>"
+  description?: string;
+  source: 'geoapify' | 'wikidata' | 'both';     // 'both' is only set by mergeSuggestions
+};
 
 interface RouteResult {
   distanceMeters: number;
@@ -300,24 +347,6 @@ interface RouteResult {
   // For each position in the route, the index of that waypoint in the input array.
   // Equals [0, 1, 2, ...] when the order was not changed.
   waypointOrder: number[];
-}
-
-interface GeoapifyFacade {
-  geocode(query: string): Promise<{ label: string; location: LonLat }[]>;
-  getRoute(waypoints: LonLat[], options?: { optimizeStops?: boolean }): Promise<RouteResult>;
-  findAccommodation(point: LonLat, radiusMeters: number, types: AccommodationType[]): Promise<Accommodation[]>;
-}
-
-type GeocodeResult = { label: string; location: LonLat; kind: 'address' | 'city' | 'poi' };
-
-interface GeoapifyFacade {
-  // geocode now returns GeocodeResult[] instead of { label, location }[]
-  geocode(query: string): Promise<GeocodeResult[]>;
-  autocomplete(
-    text: string,
-    options?: { bias?: LonLat; lang?: string; limit?: number }
-  ): Promise<GeocodeResult[]>;
-  // getRoute and findAccommodation unchanged
 }
 
 type AccommodationType = 'hotel' | 'hostel' | 'camping' | 'parking';
@@ -341,17 +370,30 @@ interface Place {
 }
 
 interface GeoapifyFacade {
-  // existing: geocode, autocomplete, getRoute
+  geocode(query: string): Promise<GeocodeResult[]>;
+  autocomplete(
+    text: string,
+    options?: { bias?: LonLat; lang?: string; limit?: number; signal?: AbortSignal }
+  ): Promise<Suggestion[]>;
+  getRoute(waypoints: LonLat[], options?: { optimizeStops?: boolean }): Promise<RouteResult>;
   findAccommodation(point: LonLat, radiusMeters: number, types: AccommodationType[]): Promise<Accommodation[]>;
   findAttractions(point: LonLat, radiusMeters: number, limit?: number): Promise<Place[]>;   // Could
 }
+
+interface WikidataFacade {
+  searchPlaces(
+    text: string,
+    options?: { lang?: string; limit?: number; signal?: AbortSignal }
+  ): Promise<Suggestion[]>;
+}
 ```
 
-Notes for the implementation (details stay inside the Facade):
+Notes for the implementation of `GeoapifyFacade` (details stay inside the Facade):
 - Geoapify's routing request has an option to reorder the intermediate stops. According to the Geoapify documentation, the first and last waypoint stay fixed and only the stops in between are reordered. Check the current documentation for the exact parameter and response fields when implementing.
 - The routing request takes waypoints as `latitude,longitude` while our code and the response use `[longitude, latitude]`. Convert in the Facade only, and nowhere else.
 - Map the order Geoapify reports back to indices of the input array, so the rest of the code only sees `waypointOrder`.
-- `autocomplete` uses Geoapify's autocomplete endpoint, which is built for partial input, while `geocode` uses the regular search endpoint. Both return the same normalized type, and `geocode` and `autocomplete` share the code that maps Geoapify results to `kind`.
+- `autocomplete` uses Geoapify's autocomplete endpoint (`/v1/geocode/autocomplete`), which is built for partial input, while `geocode` uses the regular search endpoint. Both map results to `kind` with shared code.
+- Location bias is written `bias=proximity:<lon>,<lat>`, longitude first. Do not rely on the default country bias without checking it (see Open questions).
 - The API key stays in the backend. The browser never calls Geoapify, and Geoapify's own autocomplete package (which expects the key in the browser) is not used.
 - Places is a separate Geoapify API from geocoding: `GET /v2/places` with `categories` (required), `filter`, `bias`, `limit`, `lang`, and an optional `name` filter. The Facade builds the query and hides all of this.
 - Search area and ranking: `filter` limits results to a circle around the point, and `bias=proximity:<lon>,<lat>` ranks by closeness. Check the current documentation for the exact filter syntax before implementing. Coordinates in these parameters are written longitude first.
@@ -361,9 +403,22 @@ Notes for the implementation (details stay inside the Facade):
 - Normalization: drop places without a name, remove duplicates by place id, sort by distance, apply the limit.
 - Use one request for all requested types (several categories in one call) to save quota.
 
+Notes for the implementation of `WikidataFacade`:
+- Searching takes two requests to the Wikidata Action API (`https://www.wikidata.org/w/api.php`), because the search result contains no coordinates:
+  1. Search: `action=query&list=search&srsearch=<text> haswbstatement:P625&srnamespace=0&srlimit=<n>&format=json`. The filter `haswbstatement:P625` keeps only items that have coordinates. The Q-ids are in the `title` field of each result. (The `snippet` is only a description in English and is not used.)
+  2. Details, in one batched request for all Q-ids: `action=wbgetentities&ids=Q1|Q2|...&props=labels|descriptions|claims&languages=<lang>&format=json` (up to 50 ids per request). This gives the label, the description, and the coordinates (property `P625`).
+- Mapping to `Suggestion`:
+  - `label` and `description` from the entity in the requested language. If there is no label in that language, drop the entity.
+  - Coordinates from `P625`: the value has `latitude`, `longitude`, and `globe`. Only use values whose `globe` is `http://www.wikidata.org/entity/Q2` (Earth). If there are several `P625` statements, prefer one with rank `preferred`, otherwise the first that is not `deprecated`. Drop the entity if none qualifies.
+  - Convert to `[longitude, latitude]` inside the Facade. This is the only place where Wikidata's `latitude`/`longitude` fields are used.
+  - `kind` is `poi`, `source` is `wikidata`, `id` is `wd:<Q-id>`.
+- Keep the user's text as plain text: URL-encode it and neutralize characters that have a meaning in Wikidata's search syntax (quotes, colons, pipes), so that typing `haswbstatement:` or similar cannot change the query.
+- Every request sends a descriptive `User-Agent` header with the app name and a contact address (from the environment variable `WIKIDATA_USER_AGENT`). Wikimedia asks API clients to do this.
+- The Facade throws a typed error for network errors, non-200 responses, and unexpected shapes. The autocomplete orchestration treats any error as "this source failed".
+
 ## Category mapping
 
-Source of truth is Geoapify’s category list. Verify each value there before relying on it.
+Source of truth is Geoapify's category list. Verify each value there before relying on it.
 
 | Our type | Geoapify category | Notes |
 |---|---|---|
@@ -385,8 +440,8 @@ Validation (Zod):
 - `options.maxDrivingHours`: number from 1 to 16, default 6.
 - `options.accommodationTypes`: array of allowed types, default `["hotel"]`.
 - `/api/geocode` `query`: trimmed string, 2-200 characters.
-- `/api/geocode/autocomplete`: `text` trimmed string of 3-200 characters; `lat` and `lon` numbers in range and given together; `lang` a two-letter code.
-- `/api/places/attractions`: `location` two numbers in range, `radiusMeters` 500-25000 (default 5000), `limit` 1-50 (default 20), `lang` a two-letter code (default `sv`).
+- `/api/geocode/autocomplete`: `text` trimmed string of 3-200 characters; `lat` and `lon` numbers in range and given together; `lang` a two-letter code, default `en`.
+- `/api/places/attractions`: `location` two numbers in range, `radiusMeters` 500-25000 (default 5000), `limit` 1-50 (default 20), `lang` a two-letter code (default `en`).
 
 ## Ordering rules
 
@@ -419,9 +474,13 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 
 ## Configuration
 
-- Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing.
-- Frontend: debounce 300 ms, minimum 3 characters, maximum 5 suggestions.
-- Search radius: 10 km first, one retry at 25 km. Maximum 5 accommodation results per break point.
+- Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing. One autocomplete request costs one Geoapify request and two Wikidata requests.
+- Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown.
+- Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown).
+- Merging: names compared after normalization, locations at most 2 km apart to count as the same place.
+- Wikidata cache (Could): in memory, keyed by language and normalized text, time to live about 10 minutes, with a size limit.
+- Environment variable `WIKIDATA_USER_AGENT`: app name and contact address, sent with every Wikidata request.
+- Search radius for accommodation: 10 km first, one retry at 25 km. Maximum 5 accommodation results per break point.
 - At most 10 accommodation searches per plan.
 - Timeout for each Places request: 10 seconds.
 - Attractions: default radius 5 km, default limit 20, maximum radius 25 km, maximum limit 50.
@@ -430,7 +489,15 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 
 Layout: the Plan page has a side panel (destinations, options, results) and a large map. On narrow screens the panel sits above the map.
 
-- **Add destination:** one text field plus an "Add" button. After submitting, show candidate matches as a short list. Selecting one adds it. Show a small inline spinner while geocoding.
+- **Add destination:** one text field. Must: pressing "Add" (or Enter) with no suggestion selected calls `POST /api/geocode` and shows the candidate matches as a short list; selecting one adds it. A small inline spinner is shown while geocoding. Should: while typing, a dropdown with suggestions is shown (next bullets).
+- **Suggestions dropdown:** one list that mixes addresses, cities, and landmarks. The user never sees which source a row came from, and there are no group headers. While a request is running, show a small spinner inside the field. The dropdown closes on Escape, on selection, and when the field loses focus.
+- **Suggestion rows:** each row shows an icon for `kind` (address, city, point of interest), the label, and, if there is a description, a second line in lighter text ("amusement park in Gothenburg, Sweden"). The description is what separates two places with the same name. The highlighted row is visible and follows the arrow keys. The row's accessible name includes the description.
+- **Selecting:** adds the destination at once and clears the field, with a numbered marker on the map. No extra "confirm" step is needed.
+- **Enter without a selection:** runs the normal `POST /api/geocode` search and shows the candidate list from the existing flow.
+- **Cancelling requests:** every new keystroke cancels the previous request (`AbortController`). A request that finishes after a newer one has started is ignored.
+- **Waking the backend:** when the Plan page opens, the frontend sends a quiet `GET /api/health` in the background, so that a sleeping Render service is already awake when the user starts typing.
+- **Partial results:** if the response has `partial: true`, show a small line under the list ("Some suggestions may be missing"), not an error banner.
+- **Fallback message:** if suggestions fail completely, show a small line under the field ("Suggestions are unavailable, press Enter to search"), not an error banner.
 - **Destination list:** numbered, each item with a remove button and up/down buttons. Every item has a stable client-side `id`. Marker numbers on the map match the list. A short hint explains: "The first is your start and the last is your end. Stops in between can be reordered."
 - **Options:** the "Optimize order / Keep my order" toggle, the driving limit input (hours), and the accommodation type (MVP: fixed to hotel). A "Round trip" checkbox is a Could.
 - **Manual move:** moving an item switches the toggle to "Keep my order". The map markers renumber at once, and the route is only recalculated when the user presses "Plan trip" again.
@@ -438,32 +505,26 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - **Reorder notice:** after a response with `orderOptimized: true`, show "We reordered your stops" with a "Use my order instead" button.
 - **Results:** a total summary (distance, driving time), then each leg with distance and time, with break points listed under the leg they belong to, each with its accommodation list.
 - **Map:** destination markers (numbered by final order), route line, break point markers, accommodation markers. Fit the view to the route extent after planning. Convert coordinates with `fromLonLat` when passing them to OpenLayers.
-- **Empty state:** before any destinations are added, show a short instruction ("Add at least two destinations to plan your trip").
+- **Empty state (plan page):** before any destinations are added, show a short instruction ("Add at least two destinations to plan your trip").
 - **Warnings:** shown as a non-blocking notice above the results.
 - **Errors:** shown as a banner with a "Try again" action. The entered destinations are kept.
 - **Start over:** clears destinations, route, and results.
 - **State:** held in React state. A page reload loses it (storing it in `sessionStorage` is a Could).
 - **Save button:** visible to everyone. For guests it opens the login prompt from `specs/auth.md`.
 - **Geolocation (Should):** a "Use my location" button next to the first destination. If permission is denied or the position is unavailable, show a message and let the user type an address instead.
-- **Search field:** a single field with a dropdown. While a request is running, show a small spinner inside the field. The dropdown closes on Escape, on selection, and when the field loses focus.
-- **Suggestions list:** each row shows an icon for `kind` (address, city, point of interest) and the label. The highlighted row is visible and follows the arrow keys.
-- **Selecting:** adds the destination at once and clears the field, with a numbered marker on the map. No extra "confirm" step is needed.
-- **Enter without a selection:** runs the normal `POST /api/geocode` search and shows the candidate list from the existing flow.
-- **Cancelling requests:** every new keystroke cancels the previous request (`AbortController`). A request that finishes after a newer one has started is ignored.
-- **Waking the backend:** when the Plan page opens, the frontend sends a quiet `GET /api/health` in the background, so that a sleeping Render service is already awake when the user starts typing.
-- **Fallback message:** if suggestions fail, show a small line under the field ("Suggestions are unavailable, press Enter to search"), not an error banner.
 - **Accommodation list:** under each break point, show up to 5 places with name, type icon, and "about X km from the stop". The distance label is clear that it is a straight line.
-- **Empty state:** "No accommodation found nearby" with no error styling. If the search failed, show the warning instead ("Accommodation could not be loaded for this stop").
+- **Empty state (accommodation):** "No accommodation found nearby" with no error styling. If the search failed, show the warning instead ("Accommodation could not be loaded for this stop").
 - **Too many break points:** a short notice says accommodation is shown for the first 10 stops only.
 - **Highlighting:** clicking a place highlights its marker, and clicking a marker highlights the list item.
 - **Sights nearby (Could):** a small button on each destination opens a list of attractions around it. Each row has name, distance, and an "Add as stop" button. Adding a stop does not re-plan automatically, the user presses "Plan trip" again.
 
 ## Edge cases
 
+Planning and routing
 - The same destination added twice in a row: allowed, but the leg has zero length and no break point. Show it without error, or warn (decide when building, not important for MVP).
 - Two destinations that are very close: valid route, no break points.
 - Destinations separated by sea or with no road connection: Geoapify returns no route, so respond 422 `ROUTE_NOT_FOUND`.
-- Destination outside the area Geoapify can route in: treat the same as above.
+- Destination outside the area Geoapify can route in: treat the same as above. A suggestion outside that area is still added, and the route request returns `ROUTE_NOT_FOUND` later, as usual.
 - Optimization with 2 destinations: skipped, `orderOptimized` is `false`, no warning.
 - Optimization with 3 destinations (one stop in between): nothing can change, `orderOptimized` is `false`.
 - Optimization returns the same order the user entered: `orderOptimized` is `false`, no notice is shown.
@@ -475,32 +536,45 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - Round trip with only 2 destinations: valid, a route there and back.
 - Geoapify returns an unexpected shape: the Facade throws a typed error, and the controller maps it to 503 `UPSTREAM_UNAVAILABLE`.
 - Geoapify daily quota exceeded: 503 `UPSTREAM_RATE_LIMITED` with a friendly message.
-- Upstream call hangs: each external call has a 10 second timeout. Exception: the optimized routing request (`optimize_stops`) gets 45 seconds, because Geoapify measured 13 s for 4 and 25-29 s for 5 Swedish cities. If it times out, the plan falls back to the given order with a warning. The frontend's loading state must account for waits of up to about a minute.
+- Geoapify quota exceeded during a plan: the accommodation part is skipped with a warning, and the route and break points are still returned.
+- Upstream call hangs: each external call has a 10 second timeout. Exceptions: the optimized routing request (`optimize_stops`) gets 45 seconds, because Geoapify measured 13 s for 4 and 25-29 s for 5 Swedish cities (if it times out, the plan falls back to the given order with a warning, and the frontend's loading state must account for waits of up to about a minute); each suggestion source gets 4 seconds.
 - Python service asleep (Render cold start): the first call can be slow, so allow a longer timeout for it (for example 30 seconds) and still fall back to a warning.
 - Python service down: plan still succeeds with a warning and no break points.
 - Very long route: the Python service must handle thousands of coordinates without issues.
-- A break point lands in an area with no accommodation: shown with an empty-state message.
 - User double-clicks "Plan trip": ignore the second request while one is running.
+
+Autocomplete and suggestions
 - Backend asleep (Render cold start): the first suggestion request can take a long time. The user can keep typing and press Enter. The background wake-up request on page load reduces the chance of this.
 - Slow network: older requests are cancelled, and the dropdown keeps showing the previous suggestions or a spinner, never mixed results from different texts.
 - User types very fast, then pastes a long address: debounce means only the final text is sent.
 - Text shorter than 3 characters: no request is sent, the dropdown is closed.
-- Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when the Facade calls Geoapify.
-- Same place shown twice with different labels: show both, but remove exact duplicates (same label and coordinates).
-- Geoapify daily quota is used up: the endpoint returns 503 `UPSTREAM_RATE_LIMITED`, the field falls back to Enter-to-search, and the message explains it.
+- Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when each Facade calls its upstream.
+- Text contains search syntax (quotes, `haswbstatement:`, pipes): treated as plain text by the `WikidataFacade`, see its notes.
+- Geoapify daily quota is used up: Geoapify fails, Wikidata may still answer (`partial: true`). If both fail, the endpoint returns 503, the field falls back to Enter-to-search, and the message explains it.
 - Rate limit hit (429): the field falls back to Enter-to-search for a short while and does not retry in a tight loop.
 - User selects a suggestion and then edits the text: the already added destination is unchanged, and the field starts a new search.
 - Browser autofill or password managers suggesting their own values: set `autocomplete="off"` on the field so it does not clash with our dropdown.
-- A suggestion with a point of interest outside the area Geoapify can route in: it is still added, and the route request returns `ROUTE_NOT_FOUND` later, as usual.
+- Same place in both sources with the same name and nearby coordinates: shown once (merged).
+- Same place in both sources with different names (for example "Liseberg" and "Liseberg Amusement Park"): may not be merged and can appear twice. Accepted for now, refine the name comparison after testing.
+- Different places with the same name (for example the amusement park in Gothenburg and a district in Stockholm): both are shown and the description tells them apart. They are not merged because they are far apart.
+- Wikidata returns a result without a label in the requested language: dropped.
+- Wikidata item with coordinates on another celestial body: dropped (only Earth is accepted).
+- Wikidata item with several coordinate statements: the preferred one is used, otherwise the first that is not deprecated.
+- Wikidata results that are not good destinations (for example a sports hall, a station, or a district): they are real places with coordinates, so they stay. Classification is an open question.
+- Wikidata is slow, rate limits us, or is down: the dropdown shows Geoapify's results, with `partial: true`.
+- User types a name in another language or spelling (for example "Goteborg" with an umlaut instead of "Gothenburg"): matching depends on how Wikidata and Geoapify handle other languages. Test and record (see Open questions).
+- A suggestion with a point of interest outside the area Geoapify can route in: see Planning and routing.
+
+Places and accommodation
 - Places returns a place without a name: dropped. If all results are dropped, treat it as "no results" and retry with the larger radius.
 - Same place returned twice: removed by place id.
 - A place has several accommodation categories: it gets one `type`, chosen by the user's preference order.
 - Break point in a very remote area: empty list after both radii, shown with the empty-state message.
+- A break point lands in an area with no accommodation: shown with an empty-state message.
 - A long route with a short driving limit gives many break points: capped at 10 searches, with the `TOO_MANY_BREAK_POINTS` warning.
-- Geoapify quota exceeded during a plan: the accommodation part is skipped with a warning, and the route and break points are still returned.
 - Places returns an unexpected shape: the Facade throws a typed error, which the orchestration turns into `ACCOMMODATION_UNAVAILABLE`.
 - Parking results: the category does not guarantee that overnight parking is allowed. Show the type label "Parking" without claiming that sleeping there is allowed.
-- Place names in another script or language: shown as returned. `lang` only affects languages Geoapify supports.
+- Place names in another script or language: shown as returned. `lang` only affects languages the upstream supports.
 - The same attraction found near two neighboring destinations: allowed in both lists.
 
 ## Tests
@@ -511,13 +585,17 @@ Automated (Should):
 - Ordering with a mocked Facade: a changed `waypointOrder` produces the right `order` and `inputIndex`, the first and last destinations stay in place, and an unchanged order gives `orderOptimized: false`.
 - Optimization failure: the plan falls back to the given order and returns an `ORDER_OPTIMIZATION_UNAVAILABLE` warning.
 - Facade tests with recorded sample responses (so tests do not use up the Geoapify quota), including the mapping from Geoapify's reported order to input indices.
-- Zod validation of the autocomplete query: too short text, text too long, only one of `lat`/`lon`, out-of-range coordinates.
-- Facade `autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, the limit is respected, and exact duplicates are removed.
+- Zod validation of the autocomplete query: too short text, text too long, only one of `lat`/`lon`, out-of-range coordinates, bad `lang`.
+- `GeoapifyFacade.autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, ids are prefixed with `geo:`, the limit is respected, and exact duplicates are removed.
+- `WikidataFacade.searchPlaces` with recorded responses (one for the search, one for `wbgetentities`): label and description in the requested language, coordinates converted to `[longitude, latitude]`, other globes dropped, preferred rank chosen, entities without a label dropped, ids prefixed with `wd:`.
+- Query building for Wikidata: the search URL contains the text, `haswbstatement:P625`, namespace 0 and the limit; the details URL joins the ids with `|`; the `User-Agent` header is set; search syntax in the text is neutralized. Test by inspecting the request the Facade would send, without sending it.
+- `mergeSuggestions` (pure function): exact duplicates inside one list are removed; the same place in both lists is merged into one entry with `source: "both"`; two places with the same name far apart are not merged; merged entries come first; alternation starts with Wikidata, and with Geoapify when the text contains a digit; the result is cut to `max`; empty lists on one or both sides.
+- Autocomplete orchestration with mocked Facades: both succeed, one fails (`partial: true`), both fail (503), one source exceeds its timeout.
 - Rate limiting: the 61st request in a minute from one IP returns 429 (use a low limit in the test configuration).
-- Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API).
+- Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API). A component test that a row with a description shows both lines.
 - Facade `findAccommodation` with a recorded Places response: categories map to the right `type`, unnamed places are dropped, duplicates removed, results sorted by distance, limit applied.
-- Query building: the generated request contains the right categories, a longitude-first filter and bias, the limit, and the language. Test this by inspecting the URL the Facade would call, without sending it.
-- Orchestration with a mocked Facade: empty result at 10 km triggers one retry at 25 km, an empty result at 25 km gives an empty list, a Facade error gives an `ACCOMMODATION_UNAVAILABLE` warning, and more than 10 break points gives `TOO_MANY_BREAK_POINTS` and exactly 10 searches.
+- Query building for Places: the generated request contains the right categories, a longitude-first filter and bias, the limit, and the language. Test this by inspecting the URL the Facade would call, without sending it.
+- Accommodation orchestration with a mocked Facade: empty result at 10 km triggers one retry at 25 km, an empty result at 25 km gives an empty list, a Facade error gives an `ACCOMMODATION_UNAVAILABLE` warning, and more than 10 break points gives `TOO_MANY_BREAK_POINTS` and exactly 10 searches.
 - Zod validation for `/api/places/attractions` (Could).
 
 Manual (Must unless marked):
@@ -527,19 +605,21 @@ Manual (Must unless marked):
 - Change the driving limit to 2 and to 10 and re-plan: break points change accordingly.
 - Stop the Python service: the route still shows, with a warning.
 - Use a wrong Geoapify key locally: the user sees a friendly error, and the key is not exposed.
+- Make only the Places request fail (for example by temporarily using an invalid category) and check that the route is still returned with a warning.
 - Repeat the happy path in the deployed version.
 - (Should) Enter 5 destinations in a clearly bad order, plan with optimization on and then off, and compare the totals. The optimized route should not be worse. Record the numbers for the report.
 - (Should) Move a destination manually and check that the toggle switches, the markers renumber, and the next plan keeps that order.
 - (Should) Press "Use my order instead" after an optimized plan and check that the original order returns.
-- Type "Lisebe" and see Liseberg among the suggestions. Type a street and see addresses. Type a city and see the city.
-- Use only the keyboard: type, arrow down, Enter, and see the destination added.
-- Throttle the network in the browser's developer tools and check that old results never replace new ones.
-- Stop the backend and check that the field still works with Enter and shows the fallback message.
-- Type quickly for a minute and check that the rate limit protects the quota without breaking the field.
-- Check the number of Geoapify requests used after a normal planning session and compare it with the daily quota.
+- (Should) Run the suggestion test list and record, for each search, what Geoapify alone shows, what Wikidata alone shows, and what the merged dropdown shows (use these numbers in the report). Start with: "Liseberg" (the amusement park should be among the first rows, ahead of the Stockholm district and the station), "Stockholm" (the capital first, not small places on the west coast), a street address with a number (addresses first), a city name in English and in Swedish spelling, and a few less famous landmarks.
+- (Should) Type a street and see addresses. Type a city and see the city.
+- (Should) Use only the keyboard: type, arrow down, Enter, and see the destination added.
+- (Should) Throttle the network in the browser's developer tools and check that old results never replace new ones.
+- (Should) Stop the backend and check that the field still works with Enter and shows the fallback message.
+- (Should) Make Wikidata unreachable (for example by changing its URL locally) and check that Geoapify suggestions still appear with the partial-results line. Do the same for Geoapify.
+- (Should) Type quickly for a minute and check that the rate limit protects the quota without breaking the field.
+- (Should) Check the number of Geoapify requests used after a normal planning session and compare it with the daily quota.
 - Plan a route with a break point near a town and check that hotels appear and sit close to the stop on the map.
 - Plan a route through a sparsely populated area and check that the retry at 25 km happens and that an empty list shows the empty-state message.
-- Use a wrong key and check that the route is still returned with a warning.
 - Check that no result without a name is shown, and that distances are labeled as straight-line.
 - (Could) Search sights near Gothenburg and check that well-known attractions appear. Do not assume that a specific one is always present.
 
@@ -552,29 +632,42 @@ Manual (Must unless marked):
 - Live traffic
 - Dragging the route or waypoints on the map
 - Saving, favorites, ratings (other specs)
+- Calling Wikidata or Geoapify from the browser (everything goes through Express)
 
 ## Open questions
 
+Routing and planning
 - Should the driving-time counter reset at destinations, or continue across the whole trip? Current decision: reset per leg (see Break point rules). Revisit if it feels wrong when testing.
 - What does Geoapify's stop optimization minimize, driving time or distance? Verify with a few real routes before the UI or the report calls the result the "fastest" order. Until it is verified, the UI label says "Optimize order".
 - What are the limits of the stop optimization (maximum number of stops) and how does it count against the daily quota? Check the Geoapify documentation and test with 10 destinations.
 - Is the result deterministic? If two identical requests can return different orders, decide how the UI should behave.
 - Should "Optimize order" be on by default? Current decision: yes. Reconsider if testers find the reordering surprising.
-- Is a 10 km search radius sensible in sparsely populated areas? Check with a real route in northern Sweden and adjust.
-- Should geocoding be biased towards Sweden or Europe? Check how Geoapify ranks results for ambiguous place names and decide.
-- Cache geocoding results (in memory or in MongoDB) to save quota? Decide only if the quota becomes a problem.
 - Is 10 destinations a sensible maximum? It limits quota use and keeps the UI simple.
-- How does Geoapify count autocomplete requests against the daily credit quota? Check the pricing page before changing debounce or minimum length.
+- When a suggestion or an attraction is added as a stop, does the destination keep the place id (for favorites)? If so, add an optional `placeId` to the destination schema.
+
+Autocomplete and Wikidata
+- How does `list=search` rank its results, and does it favor well-known items? One test (Liseberg) put the amusement park first. Check with more searches, including "Stockholm".
+- Does `list=search` match labels and aliases in other languages ("Goteborg" with an umlaut, "Gothenburg")? Test both spellings, and do the same against Geoapify with `lang=en`.
+- What happens when an item has no label in the requested language? Is the `languagefallback` parameter of `wbgetentities` worth using, or is dropping the item better?
+- How large is the `wbgetentities` response when `claims` is requested for 6 entities? If it is too large or slow, look for a way to ask for only `P625`.
+- What are Wikimedia's current rules for the `User-Agent` format and the request rate? A secondary source suggests 0.5-1 s between requests, which is slower than our debounce. Read Wikimedia's own policy before deploying, and decide whether the cache and a per-IP limit are enough.
+- Should Wikidata items be classified (for example with property `P31`, "instance of") so that `kind` can be `city` for cities and so that stations, halls, and districts can be ranked lower? Currently every Wikidata-only entry is `poi`.
+- Are the merge rules right? Check the 2 km distance limit, the name normalization, the "merged first, then alternate" order, and the "digit means address" rule against the test list. Is 8 suggestions the right number?
+- Should Geoapify results with low `rank.confidence` be dropped or ranked lower? The autocomplete response contains `rank.confidence` and `rank.match_type`; check which values the bad results (a suburb for "Liseberg", west-coast places for "Stockholm") actually have.
+- Geoapify's default country bias is `countrycode:auto`, which according to its documentation is decided by IP address. Since calls come from our server, that may be the server's country and not the user's. A test with `countrycode:se` did not fix the missing landmarks, so this is not the whole explanation. Decide which explicit bias to send (a fixed country, a list, or `none`) after testing ambiguous names.
+- How does Geoapify count autocomplete requests? Its documentation says one autocomplete request equals one credit. Check the pricing page for the current daily free limit before changing debounce or minimum length.
 - What are good rate limit values? 60 per minute per IP is a guess. Check against real typing behavior.
-- How well do landmarks rank next to street addresses? If attractions are buried, consider two groups in the dropdown ("Places" and "Addresses") or a small toggle before the field.
 - Which Geoapify result types map to `poi`? Check real responses and adjust the mapping in the Facade.
-- Should suggestions be restricted to a country or region by default (for example Sweden or Europe)? Decide after testing ambiguous names.
+- Should the Enter fallback (`POST /api/geocode`) also include Wikidata, so that a landmark typed in full and submitted without picking a suggestion is found?
+- Should geocoding, suggestion, and attraction results be cached (in memory or in MongoDB) to save quota? Decide only if the quota becomes a problem.
+
+Accommodation
+- Is a 10 km search radius sensible in sparsely populated areas? Check with a real route in northern Sweden and adjust.
 - Should `hotel` include `accommodation.guest_house` and `accommodation.motel`? Test on a few real routes and compare the results with only `accommodation.hotel`.
 - Which category covers motorhome pitches (`camping.caravan_site`?), and does Geoapify have any way to tell that overnight parking is allowed? Check the category and condition lists. If not, remove `parking` from the MVP or label it clearly.
 - What is the exact filter syntax for a circle around a point, and how many credits does a Places request cost compared with geocoding? Check the documentation and pricing page before fixing the limit of 10 searches per plan.
 - Does `distanceMeters` need a driving-distance version? Straight-line may mislead near water or across mountains. Revisit if testing shows odd results.
 - Should the break point be moved to the nearest town before searching, so that results are more useful? This belongs to the Could list in `python-service.md`.
-- Should attraction results be cached by rounded coordinates to save quota? Decide only if the quota becomes a problem.
 
 ## Things I must be able to explain (oral exam)
 
@@ -592,6 +685,11 @@ Manual (Must unless marked):
 - How the rate limit protects the quota, and why it returns 429.
 - Why selecting a suggestion needs no second geocoding request.
 - What `kind` is, and why both endpoints return the same normalized type.
+- Why a second source is needed for suggestions, what Wikidata is (items with Q-ids, properties such as `P625` for coordinates), and why finding coordinates takes two requests (search, then fetch details for the ids).
+- How the two sources are merged: what counts as the same place, in which order rows are shown, and why the merge is a pure function.
+- Why `Promise.allSettled` is used instead of `Promise.all`, and why one failing source gives a partial result instead of an error.
+- Why `WikidataFacade` exists next to `GeoapifyFacade`, and why the rest of the code never sees Wikidata's own field names or its `latitude`/`longitude` order.
+- Why every Wikidata request sends a descriptive `User-Agent`, and why caching and rate limiting matter when using a public API.
 - How the Places API differs from the Geocoding API (search by category and area instead of by text).
 - What hierarchical categories mean, and why the Facade uses narrow categories.
 - Why distance from Places is a straight line, and what that means for the user.
@@ -603,12 +701,12 @@ Manual (Must unless marked):
 
 Follow the Definition of Done in `CLAUDE.md`. For this spec specifically, also confirm:
 - [ ] The demo script from `CLAUDE.md` (Stockholm, Gothenburg, Malmo) works in the deployed version.
-- [ ] No Geoapify key appears in the browser's network tab or in the repository.
+- [ ] No Geoapify key appears in the browser's network tab (including while typing) or in the repository, and the browser never calls Wikidata or Geoapify directly.
 - [ ] Every failure case in Edge cases that is marked as handled has been triggered at least once by hand.
 - [ ] Marker numbers, list numbers, legs, and break points all match after an optimized plan and after a manual move.
 - [ ] Suggestions work with mouse and keyboard in the deployed version, including after the backend has been asleep.
-- [ ] The Geoapify key does not appear in the browser's network tab while typing.
-- [ ] A normal planning session stays well below the daily Geoapify quota.
+- [ ] The suggestion test list has been run and the results recorded (Geoapify alone, Wikidata alone, merged).
+- [ ] Wikidata requests send a descriptive `User-Agent`, and Wikimedia's current usage rules have been read and followed.
 - [ ] The category names used in the Facade have been checked against Geoapify's current category list.
 - [ ] A real route shows hotels near its break points in the deployed version, and the empty-state and warning cases have been triggered at least once by hand.
-- [ ] A normal planning session (including the 25 km retry) stays well below the daily Geoapify quota.
+- [ ] A normal planning session (including the 25 km retry and a typical amount of typing) stays well below the daily Geoapify quota.
