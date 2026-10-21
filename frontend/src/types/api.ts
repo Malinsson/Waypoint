@@ -51,6 +51,13 @@ export type Suggestion = GeocodeResult & {
   source: 'geoapify' | 'wikidata' | 'both'
 }
 
+// Mirrors backend/src/services/autocomplete-service.ts, keep in sync
+export type SuggestionResponse = {
+  results: Suggestion[]
+  // True when a source failed, so the list may be missing results
+  partial: boolean
+}
+
 export type GeocodeResponse = {
   results: GeocodeResult[]
 }

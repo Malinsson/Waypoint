@@ -471,7 +471,7 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 ## Configuration
 
 - Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing. One autocomplete request costs one Geoapify request and two Wikidata requests.
-- Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown.
+- Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown. After a 429, no suggestion requests for 30 seconds.
 - Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown).
 - Merging: names compared after normalization, locations at most 2 km apart to count as the same place.
 - Wikidata cache (Could): in memory, keyed by language and normalized text, time to live about 10 minutes, with a size limit.
@@ -547,7 +547,7 @@ Autocomplete and suggestions
 - Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when each Facade calls its upstream.
 - Text contains search syntax (quotes, `haswbstatement:`, pipes): treated as plain text by the `WikidataFacade`, see its notes.
 - Geoapify daily quota is used up: Geoapify fails, Wikidata may still answer (`partial: true`). If both fail, the endpoint returns 503, the field falls back to Enter-to-search, and the message explains it.
-- Rate limit hit (429): the field falls back to Enter-to-search for a short while and does not retry in a tight loop.
+- Rate limit hit (429): the field falls back to Enter-to-search for 30 seconds and does not retry in a tight loop. The next keystroke after the pause searches again.
 - User selects a suggestion and then edits the text: the already added destination is unchanged, and the field starts a new search.
 - Browser autofill or password managers suggesting their own values: set `autocomplete="off"` on the field so it does not clash with our dropdown.
 - Same place in both sources with the same name and nearby coordinates: shown once (merged).
