@@ -28,7 +28,7 @@ This file is the living specification for the project. Detailed specs for indivi
 | Backend | Node.js + Express + TypeScript |
 | Database | MongoDB Atlas via Mongoose |
 | Geo service | Python + Flask (separate microservice, REST/JSON) |
-| External APIs | Geoapify (geocoding, routing, places); Overpass API as optional fallback |
+| External APIs | Geoapify (geocoding, routing, places); Wikidata (landmark suggestions); Overpass API as optional fallback |
 | Auth | JWT + bcrypt, authentication is optional for guests |
 | Validation | Zod (backend request validation) |
 | Hosting | Frontend: Vercel. Backend + Python service: Render. DB: MongoDB Atlas |
@@ -43,7 +43,7 @@ Browser (React + TS + OpenLayers)
         v   REST/JSON
 Express API  ------>  MongoDB Atlas (Mongoose)
    |   \
-   |    +---------->  Geoapify (geocode, route, places)
+   |    +---------->  Geoapify (geocode, route, places) +----------> Wikidata (landmark search for suggestions)
    v
 Python service (Flask): break-point calculation
 ```
@@ -86,7 +86,7 @@ Waypoint/
 │       ├── controllers/
 │       ├── models/       # Mongoose schemas
 │       ├── middleware/   # auth, validation, error handling
-│       ├── services/     # GeoapifyFacade, accommodation finders, python client
+│       ├── services/     # GeoapifyFacade, WikidataFacade, suggestions.ts, accommodation finders, python client 
 │       ├── config/       # env loading, db connection (singleton)
 │       └── index.ts
 └── geo-service/          # Flask
@@ -140,6 +140,10 @@ Frontend:
 ```
 VITE_API_URL=http://localhost:3000
 ```
+Geo service:
+```
+GEO_SERVICE_KEY=
+```
 
 ---
 
@@ -149,13 +153,13 @@ VITE_API_URL=http://localhost:3000
 
 **User**: `email` (unique), `passwordHash`, `displayName`, `createdAt`
 
-**Trip**: `owner` (ref User), `title`, `status` (`planned` | `completed`), `destinations[]`, `route` (GeoJSON LineString), `legs[]` (distance, duration), `accommodationPreferences` (`types[]`), `suggestedStops[]`, `rating` (1-5, optional), `createdAt`
+**Trip**: `owner` (ref User), `title`, `status` (`planned` | `completed`), `destinations[]`, `route` (GeoJSON LineString), `legs[]` (distance, duration), `accommodationPreferences` (`types[]`, ordered: first is most preferred), `suggestedStops[]`, `rating` (1-5, optional), `createdAt`
 
 **Destination** (subdocument of Trip): `name`, `location` (GeoJSON Point), `order`, `rating` (optional)
 
 **Favorite**: `owner` (ref User), `name`, `type` (hotel | hostel | camping | parking | other), `location` (GeoJSON Point), `source` (provider and external id), `createdAt`
 
-Coordinates: store GeoJSON order `[longitude, latitude]` everywhere. Convert only at the edge (OpenLayers with `fromLonLat`, Geoapify parameters). Mixing up lat/lon is the most likely geo bug, so be explicit in variable names.
+Coordinates: store GeoJSON order `[longitude, latitude]` everywhere. Convert only at the edge (OpenLayers with `fromLonLat`, Geoapify and Wikidata parameters). Mixing up lat/lon is the most likely geo bug, so be explicit in variable names.
 
 ---
 
@@ -167,6 +171,8 @@ Auth column: `-` public, `opt` optional auth (works for guests), `req` login req
 |---|---|---|---|---|
 | GET | `/api/health` | - | Health check | Must |
 | POST | `/api/geocode` | opt | Address to coordinates | Must |
+| GET | `/api/geocode/autocomplete` | opt | Suggestions while typing (Geoapify + Wikidata, merged) | Should |
+| POST | `/api/places/attractions` | opt | Sights near a point | Could |
 | POST | `/api/trips/plan` | opt | Full planning flow, not saved | Must |
 | POST | `/api/auth/register` | - | Create account | Should |
 | POST | `/api/auth/login` | - | Returns JWT | Should |
@@ -222,7 +228,7 @@ Keep this service pure: input in, result out, easy to unit test with known coord
 
 ## Design patterns
 
-- **Facade**: `GeoapifyFacade` exposes `geocode()`, `getRoute()`, `findAccommodation()`. It hides URLs, keys, parameters, and response shapes, and is the only place that knows about Geoapify (so Places can be swapped for Overpass without touching the rest).
+- **Facades**: Express reaches external APIs only through `GeoapifyFacade` and `WikidataFacade`. They return our own normalized types (`GeocodeResult`, `Suggestion`, `RouteResult`, `Accommodation`), never raw upstream responses. Definitions: `specs/trip-planning.md`.
 - **Factory**: `AccommodationFinderFactory.get(type)` returns the right finder for `hotel`, `hostel`, `camping`, or `parking`. Each finder knows its own category or tag and how to parse results.
 - **Singleton**: database connection and loaded configuration are created once and shared.
 
@@ -357,6 +363,7 @@ Before saying a task is done, go through this list and tell me which items you v
 - Geoapify free tier is limited (about 3000 requests/day). Cache where sensible, mock during development, keep Overpass as fallback.
 - Cross-service integration (Express, Python, external APIs) is where unexpected bugs appear. Define contracts before coding both sides.
 - Browser geolocation accuracy varies a lot (laptops especially).
+- Wikidata is a public API without an API key. Rate limits are unknown and may change. Therefore, a descriptive User-Agent and a restrained rate are required
 
 ---
 

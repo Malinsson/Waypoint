@@ -12,6 +12,7 @@ The service has no database, no user data, no external API calls, and no knowled
 
 - Only the Express backend, over HTTP. The browser never calls it.
 - Because of that, CORS is **not** enabled.
+- Express sends the shared key in the X-Service-Key header, and the service answers 401 without a matching key
 
 ## Acceptance criteria
 
