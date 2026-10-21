@@ -114,7 +114,7 @@ cd backend && npm test           # node:test via tsx, runs backend/test/**/*.tes
 cd frontend && npm run dev       # Vite dev server
 cd frontend && npm run build
 cd frontend && npm run lint
-cd frontend && npm test          # Vitest + jsdom, runs src/**/*.test.ts
+cd frontend && npm test          # Vitest + jsdom, runs src/**/*.test.{ts,tsx}
 
 # Python service
 cd geo-service && source venv/bin/activate && flask --app app run --port 5000
