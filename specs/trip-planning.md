@@ -266,7 +266,6 @@ Response 200:
     {
       "id": "7c1e...",
       "name": "Liseberg",
-      "kind": "attraction",
       "location": [11.9916, 57.6955],
       "distanceMeters": 2100,
       "categories": ["tourism", "tourism.attraction"]
@@ -363,7 +362,6 @@ interface Accommodation {
 interface Place {
   id: string;
   name: string;
-  kind: 'attraction';
   location: LonLat;
   distanceMeters: number;
   categories: string[];

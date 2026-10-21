@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { config } from "../config/env.js";
-import type { GeocodeResult, LonLat, RouteResult } from "../types/geo.js";
+import type { GeocodeResult, LonLat, PlaceKind, RouteResult } from "../types/geo.js";
 import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.js";
 
 // Facade: the only file that knows Geoapify's URLs, parameters, API key and
@@ -23,6 +23,8 @@ const geocodeResponseSchema = z.object({
       formatted: z.string(),
       lon: z.number(),
       lat: z.number(),
+      // Optional so one result without a type does not fail the whole search
+      result_type: z.string().optional(),
     }),
   ),
 });
@@ -105,6 +107,18 @@ function toLonLat(point: number[]): LonLat {
   return [point[0]!, point[1]!];
 }
 
+// Geoapify's result types grouped into our three kinds. Anything not listed
+// (e.g. "unknown", or a type Geoapify adds later) counts as a point of interest,
+// so landmarks are never dropped. Shared with autocomplete later.
+const ADDRESS_TYPES = new Set(["building", "street", "amenity", "postcode"]);
+const CITY_TYPES = new Set(["city", "suburb", "district", "county", "state", "country"]);
+
+function toPlaceKind(resultType: string | undefined): PlaceKind {
+  if (resultType && ADDRESS_TYPES.has(resultType)) return "address";
+  if (resultType && CITY_TYPES.has(resultType)) return "city";
+  return "poi";
+}
+
 export async function geocode(query: string): Promise<GeocodeResult[]> {
   const data = await getJson("/geocode/search", {
     text: query,
@@ -112,7 +126,11 @@ export async function geocode(query: string): Promise<GeocodeResult[]> {
     format: "json",
   });
   const { results } = parseResponse(geocodeResponseSchema, data, "/geocode/search");
-  return results.map((result) => ({ label: result.formatted, location: [result.lon, result.lat] }));
+  return results.map((result) => ({
+    label: result.formatted,
+    location: [result.lon, result.lat],
+    kind: toPlaceKind(result.result_type),
+  }));
 }
 
 // True if `order` contains each index 0..n-1 exactly once and keeps the

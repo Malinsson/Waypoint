@@ -242,7 +242,7 @@ Use patterns where they solve a real problem here. Do not add more patterns or l
 - Share request/response types between layers where practical; otherwise keep them in each project's `types/` folder.
 - Validate all request bodies and query params in Express with Zod before using them.
 - Controllers stay thin: parse, call a service, return a response. Business logic lives in `services/`.
-- Use `async/await`, and wrap async route handlers so errors reach the central error-handling middleware.
+- Use `async/await`, and wrap async route handlers so errors reach the central error-handling middleware. (Controllers can be async, but Express 5 passes rejected promises to the error handler automatically.)
 - Naming: `camelCase` for variables/functions, `PascalCase` for components/classes/types, `kebab-case` for file names except React components (`PascalCase.tsx`).
 - External API calls need timeouts and clear error handling (invalid address, rate limit, service down). The user should always see an understandable message.
 - Comments explain why, not what. No commented-out code.
