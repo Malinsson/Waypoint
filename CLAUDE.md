@@ -107,7 +107,7 @@ Update this section as soon as scripts exist.
 cd backend && npm run dev        # tsx watch src/index.ts
 cd backend && npm run build      # tsc, outputs to dist/
 cd backend && npm start          # node dist/index.js (production)
-cd backend && npm test           # not set up yet
+cd backend && npm test           # node:test via tsx, runs backend/test/**/*.test.ts
 
 # Frontend
 cd frontend && npm run dev       # Vite dev server

@@ -9,6 +9,10 @@ import { notFoundHandler, errorHandler } from "./middleware/error-handler.js";
 
 export const app = express();
 
+// Render puts one proxy in front of the app. Trusting it makes req.ip the
+// real client address instead of the proxy's, which the rate limiter needs.
+app.set("trust proxy", 1);
+
 app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json());
 

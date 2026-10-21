@@ -276,8 +276,6 @@ Response 200:
 
 An empty `results` array (not an error) means nothing was found. Errors: 400 `VALIDATION_ERROR`, 429 `RATE_LIMITED`, 503 `UPSTREAM_UNAVAILABLE`, 503 `UPSTREAM_RATE_LIMITED`.
 
-When the user adds a result as a stop, the destination gets `kind: "poi"`. Whether it also keeps the place id is an open question.
-
 ### Orchestration inside Express: planning
 
 1. Validate the body with Zod.

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { config } from "../config/env.js";
-import type { GeocodeResult, LonLat, PlaceKind, RouteResult } from "../types/geo.js";
+import type { GeocodeResult, LonLat, PlaceKind, RouteResult, Suggestion } from "../types/geo.js";
 import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.js";
 
 // Facade: the only file that knows Geoapify's URLs, parameters, API key and
@@ -13,20 +13,29 @@ const TIMEOUT_MS = 10_000;
 // and 25-29 s for 5 Swedish cities), so only that request gets more time
 const OPTIMIZE_TIMEOUT_MS = 45_000;
 const MAX_GEOCODE_RESULTS = 5;
+// Suggestions must feel instant, so a slow source is given up on early
+// rather than holding up the dropdown (see Configuration in the spec)
+const SUGGESTION_TIMEOUT_MS = 4_000;
+const DEFAULT_SUGGESTION_LIMIT = 6;
 
 // Zod schemas for the parts of Geoapify's responses we use. If Geoapify
 // ever changes its format we get a clear error instead of `undefined` deep
 // inside our code.
+const geocodeItemSchema = z.object({
+  formatted: z.string(),
+  lon: z.number(),
+  lat: z.number(),
+  // Optional so one result without a type does not fail the whole search
+  result_type: z.string().optional(),
+});
+
 const geocodeResponseSchema = z.object({
-  results: z.array(
-    z.object({
-      formatted: z.string(),
-      lon: z.number(),
-      lat: z.number(),
-      // Optional so one result without a type does not fail the whole search
-      result_type: z.string().optional(),
-    }),
-  ),
+  results: z.array(geocodeItemSchema),
+});
+
+// Autocomplete answers in the same format, but we also need the id
+const autocompleteResponseSchema = z.object({
+  results: z.array(geocodeItemSchema.extend({ place_id: z.string() })),
 });
 
 // Points may carry extra values (e.g. elevation), so only require two
@@ -131,6 +140,43 @@ export async function geocode(query: string): Promise<GeocodeResult[]> {
     location: [result.lon, result.lat],
     kind: toPlaceKind(result.result_type),
   }));
+}
+
+// Uses Geoapify's autocomplete endpoint, which is built for half-typed
+// input, unlike /geocode/search above
+export async function autocomplete(
+  text: string,
+  options: { bias?: LonLat | undefined; lang?: string; limit?: number } = {},
+): Promise<Suggestion[]> {
+  const params: Record<string, string> = {
+    text,
+    limit: String(options.limit ?? DEFAULT_SUGGESTION_LIMIT),
+    lang: options.lang ?? "en",
+    format: "json",
+  };
+  // Geoapify writes the bias longitude first, the same order as LonLat
+  if (options.bias) params.bias = `proximity:${options.bias[0]},${options.bias[1]}`;
+
+  const data = await getJson("/geocode/autocomplete", params, {}, SUGGESTION_TIMEOUT_MS);
+  const { results } = parseResponse(autocompleteResponseSchema, data, "/geocode/autocomplete");
+
+  // Geoapify can return the same place twice (e.g. one entry per data
+  // source), so keep only the first of each label + location
+  const seen = new Set<string>();
+  const suggestions: Suggestion[] = [];
+  for (const result of results) {
+    const key = `${result.formatted}|${result.lon}|${result.lat}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    suggestions.push({
+      id: `geo:${result.place_id}`,
+      label: result.formatted,
+      location: [result.lon, result.lat],
+      kind: toPlaceKind(result.result_type),
+      source: "geoapify",
+    });
+  }
+  return suggestions;
 }
 
 // True if `order` contains each index 0..n-1 exactly once and keeps the
