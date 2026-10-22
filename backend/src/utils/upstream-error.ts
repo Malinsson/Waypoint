@@ -1,6 +1,6 @@
-// Thrown by the Geoapify Facade. It says what kind of problem happened
-// without exposing anything about Geoapify; the error handler decides the
-// HTTP status and the message the user sees.
+// Thrown by the Facades (Geoapify, Wikidata). It says what kind of problem
+// happened without exposing anything about the provider; the error handler
+// decides the HTTP status and the message the user sees.
 export type UpstreamErrorKind = "NO_ROUTE" | "RATE_LIMITED" | "UNAVAILABLE";
 
 export class UpstreamError extends Error {
