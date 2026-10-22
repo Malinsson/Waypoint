@@ -162,7 +162,7 @@ Response 200:
 Field meaning:
 - `id`: prefixed by source (`geo:<Geoapify place id>` or `wd:<Wikidata Q-id>`), so ids never collide. For a merged entry the Wikidata id is used.
 - `description`: optional short text that helps the user tell similar names apart. Comes from Wikidata. Geoapify-only entries usually have none.
-- `kind`: `address`, `city`, or `poi`. A Wikidata-only entry is `poi` (see Open questions).
+- `kind`: `address`, `city`, or `poi`. A Wikidata-only entry is `poi` (see Open questions). A merged entry is `city` if Geoapify says `city`, otherwise `poi`.
 - `source`: `geoapify`, `wikidata`, or `both`. Used for tests and debugging, not shown to the user.
 - `partial`: `true` when one of the two sources failed or timed out, so the list may be missing results.
 
@@ -310,9 +310,8 @@ Rules (a starting point, to be tuned with the manual test list):
 1. Clean each list: remove entries without a label or a valid location, and remove exact duplicates inside one list (same label and coordinates).
 2. Find cross-source duplicates. A Geoapify entry and a Wikidata entry are the same place when both hold:
    - their names are equal after normalization (lowercase, a few letters replaced (see Edge cases), diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
-   - their locations are at most 15 km apart (haversine distance).
-   Pairs are one-to-one and the nearest are paired first: if an entry has several candidates within the limit, it is paired with the nearest one that is still free.
-3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `kind` and `location` from Geoapify, `source: "both"`.
+   - their locations are at most 2 km apart (haversine distance).
+3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `location` from Geoapify, `source: "both"`. `kind` is `city` if Geoapify's kind is `city`, otherwise `poi`, because Geoapify labels named places such as museums and stations as `address`.
 4. Order the result:
    1. A merged entry keeps the position of its Wikidata entry in Wikidata's order. It is not moved to the top.
    2. The Wikidata list (with merged entries in place) and the Geoapify entries that were not merged alternate, starting with Wikidata, each list keeping its own order. If the text contains a digit (probably an address), the alternation starts with Geoapify instead.
@@ -474,7 +473,7 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 - Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing. One autocomplete request costs one Geoapify request and two Wikidata requests.
 - Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown. After a 429, no suggestion requests for 30 seconds.
 - Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown).
-- Merging: names compared after normalization, locations at most 15 km apart to count as the same place, nearest pairs first.
+- Merging: names compared after normalization, locations at most 2 km apart to count as the same place.
 - Wikidata cache (Could): in memory, keyed by language and normalized text, time to live about 10 minutes, with a size limit.
 - Environment variable `WIKIDATA_USER_AGENT`: app name and contact address, sent with every Wikidata request.
 - Search radius for accommodation: 10 km first, one retry at 25 km. Maximum 5 accommodation results per break point.
@@ -650,7 +649,7 @@ Autocomplete and Wikidata
 - How large is the `wbgetentities` response when `claims` is requested for 6 entities? If it is too large or slow, look for a way to ask for only `P625`. Measured (fixture `entities-liseberg.json`, the 6 hits for "Liseberg", English only): 84.9 KB, of which `claims` is about 99%. The amusement park alone is 41.8 KB (50 properties). Response time not measured yet.
 - What are Wikimedia's current rules for the `User-Agent` format and the request rate? A secondary source suggests 0.5-1 s between requests, which is slower than our debounce. Read Wikimedia's own policy before deploying, and decide whether the cache and a per-IP limit are enough.
 - Should Wikidata items be classified (for example with property `P31`, "instance of") so that `kind` can be `city` for cities and so that stations, halls, and districts can be ranked lower? Currently every Wikidata-only entry is `poi`. In the recorded "Liseberg" search (fixture `search-liseberg.json`), an urban district in Stockholm came second and the railway station sixth, after the amusement park, a waterpark, a hotel and a concert hall.
-- Are the merge rules right? Check the 15 km distance limit, the name normalization, the alternation order, and the "digit means address" rule against the test list. Is 8 suggestions the right number? Evidence so far: an earlier rule put merged entries first, which placed the Stockholm district before the amusement park for "Liseberg" and a village in Nebraska before Malmö for "Malmo". That rule was removed; a merged entry now keeps its Wikidata position. Distance limit: at 2 km, pairs that were clearly the same place were not merged at 2.4 km (Malmö), 2.5 km (Copenhagen Municipality), 4.7 km (Kebnekaise) and 9.7 km (Aarhus Municipality). The limit was raised to 15 km. Counties (Stockholm County, 29.1 km apart) stay unmerged on purpose. The nearest pair that is probably a different place with the same name was 61.7 km apart; all others were 105 km or more.
+- Are the merge rules right? Check the 2 km distance limit, the name normalization, the alternation order, and the "digit means address" rule against the test list. Is 8 suggestions the right number? Evidence so far: an earlier rule put merged entries first, which placed the Stockholm district before the amusement park for "Liseberg" and a village in Nebraska before Malmö for "Malmo". That rule was removed; a merged entry now keeps its Wikidata position.
 - Should Geoapify results with low `rank.confidence` be dropped or ranked lower? The autocomplete response contains `rank.confidence` and `rank.match_type`; check which values the bad results (a suburb for "Liseberg", west-coast places for "Stockholm") actually have.
 - Geoapify's default country bias is `countrycode:auto`, which according to its documentation is decided by IP address. Since calls come from our server, that may be the server's country and not the user's. A test with `countrycode:se` did not fix the missing landmarks, so this is not the whole explanation. Decide which explicit bias to send (a fixed country, a list, or `none`) after testing ambiguous names.
 - How does Geoapify count autocomplete requests? Its documentation says one autocomplete request equals one credit. Check the pricing page for the current daily free limit before changing debounce or minimum length.
@@ -658,6 +657,7 @@ Autocomplete and Wikidata
 - Which Geoapify result types map to `poi`? Check real responses and adjust the mapping in the Facade.
 - Should the Enter fallback (`POST /api/geocode`) also include Wikidata, so that a landmark typed in full and submitted without picking a suggestion is found?
 - Should geocoding, suggestion, and attraction results be cached (in memory or in MongoDB) to save quota? Decide only if the quota becomes a problem.
+-Digit rule. Evidence: in the suggestion report for "Drottninggatan 1 Stockholm", Wikidata returned a single result, "Drottninggatan 14" (a building, wrong house number), and the merged list placed it at position 2, ahead of five correct Geoapify addresses. Decision: do not call Wikidata when the text contains a digit. Limits: one search only, so this is weak evidence; names with digits ("Studio 54") will lose Wikidata suggestions. The saving of two Wikimedia requests per keystroke is expected from the design and has not been measured.
 
 Accommodation
 - Is a 10 km search radius sensible in sparsely populated areas? Check with a real route in northern Sweden and adjust.

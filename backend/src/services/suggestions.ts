@@ -143,14 +143,16 @@ export function mergeSuggestions(
   const wikidataWithMerged = cleanWikidata.map((wd, wdIndex): Suggestion => {
     const geo = pairOf.get(wdIndex);
     if (!geo) return wd;
-    // Wikidata has the better name and a description; Geoapify has the
-    // finer kind and a location that matches its own map data
+    // Wikidata has the better name and a description; Geoapify has a
+    // location that matches its own map data. Geoapify calls named places
+    // such as museums and stations "address", so only its "city" is kept
+    // and everything else that Wikidata knows by name is a point of interest.
     return {
       id: wd.id,
       label: wd.label,
       ...(wd.description && { description: wd.description }),
       location: geo.location,
-      kind: geo.kind,
+      kind: geo.kind === "city" ? "city" : "poi",
       source: "both",
     };
   });

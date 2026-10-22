@@ -56,6 +56,24 @@ test("merges the same place from both lists, taking the right fields from each s
   });
 });
 
+test("a merged pair is a poi when Geoapify says address", () => {
+  // Geoapify labels named places such as museums as "address"
+  const [merged] = mergeSuggestions(
+    [geo("Vasa Museum, Galärvarvsvägen 14, Stockholm", [18.0915, 59.328], "address")],
+    [wd("Vasa Museum", [18.0916, 59.3281], "maritime museum in Stockholm")],
+    "x",
+    8,
+  );
+  assert.equal(merged!.source, "both");
+  assert.equal(merged!.kind, "poi");
+});
+
+test("a merged pair keeps city when Geoapify says city", () => {
+  const [merged] = mergeSuggestions([geo("Malmö, Sweden", MALMO, "city")], [wd("Malmö", MALMO)], "x", 8);
+  assert.equal(merged!.source, "both");
+  assert.equal(merged!.kind, "city");
+});
+
 test("does not merge the same name far apart (Liseberg park vs Liseberg district)", () => {
   const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark], "Liseberg", 8);
 
