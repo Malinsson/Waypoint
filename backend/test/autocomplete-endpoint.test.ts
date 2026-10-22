@@ -78,3 +78,24 @@ test("both sources fail for other reasons: 503 UPSTREAM_UNAVAILABLE", async (t) 
   const body = (await response.json()) as { error: { code: string } };
   assert.equal(body.error.code, "UPSTREAM_UNAVAILABLE");
 });
+
+test("text with a digit and Geoapify failing: 503 with the right code, Wikidata never asked", async (t) => {
+  for (const [status, code] of [
+    [429, "UPSTREAM_RATE_LIMITED"],
+    [500, "UPSTREAM_UNAVAILABLE"],
+  ] as const) {
+    const upstreamCalls = fakeUpstreams(t, () => new Response("failed", { status }));
+
+    const response = await fetch(`${baseUrl}/api/geocode/autocomplete?text=Drottninggatan%201`);
+    assert.equal(response.status, 503);
+    const body = (await response.json()) as Record<string, unknown>;
+    // The error shape only: no results and no partial flag
+    assert.deepEqual(Object.keys(body), ["error"]);
+    assert.equal((body.error as { code: string }).code, code);
+    assert.equal(
+      upstreamCalls.some((url) => url.hostname === "www.wikidata.org"),
+      false,
+    );
+    assert.equal(upstreamCalls.filter(isGeoapify).length, 1);
+  }
+});

@@ -143,3 +143,35 @@ test("logs which source failed and why", async (t) => {
   assert.equal(warn.mock.callCount(), 1);
   assert.equal(warn.mock.calls[0]!.arguments[0], "Suggestion source wikidata failed: Wikidata search returned 500");
 });
+
+// --- The digit rule: an address is looked up in Geoapify only ---
+
+test("text with a digit: only Geoapify is asked, partial is false", async (t) => {
+  const sources = fakeSources(t, [geoLisebergStockholm], [wdLisebergPark]);
+  const response = await getSuggestions({ text: "Drottninggatan 1", lang: "en" }, asSources(sources));
+
+  assert.equal(sources.wikidata.mock.callCount(), 0);
+  assert.equal(sources.geoapify.mock.callCount(), 1);
+  assert.equal(response.partial, false);
+  assert.deepEqual(response.results, [geoLisebergStockholm]);
+});
+
+test("text without a digit: both sources are asked", async (t) => {
+  const sources = fakeSources(t, [geoLisebergStockholm], [wdLisebergPark]);
+  await getSuggestions(query, asSources(sources));
+
+  assert.equal(sources.geoapify.mock.callCount(), 1);
+  assert.equal(sources.wikidata.mock.callCount(), 1);
+});
+
+test("text with a digit and Geoapify failing: an error, not an empty partial list", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  for (const kind of ["RATE_LIMITED", "UNAVAILABLE"] as const) {
+    const sources = fakeSources(t, new UpstreamError(kind, "failed"), [wdLisebergPark]);
+    await assert.rejects(
+      getSuggestions({ text: "Drottninggatan 1", lang: "en" }, asSources(sources)),
+      (err) => err instanceof UpstreamError && err.kind === kind,
+    );
+    assert.equal(sources.wikidata.mock.callCount(), 0);
+  }
+});

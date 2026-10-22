@@ -294,9 +294,9 @@ An empty `results` array (not an error) means nothing was found. Errors: 400 `VA
 1. Rate limit middleware, then validate the query with Zod. Trim the text and collapse repeated spaces.
 2. Start both lookups at the same time, each with its own timeout:
    - `GeoapifyFacade.autocomplete(text, { bias, lang, limit })`
-   - `WikidataFacade.searchPlaces(text, { lang, limit })`
+   - `WikidataFacade.searchPlaces(text, { lang, limit })`, but only if the text contains no digit. A digit means a street address, which Wikidata does not have, so only Geoapify is asked. Not asking Wikidata is not a failure: `partial` stays `false`.
 3. Wait for both with `Promise.allSettled`, so that one failure never cancels the other.
-4. If both failed, return 503 (`UPSTREAM_RATE_LIMITED` if Geoapify's quota is the reason, otherwise `UPSTREAM_UNAVAILABLE`). If only one failed, continue with the other list and set `partial: true`. Log which source failed.
+4. If every source that was asked failed (both, or Geoapify alone for a text with a digit), return 503 (`UPSTREAM_RATE_LIMITED` if Geoapify's quota is the reason, otherwise `UPSTREAM_UNAVAILABLE`). If only one failed, continue with the other list and set `partial: true`. Log which source failed.
 5. Merge the two lists with `mergeSuggestions` (next section) and return at most 8 results.
 
 ## Suggestion merging
@@ -314,7 +314,7 @@ Rules (a starting point, to be tuned with the manual test list):
 3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `location` from Geoapify, `source: "both"`. `kind` is `city` if Geoapify's kind is `city`, otherwise `poi`, because Geoapify labels named places such as museums and stations as `address`.
 4. Order the result:
    1. A merged entry keeps the position of its Wikidata entry in Wikidata's order. It is not moved to the top.
-   2. The Wikidata list (with merged entries in place) and the Geoapify entries that were not merged alternate, starting with Wikidata, each list keeping its own order. If the text contains a digit (probably an address), the alternation starts with Geoapify instead.
+   2. The Wikidata list (with merged entries in place) and the Geoapify entries that were not merged alternate, starting with Wikidata, each list keeping its own order. (For a text with a digit, Wikidata is not asked at all; see Orchestration.)
    3. When one list runs out, the rest of the other list follows.
 5. Cut the list to `max` (8).
 
@@ -472,7 +472,7 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 
 - Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing. One autocomplete request costs one Geoapify request and two Wikidata requests.
 - Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown. After a 429, no suggestion requests for 30 seconds.
-- Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown).
+- Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown). If the text contains a digit, only Geoapify is asked.
 - Merging: names compared after normalization, locations at most 2 km apart to count as the same place.
 - Wikidata cache (Could): in memory, keyed by language and normalized text, time to live about 10 minutes, with a size limit.
 - Environment variable `WIKIDATA_USER_AGENT`: app name and contact address, sent with every Wikidata request.
@@ -544,6 +544,7 @@ Autocomplete and suggestions
 - Slow network: older requests are cancelled, and the dropdown keeps showing the previous suggestions or a spinner, never mixed results from different texts.
 - User types very fast, then pastes a long address: debounce means only the final text is sent.
 - Text shorter than 3 characters: no request is sent, the dropdown is closed.
+- Text with a digit (probably a street address, e.g. "Drottninggatan 1"): only Geoapify is asked, Wikidata is skipped, and `partial` stays `false`. If Geoapify fails, the endpoint returns 503 as when both sources fail.
 - Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when each Facade calls its upstream.
 - Text contains search syntax (quotes, `haswbstatement:`, pipes): treated as plain text by the `WikidataFacade`, see its notes.
 - Geoapify daily quota is used up: Geoapify fails, Wikidata may still answer (`partial: true`). If both fail, the endpoint returns 503, the field falls back to Enter-to-search, and the message explains it.
@@ -586,8 +587,8 @@ Automated (Should):
 - `GeoapifyFacade.autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, ids are prefixed with `geo:`, the limit is respected, and exact duplicates are removed.
 - `WikidataFacade.searchPlaces` with recorded responses (one for the search, one for `wbgetentities`): label and description in the requested language, coordinates converted to `[longitude, latitude]`, other globes dropped, preferred rank chosen, entities without a label dropped, ids prefixed with `wd:`.
 - Query building for Wikidata: the search URL contains the text, `haswbstatement:P625`, namespace 0 and the limit; the details URL joins the ids with `|`; the `User-Agent` header is set; search syntax in the text is neutralized. Test by inspecting the request the Facade would send, without sending it.
-- `mergeSuggestions` (pure function): exact duplicates inside one list are removed; the same place in both lists is merged into one entry with `source: "both"`; two places with the same name far apart are not merged; a merged entry keeps its position in Wikidata's order and is not moved to the top; alternation starts with Wikidata, and with Geoapify when the text contains a digit; the result is cut to `max`; empty lists on one or both sides.
-- Autocomplete orchestration with mocked Facades: both succeed, one fails (`partial: true`), both fail (503), one source exceeds its timeout.
+- `mergeSuggestions` (pure function): exact duplicates inside one list are removed; the same place in both lists is merged into one entry with `source: "both"`; two places with the same name far apart are not merged; a merged entry keeps its position in Wikidata's order and is not moved to the top; alternation starts with Wikidata; the result is cut to `max`; empty lists on one or both sides.
+- Autocomplete orchestration with mocked Facades: both succeed, one fails (`partial: true`), both fail (503), one source exceeds its timeout; a text with a digit asks only Geoapify (`partial: false`), and gives 503 if Geoapify fails.
 - Rate limiting: the 61st request in a minute from one IP returns 429 (use a low limit in the test configuration).
 - Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API). A component test that a row with a description shows both lines.
 - Facade `findAccommodation` with a recorded Places response: categories map to the right `type`, unnamed places are dropped, duplicates removed, results sorted by distance, limit applied.

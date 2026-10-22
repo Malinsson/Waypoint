@@ -10,9 +10,6 @@ import type { LonLat, Suggestion } from "../types/geo.js";
 // 9.7 km); the nearest different place with the same name was 61.7 km away.
 // Counties (about 29 km apart) stay unmerged on purpose.
 export const MAX_MERGE_DISTANCE_METERS = 15_000;
-// A digit in the typed text probably means a street address, which
-// Geoapify knows better than Wikidata
-const ADDRESS_HINT = /\d/;
 // Letters that NFD below does not split into a base letter plus a mark, so
 // they need an explicit replacement. Applied to lowercase text.
 const LETTER_REPLACEMENTS: Record<string, string> = {
@@ -160,9 +157,7 @@ export function mergeSuggestions(
   // 4. The Wikidata list (with merged entries in place) and the Geoapify
   // entries that were not merged take turns
   const restGeoapify = cleanGeoapify.filter((_suggestion, geoIndex) => !pairedGeoapify.has(geoIndex));
-  const ordered = ADDRESS_HINT.test(text)
-    ? alternate(restGeoapify, wikidataWithMerged)
-    : alternate(wikidataWithMerged, restGeoapify);
+  const ordered = alternate(wikidataWithMerged, restGeoapify);
 
   // 5. Cut to the maximum length
   return ordered.slice(0, Math.max(0, max));

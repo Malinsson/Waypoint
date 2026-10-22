@@ -235,17 +235,6 @@ test("regression (b2): merged W4m stays last in Wikidata's stream while the rest
   assert.equal(result[5]!.source, "both");
 });
 
-test("regression (b2) with a digit in the text: Geoapify starts, W4m still last", () => {
-  const result = mergeSuggestions(
-    [Gm, geo("G1", A), geo("G2", B)],
-    [wd("W1", C), wd("W2", E), wd("W3", [10, 60]), W4m],
-    "Fourth 4",
-    8,
-  );
-  assert.deepEqual(labels(result), ["G1", "W1", "G2", "W2", "W3", "Fourth Place"]);
-  assert.equal(result[5]!.source, "both");
-});
-
 test("alternates starting with Wikidata, then the rest of the longer list", () => {
   const result = mergeSuggestions(
     [geo("G1", A), geo("G2", B)],
@@ -254,16 +243,6 @@ test("alternates starting with Wikidata, then the rest of the longer list", () =
     8,
   );
   assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "W4"]);
-});
-
-test("alternates starting with Geoapify when the text contains a digit", () => {
-  const result = mergeSuggestions(
-    [geo("G1", A), geo("G2", B), geo("G3", E)],
-    [wd("W1", C), wd("W2", D)],
-    "Drottninggatan 1",
-    8,
-  );
-  assert.deepEqual(labels(result), ["G1", "W1", "G2", "W2", "G3"]);
 });
 
 // --- Rule 5: cut ---
