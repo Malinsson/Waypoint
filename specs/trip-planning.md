@@ -301,7 +301,7 @@ An empty `results` array (not an error) means nothing was found. Errors: 400 `VA
 
 ## Suggestion merging
 
-Implemented as one pure function, `mergeSuggestions(geoapify, wikidata, text, max)` in `backend/src/services/suggestions.ts`, called by the autocomplete controller. It does no network calls, so it is easy to unit test and easy to explain.
+Implemented as one pure function, `mergeSuggestions(geoapify, wikidata, max)` in `backend/src/services/suggestions.ts`, called by the autocomplete orchestration (`backend/src/services/autocomplete-service.ts`). It does no network calls and does not look at the typed text, so it is easy to unit test and easy to explain.
 
 Why two sources: Geoapify's autocomplete is built for addresses and places in its own data, and some landmarks are missing or ranked below unrelated places (a search for "Liseberg" can return a suburb or a station first). Wikidata knows landmarks by name and gives a short description, but it has no concept of street addresses. Neither alone is enough.
 

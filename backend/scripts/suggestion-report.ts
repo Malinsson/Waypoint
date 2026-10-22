@@ -79,10 +79,10 @@ function listOrEmpty(source: string, outcome: PromiseSettledResult<Suggestion[]>
 // Every Geoapify/Wikidata pair whose names are equal after the merge's own
 // normalization, with their distance and whether the merge paired them.
 // Shows why two entries with the same name did or did not become one row.
-function printNameMatches(geoapify: Suggestion[], wikidata: Suggestion[], text: string): void {
+function printNameMatches(geoapify: Suggestion[], wikidata: Suggestion[]): void {
   // Uncapped, so a merged pair is not reported as unmerged just because it
   // fell below the 8-row cut
-  const allMerged = mergeSuggestions(geoapify, wikidata, text, Number.MAX_SAFE_INTEGER);
+  const allMerged = mergeSuggestions(geoapify, wikidata, Number.MAX_SAFE_INTEGER);
   const limitKm = MAX_MERGE_DISTANCE_METERS / 1000;
 
   console.log(`\n  Name matches (merge limit ${limitKm} km)`);
@@ -125,6 +125,6 @@ for (const [index, text] of SEARCH_TEXTS.entries()) {
 
   printTable("Geoapify only", geoapify);
   printTable("Wikidata only", wikidata);
-  printTable("Merged", mergeSuggestions(geoapify, wikidata, text, MAX_SUGGESTIONS));
-  printNameMatches(geoapify, wikidata, text);
+  printTable("Merged", mergeSuggestions(geoapify, wikidata, MAX_SUGGESTIONS));
+  printNameMatches(geoapify, wikidata);
 }

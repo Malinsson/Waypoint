@@ -34,7 +34,6 @@ test("removes exact duplicates and invalid entries inside each list", () => {
   const result = mergeSuggestions(
     [geo("Storgatan 1, Malmö", B), geo("Storgatan 1, Malmö", B), geo("", A), geo("Bad", [0, 95])],
     [wd("Uppsala Cathedral", E), wd("Uppsala Cathedral", E), wd("   ", C)],
-    "x",
     8,
   );
   assert.deepEqual(labels(result), ["Uppsala Cathedral", "Storgatan 1, Malmö"]);
@@ -43,7 +42,7 @@ test("removes exact duplicates and invalid entries inside each list", () => {
 // --- Rules 2-3: cross-source duplicates ---
 
 test("merges the same place from both lists, taking the right fields from each side", () => {
-  const [merged, ...others] = mergeSuggestions([geoLisebergStockholm], [wdLisebergStockholm], "Liseberg", 8);
+  const [merged, ...others] = mergeSuggestions([geoLisebergStockholm], [wdLisebergStockholm], 8);
 
   assert.deepEqual(others, []);
   assert.deepEqual(merged, {
@@ -61,7 +60,6 @@ test("a merged pair is a poi when Geoapify says address", () => {
   const [merged] = mergeSuggestions(
     [geo("Vasa Museum, Galärvarvsvägen 14, Stockholm", [18.0915, 59.328], "address")],
     [wd("Vasa Museum", [18.0916, 59.3281], "maritime museum in Stockholm")],
-    "x",
     8,
   );
   assert.equal(merged!.source, "both");
@@ -69,13 +67,13 @@ test("a merged pair is a poi when Geoapify says address", () => {
 });
 
 test("a merged pair keeps city when Geoapify says city", () => {
-  const [merged] = mergeSuggestions([geo("Malmö, Sweden", MALMO, "city")], [wd("Malmö", MALMO)], "x", 8);
+  const [merged] = mergeSuggestions([geo("Malmö, Sweden", MALMO, "city")], [wd("Malmö", MALMO)], 8);
   assert.equal(merged!.source, "both");
   assert.equal(merged!.kind, "city");
 });
 
 test("does not merge the same name far apart (Liseberg park vs Liseberg district)", () => {
-  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark], "Liseberg", 8);
+  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark], 8);
 
   assert.equal(result.length, 2);
   assert.deepEqual(
@@ -99,7 +97,7 @@ const STOCKHOLM: LonLat = [18.0686, 59.3293];
 // and the counties 29.1 km apart
 
 test("merges a same-name pair 2.4 km apart", () => {
-  const result = mergeSuggestions([geo("Malmö, Sweden", north(MALMO, 2.4), "city")], [wd("Malmö", MALMO)], "x", 8);
+  const result = mergeSuggestions([geo("Malmö, Sweden", north(MALMO, 2.4), "city")], [wd("Malmö", MALMO)], 8);
   assert.deepEqual(
     result.map((suggestion) => suggestion.source),
     ["both"],
@@ -110,7 +108,6 @@ test("merges a same-name pair 9.7 km apart", () => {
   const result = mergeSuggestions(
     [geo("Aarhus Municipality, Denmark", north(AARHUS, 9.7), "city")],
     [wd("Aarhus Municipality", AARHUS)],
-    "x",
     8,
   );
   assert.deepEqual(
@@ -123,7 +120,6 @@ test("does not merge a same-name pair 29.1 km apart", () => {
   const result = mergeSuggestions(
     [geo("Stockholm County, Sweden", north(STOCKHOLM, 29.1), "city")],
     [wd("Stockholm County", STOCKHOLM)],
-    "x",
     8,
   );
   assert.deepEqual(
@@ -133,11 +129,11 @@ test("does not merge a same-name pair 29.1 km apart", () => {
 });
 
 test("15 km is the limit: 14.9 km apart merges, 15.1 km apart does not", () => {
-  const near = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 14.9))], [wd("Testplats", STOCKHOLM)], "x", 8);
+  const near = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 14.9))], [wd("Testplats", STOCKHOLM)], 8);
   assert.equal(near.length, 1);
   assert.equal(near[0]!.source, "both");
 
-  const far = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 15.1))], [wd("Testplats", STOCKHOLM)], "x", 8);
+  const far = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 15.1))], [wd("Testplats", STOCKHOLM)], 8);
   assert.equal(far.length, 2);
 });
 
@@ -146,7 +142,7 @@ test("pairs the nearest Wikidata candidate, even when it is listed second", () =
   const farther = wd("AARhus", north(AARHUS, 1.8), "listed first, 1.8 km away");
   const nearer = wd("Aarhus", north(AARHUS, 0.8), "listed second, 0.8 km away");
 
-  const result = mergeSuggestions([geoAarhus], [farther, nearer], "x", 8);
+  const result = mergeSuggestions([geoAarhus], [farther, nearer], 8);
 
   // The nearer one is merged; the farther one stays a Wikidata-only row
   assert.deepEqual(
@@ -162,7 +158,7 @@ test("pairs one Wikidata entry with its nearest Geoapify candidate, one-to-one",
   const fartherGeo = geo("Aarhus, Region Midtjylland", north(AARHUS, 1.5), "address");
   const nearerGeo = geo("Aarhus, Denmark", north(AARHUS, 0.5), "city");
 
-  const result = mergeSuggestions([fartherGeo, nearerGeo], [wd("Aarhus", AARHUS)], "x", 8);
+  const result = mergeSuggestions([fartherGeo, nearerGeo], [wd("Aarhus", AARHUS)], 8);
 
   // Merged with the nearer one (its location and kind), and the farther
   // Geoapify entry is not used a second time
@@ -183,7 +179,6 @@ test("a merged entry keeps its Wikidata position instead of moving to the top", 
   const result = mergeSuggestions(
     [geo("Only Geo", A), geo("Second, Somewhere", D), geo("First, Somewhere", C)],
     [wd("Only Wd", B), wd("First", C), wd("Second", D)],
-    "x",
     8,
   );
   // Wikidata stream: Only Wd, First (merged), Second (merged); Geoapify rest: Only Geo
@@ -197,7 +192,7 @@ test("a merged entry keeps its Wikidata position instead of moving to the top", 
 // Regression: "merged first" put the Stockholm district ahead of the
 // amusement park when searching for "Liseberg"
 test("regression (a): the amusement park stays first, the merged district second", () => {
-  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark, wdLisebergStockholm], "Liseberg", 8);
+  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark, wdLisebergStockholm], 8);
 
   assert.deepEqual(
     result.map((suggestion) => [suggestion.description, suggestion.source]),
@@ -213,7 +208,6 @@ test("regression (b): a merged entry at position 4 in Wikidata stays at position
   const result = mergeSuggestions(
     [geo("Fourth, Somewhere", D)],
     [wd("W1", A), wd("W2", B), wd("W3", C), wd("Fourth", D), wd("W5", E)],
-    "x",
     8,
   );
   assert.deepEqual(labels(result), ["W1", "W2", "W3", "Fourth", "W5"]);
@@ -228,7 +222,6 @@ test("regression (b2): merged W4m stays last in Wikidata's stream while the rest
   const result = mergeSuggestions(
     [Gm, geo("G1", A), geo("G2", B)],
     [wd("W1", C), wd("W2", E), wd("W3", [10, 60]), W4m],
-    "Fourth",
     8,
   );
   assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "Fourth Place"]);
@@ -239,7 +232,6 @@ test("alternates starting with Wikidata, then the rest of the longer list", () =
   const result = mergeSuggestions(
     [geo("G1", A), geo("G2", B)],
     [wd("W1", C), wd("W2", D), wd("W3", E), wd("W4", [10, 60])],
-    "Liseberg",
     8,
   );
   assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "W4"]);
@@ -251,14 +243,14 @@ test("cuts the list to max", () => {
   const geoList = Array.from({ length: 5 }, (_, index) => geo(`G${index + 1}`, [10 + index, 60]));
   const wdList = Array.from({ length: 5 }, (_, index) => wd(`W${index + 1}`, [10 + index, 50]));
 
-  const result = mergeSuggestions(geoList, wdList, "x", 8);
+  const result = mergeSuggestions(geoList, wdList, 8);
   assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "G3", "W4", "G4"]);
 });
 
 test("handles empty lists on one or both sides", () => {
-  assert.deepEqual(labels(mergeSuggestions([geo("G1", A)], [], "x", 8)), ["G1"]);
-  assert.deepEqual(labels(mergeSuggestions([], [wd("W1", A)], "x", 8)), ["W1"]);
-  assert.deepEqual(mergeSuggestions([], [], "x", 8), []);
+  assert.deepEqual(labels(mergeSuggestions([geo("G1", A)], [], 8)), ["G1"]);
+  assert.deepEqual(labels(mergeSuggestions([], [wd("W1", A)], 8)), ["W1"]);
+  assert.deepEqual(mergeSuggestions([], [], 8), []);
 });
 
 // --- Purity ---
@@ -278,8 +270,8 @@ test("does not change its inputs and gives the same output for the same input", 
   const geoBefore = structuredClone(geoList);
   const wdBefore = structuredClone(wdList);
 
-  const first = mergeSuggestions(geoList, wdList, "Liseberg", 8);
-  const second = mergeSuggestions(geoList, wdList, "Liseberg", 8);
+  const first = mergeSuggestions(geoList, wdList, 8);
+  const second = mergeSuggestions(geoList, wdList, 8);
 
   assert.deepEqual(geoList, geoBefore);
   assert.deepEqual(wdList, wdBefore);
@@ -293,7 +285,7 @@ const BODO: LonLat = [14.4049, 67.2804];
 
 // True if the two names, at the same place, are merged into one entry
 function sameName(geoapifyLabel: string, wikidataLabel: string, location: LonLat): boolean {
-  const result = mergeSuggestions([geo(geoapifyLabel, location)], [wd(wikidataLabel, location)], "x", 8);
+  const result = mergeSuggestions([geo(geoapifyLabel, location)], [wd(wikidataLabel, location)], 8);
   return result.length === 1 && result[0]!.source === "both";
 }
 

@@ -102,7 +102,6 @@ function alternate(first: Suggestion[], second: Suggestion[]): Suggestion[] {
 export function mergeSuggestions(
   geoapify: Suggestion[],
   wikidata: Suggestion[],
-  text: string,
   max: number,
 ): Suggestion[] {
   // 1. Clean each list on its own

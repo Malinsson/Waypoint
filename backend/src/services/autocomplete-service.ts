@@ -116,7 +116,7 @@ export async function getSuggestions(
   const wikidataList = wikidataOutcome.status === "fulfilled" ? wikidataOutcome.value : [];
 
   return {
-    results: mergeSuggestions(geoapifyList, wikidataList, query.text, MAX_SUGGESTIONS),
+    results: mergeSuggestions(geoapifyList, wikidataList, MAX_SUGGESTIONS),
     partial: geoapifyOutcome.status === "rejected" || wikidataOutcome.status === "rejected",
   };
 }
