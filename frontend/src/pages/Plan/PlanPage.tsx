@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { getHealth } from '../../api/health.ts'
 import { planTrip } from '../../api/trips.ts'
 import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
 import DestinationList from '../../components/DestinationList/DestinationList.tsx'
@@ -20,6 +21,13 @@ function PlanPage() {
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
+
+  // Render's free services sleep when idle. A quiet request when the page
+  // opens wakes the backend, so it is ready when the user starts typing.
+  // The answer and any error are ignored on purpose.
+  useEffect(() => {
+    getHealth().catch(() => {})
+  }, [])
 
   // Any change to the list makes the old route wrong, so it is cleared and
   // the user plans again

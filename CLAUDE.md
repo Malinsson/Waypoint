@@ -79,6 +79,7 @@ Waypoint/
 │       ├── pages/
 │       ├── api/          # typed client for the Express API
 │       ├── context/      # AuthContext etc.
+│       ├── hooks/        # custom React hooks (useAutocomplete)
 │       └── types/
 ├── backend/              # Express + TS
 │   └── src/
@@ -107,12 +108,13 @@ Update this section as soon as scripts exist.
 cd backend && npm run dev        # tsx watch src/index.ts
 cd backend && npm run build      # tsc, outputs to dist/
 cd backend && npm start          # node dist/index.js (production)
-cd backend && npm test           # not set up yet
+cd backend && npm test           # node:test via tsx, runs backend/test/**/*.test.ts
 
 # Frontend
 cd frontend && npm run dev       # Vite dev server
 cd frontend && npm run build
 cd frontend && npm run lint
+cd frontend && npm test          # Vitest + jsdom, runs src/**/*.test.{ts,tsx}
 
 # Python service
 cd geo-service && source venv/bin/activate && flask --app app run --port 5000
@@ -242,7 +244,7 @@ Use patterns where they solve a real problem here. Do not add more patterns or l
 - Share request/response types between layers where practical; otherwise keep them in each project's `types/` folder.
 - Validate all request bodies and query params in Express with Zod before using them.
 - Controllers stay thin: parse, call a service, return a response. Business logic lives in `services/`.
-- Use `async/await`, and wrap async route handlers so errors reach the central error-handling middleware.
+- Use `async/await`, and wrap async route handlers so errors reach the central error-handling middleware. (Controllers can be async, but Express 5 passes rejected promises to the error handler automatically.)
 - Naming: `camelCase` for variables/functions, `PascalCase` for components/classes/types, `kebab-case` for file names except React components (`PascalCase.tsx`).
 - External API calls need timeouts and clear error handling (invalid address, rate limit, service down). The user should always see an understandable message.
 - Comments explain why, not what. No commented-out code.

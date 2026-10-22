@@ -30,12 +30,32 @@ export type LoginInput = {
   password: string
 }
 
+// Mirrors backend/src/types/geo.ts, keep in sync.
 // GeoJSON order: longitude first, the same as the backend
 export type LonLat = [lon: number, lat: number]
 
+// Mirrors backend/src/types/geo.ts, keep in sync
+export type PlaceKind = 'address' | 'city' | 'poi'
+
+// Mirrors backend/src/types/geo.ts, keep in sync
 export type GeocodeResult = {
   label: string
   location: LonLat
+  kind: PlaceKind
+}
+
+// Mirrors backend/src/types/geo.ts, keep in sync
+export type Suggestion = GeocodeResult & {
+  id: string
+  description?: string
+  source: 'geoapify' | 'wikidata' | 'both'
+}
+
+// Mirrors backend/src/services/autocomplete-service.ts, keep in sync
+export type SuggestionResponse = {
+  results: Suggestion[]
+  // True when a source failed, so the list may be missing results
+  partial: boolean
 }
 
 export type GeocodeResponse = {

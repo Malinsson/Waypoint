@@ -2,9 +2,25 @@
 // Facade converts to Geoapify's "latitude,longitude" only at the edge.
 export type LonLat = [lon: number, lat: number];
 
+// Our own coarse category for a search result, used for icons in the UI.
+// The Facade maps the provider's much finer result types to these three.
+export const PLACE_KINDS = ["address", "city", "poi"] as const;
+export type PlaceKind = (typeof PLACE_KINDS)[number];
+
 export type GeocodeResult = {
   label: string;
   location: LonLat;
+  kind: PlaceKind;
+};
+
+// One row in the autocomplete dropdown. Both Facades produce this type, so
+// the merge step can compare results without knowing where they came from.
+export type Suggestion = GeocodeResult & {
+  // Prefixed by source ("geo:<place id>" or "wd:<Q-id>") so ids never collide
+  id: string;
+  description?: string;
+  // "both" is only set when merging a Geoapify and a Wikidata result
+  source: "geoapify" | "wikidata" | "both";
 };
 
 export type RouteLeg = {
