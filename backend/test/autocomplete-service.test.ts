@@ -59,12 +59,13 @@ test("both succeed: results are merged and partial is false", async (t) => {
   const response = await getSuggestions(query, asSources(sources));
 
   assert.equal(response.partial, false);
-  // The Stockholm pair is merged and comes first; the park follows
+  // The park keeps Wikidata's first place; the Stockholm pair is merged
+  // and stays second, where Wikidata ranked it
   assert.deepEqual(
     response.results.map((suggestion) => [suggestion.id, suggestion.source]),
     [
-      ["wd:Q4357031", "both"],
       ["wd:Q1413270", "wikidata"],
+      ["wd:Q4357031", "both"],
     ],
   );
 

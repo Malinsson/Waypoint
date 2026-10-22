@@ -19,8 +19,9 @@ export type SuggestionResponse = {
 // Tunable values (see Configuration in the spec). Each source gets its own
 // deadline, so one slow source never holds up the dropdown.
 const SOURCE_TIMEOUT_MS = 4_000;
-const CANDIDATES_PER_SOURCE = 6;
-const MAX_SUGGESTIONS = 8;
+// Exported so scripts/suggestion-report.ts always uses the same numbers
+export const CANDIDATES_PER_SOURCE = 6;
+export const MAX_SUGGESTIONS = 8;
 
 // The two sources, passed in as a parameter so tests can replace them with
 // fakes. The controller never passes it, so the real Facades are used.

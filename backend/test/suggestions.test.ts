@@ -77,18 +77,71 @@ test("2 km is the limit: about 1.9 km apart merges, about 2.1 km apart does not"
 
 // --- Rule 4: order ---
 
-test("puts merged entries first, in Wikidata's order", () => {
+test("a merged entry keeps its Wikidata position instead of moving to the top", () => {
   const result = mergeSuggestions(
     [geo("Only Geo", A), geo("Second, Somewhere", D), geo("First, Somewhere", C)],
     [wd("Only Wd", B), wd("First", C), wd("Second", D)],
     "x",
     8,
   );
-  assert.deepEqual(labels(result).slice(0, 2), ["First", "Second"]);
+  // Wikidata stream: Only Wd, First (merged), Second (merged); Geoapify rest: Only Geo
+  assert.deepEqual(labels(result), ["Only Wd", "Only Geo", "First", "Second"]);
   assert.deepEqual(
-    result.slice(0, 2).map((suggestion) => suggestion.source),
-    ["both", "both"],
+    result.map((suggestion) => suggestion.source),
+    ["wikidata", "geoapify", "both", "both"],
   );
+});
+
+// Regression: "merged first" put the Stockholm district ahead of the
+// amusement park when searching for "Liseberg"
+test("regression (a): the amusement park stays first, the merged district second", () => {
+  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark, wdLisebergStockholm], "Liseberg", 8);
+
+  assert.deepEqual(
+    result.map((suggestion) => [suggestion.description, suggestion.source]),
+    [
+      ["amusement park in Gothenburg, Sweden", "wikidata"],
+      ["urban district in Stockholm, Sweden", "both"],
+    ],
+  );
+});
+
+test("regression (b): a merged entry at position 4 in Wikidata stays at position 4", () => {
+  // Geoapify has only the matching entry, so nothing alternates in between
+  const result = mergeSuggestions(
+    [geo("Fourth, Somewhere", D)],
+    [wd("W1", A), wd("W2", B), wd("W3", C), wd("Fourth", D), wd("W5", E)],
+    "x",
+    8,
+  );
+  assert.deepEqual(labels(result), ["W1", "W2", "W3", "Fourth", "W5"]);
+  assert.equal(result[3]!.source, "both");
+});
+
+// W4m and Gm are the same place: equal normalized name, about 10 m apart
+const W4m = wd("Fourth Place", [15.62, 58.41]);
+const Gm = geo("Fourth place, Linköping, Sweden", [15.6201, 58.4101]);
+
+test("regression (b2): merged W4m stays last in Wikidata's stream while the rest alternates", () => {
+  const result = mergeSuggestions(
+    [Gm, geo("G1", A), geo("G2", B)],
+    [wd("W1", C), wd("W2", E), wd("W3", [10, 60]), W4m],
+    "Fourth",
+    8,
+  );
+  assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "Fourth Place"]);
+  assert.equal(result[5]!.source, "both");
+});
+
+test("regression (b2) with a digit in the text: Geoapify starts, W4m still last", () => {
+  const result = mergeSuggestions(
+    [Gm, geo("G1", A), geo("G2", B)],
+    [wd("W1", C), wd("W2", E), wd("W3", [10, 60]), W4m],
+    "Fourth 4",
+    8,
+  );
+  assert.deepEqual(labels(result), ["G1", "W1", "G2", "W2", "W3", "Fourth Place"]);
+  assert.equal(result[5]!.source, "both");
 });
 
 test("alternates starting with Wikidata, then the rest of the longer list", () => {

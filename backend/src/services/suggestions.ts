@@ -1,10 +1,12 @@
 import type { LonLat, Suggestion } from "../types/geo.js";
 
-// Tunable values (see Suggestion merging in the spec)
+// Tunable values (see Suggestion merging in the spec). The exported helpers
+// below are also used by scripts/suggestion-report.ts, so the report
+// compares names and distances exactly the way the merge does.
 
 // Two entries farther apart than this are different places, even with the
 // same name (e.g. Liseberg in Gothenburg and Liseberg in Stockholm)
-const MAX_MERGE_DISTANCE_METERS = 2_000;
+export const MAX_MERGE_DISTANCE_METERS = 2_000;
 // A digit in the typed text probably means a street address, which
 // Geoapify knows better than Wikidata
 const ADDRESS_HINT = /\d/;
@@ -26,7 +28,7 @@ const EARTH_RADIUS_METERS = 6_371_000;
 // Straight-line distance between two points on the Earth's surface. The
 // haversine formula treats the Earth as a sphere, which is accurate to well
 // under 1% and more than enough to compare against a 2 km limit.
-function haversineMeters([lon1, lat1]: LonLat, [lon2, lat2]: LonLat): number {
+export function haversineMeters([lon1, lat1]: LonLat, [lon2, lat2]: LonLat): number {
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
   const deltaLat = toRadians(lat2 - lat1);
   const deltaLon = toRadians(lon2 - lon1);
@@ -62,7 +64,7 @@ function dedupe(list: Suggestion[]): Suggestion[] {
 
 // Makes names comparable: "Göteborg", "goteborg" and "GÖTEBORG!" all
 // become "goteborg"
-function normalizeName(name: string): string {
+export function normalizeName(name: string): string {
   const replaced = [...name.toLowerCase()].map((letter) => LETTER_REPLACEMENTS[letter] ?? letter).join("");
   return (
     replaced
@@ -79,7 +81,7 @@ function normalizeName(name: string): string {
 
 // Geoapify labels are full addresses ("Liseberg, 125 35 Stockholm,
 // Sweden"); the name is the part before the first comma
-function geoapifyName(label: string): string {
+export function geoapifyName(label: string): string {
   return label.split(",")[0]!;
 }
 
@@ -109,12 +111,11 @@ export function mergeSuggestions(
 
   // 2-3. Find places that both sources know, in Wikidata's order. Each
   // Geoapify entry can be paired once, with the first Wikidata entry that
-  // matches it.
-  const merged: Suggestion[] = [];
+  // matches it. A merged entry replaces its Wikidata entry in place, so it
+  // keeps Wikidata's ranking instead of jumping to the top.
   const pairedGeoapify = new Set<Suggestion>();
-  const pairedWikidata = new Set<Suggestion>();
 
-  for (const wd of cleanWikidata) {
+  const wikidataWithMerged = cleanWikidata.map((wd): Suggestion => {
     const wdName = normalizeName(wd.label);
     const geo = cleanGeoapify.find(
       (candidate) =>
@@ -122,29 +123,28 @@ export function mergeSuggestions(
         normalizeName(geoapifyName(candidate.label)) === wdName &&
         haversineMeters(candidate.location, wd.location) <= MAX_MERGE_DISTANCE_METERS,
     );
-    if (!geo) continue;
+    if (!geo) return wd;
 
     pairedGeoapify.add(geo);
-    pairedWikidata.add(wd);
     // Wikidata has the better name and a description; Geoapify has the
     // finer kind and a location that matches its own map data
-    merged.push({
+    return {
       id: wd.id,
       label: wd.label,
       ...(wd.description && { description: wd.description }),
       location: geo.location,
       kind: geo.kind,
       source: "both",
-    });
-  }
+    };
+  });
 
-  // 4. Merged entries first, then the rest of both lists, alternating
+  // 4. The Wikidata list (with merged entries in place) and the Geoapify
+  // entries that were not merged take turns
   const restGeoapify = cleanGeoapify.filter((suggestion) => !pairedGeoapify.has(suggestion));
-  const restWikidata = cleanWikidata.filter((suggestion) => !pairedWikidata.has(suggestion));
-  const rest = ADDRESS_HINT.test(text)
-    ? alternate(restGeoapify, restWikidata)
-    : alternate(restWikidata, restGeoapify);
+  const ordered = ADDRESS_HINT.test(text)
+    ? alternate(restGeoapify, wikidataWithMerged)
+    : alternate(wikidataWithMerged, restGeoapify);
 
   // 5. Cut to the maximum length
-  return [...merged, ...rest].slice(0, Math.max(0, max));
+  return ordered.slice(0, Math.max(0, max));
 }
