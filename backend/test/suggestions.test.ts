@@ -1,0 +1,192 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mergeSuggestions } from "../src/services/suggestions.js";
+import type { LonLat, PlaceKind, Suggestion } from "../src/types/geo.js";
+
+function geo(label: string, location: LonLat, kind: PlaceKind = "address"): Suggestion {
+  return { id: `geo:${label}`, label, location, kind, source: "geoapify" };
+}
+
+function wd(label: string, location: LonLat, description?: string): Suggestion {
+  return { id: `wd:${label}`, label, location, kind: "poi", source: "wikidata", ...(description && { description }) };
+}
+
+const labels = (list: Suggestion[]) => list.map((suggestion) => suggestion.label);
+
+// Real coordinates from the recorded fixtures:
+// Geoapify's only result for "Liseberg" was the suburb in Stockholm
+const geoLisebergStockholm = geo("Liseberg, 125 35 Stockholm, Sweden", [18.0250638, 59.284689], "city");
+// Wikidata's Q4357031, the same district (about 40 m from Geoapify's point)
+const wdLisebergStockholm = wd("Liseberg", [18.0247, 59.285], "urban district in Stockholm, Sweden");
+// Wikidata's Q1413270, the amusement park in Gothenburg (about 393 km away)
+const wdLisebergPark = wd("Liseberg", [11.99, 57.695555555556], "amusement park in Gothenburg, Sweden");
+
+// Places far apart from each other, so they never merge by accident
+const A: LonLat = [11.97, 57.71];
+const B: LonLat = [13.0, 55.6];
+const C: LonLat = [18.07, 59.33];
+const D: LonLat = [15.62, 58.41];
+const E: LonLat = [17.64, 59.86];
+
+// --- Rule 1: cleaning ---
+
+test("removes exact duplicates and invalid entries inside each list", () => {
+  const result = mergeSuggestions(
+    [geo("Storgatan 1, Malmö", B), geo("Storgatan 1, Malmö", B), geo("", A), geo("Bad", [0, 95])],
+    [wd("Uppsala Cathedral", E), wd("Uppsala Cathedral", E), wd("   ", C)],
+    "x",
+    8,
+  );
+  assert.deepEqual(labels(result), ["Uppsala Cathedral", "Storgatan 1, Malmö"]);
+});
+
+// --- Rules 2-3: cross-source duplicates ---
+
+test("merges the same place from both lists, taking the right fields from each side", () => {
+  const [merged, ...others] = mergeSuggestions([geoLisebergStockholm], [wdLisebergStockholm], "Liseberg", 8);
+
+  assert.deepEqual(others, []);
+  assert.deepEqual(merged, {
+    id: wdLisebergStockholm.id,
+    label: "Liseberg",
+    description: "urban district in Stockholm, Sweden",
+    location: geoLisebergStockholm.location,
+    kind: "city",
+    source: "both",
+  });
+});
+
+test("does not merge the same name far apart (Liseberg park vs Liseberg district)", () => {
+  const result = mergeSuggestions([geoLisebergStockholm], [wdLisebergPark], "Liseberg", 8);
+
+  assert.equal(result.length, 2);
+  assert.deepEqual(
+    result.map((suggestion) => suggestion.source),
+    ["wikidata", "geoapify"],
+  );
+});
+
+test("2 km is the limit: about 1.9 km apart merges, about 2.1 km apart does not", () => {
+  const near = mergeSuggestions([geo("Testplats", [18, 59.017])], [wd("Testplats", [18, 59])], "x", 8);
+  assert.equal(near.length, 1);
+  assert.equal(near[0]!.source, "both");
+
+  const far = mergeSuggestions([geo("Testplats", [18, 59.019])], [wd("Testplats", [18, 59])], "x", 8);
+  assert.equal(far.length, 2);
+});
+
+// --- Rule 4: order ---
+
+test("puts merged entries first, in Wikidata's order", () => {
+  const result = mergeSuggestions(
+    [geo("Only Geo", A), geo("Second, Somewhere", D), geo("First, Somewhere", C)],
+    [wd("Only Wd", B), wd("First", C), wd("Second", D)],
+    "x",
+    8,
+  );
+  assert.deepEqual(labels(result).slice(0, 2), ["First", "Second"]);
+  assert.deepEqual(
+    result.slice(0, 2).map((suggestion) => suggestion.source),
+    ["both", "both"],
+  );
+});
+
+test("alternates starting with Wikidata, then the rest of the longer list", () => {
+  const result = mergeSuggestions(
+    [geo("G1", A), geo("G2", B)],
+    [wd("W1", C), wd("W2", D), wd("W3", E), wd("W4", [10, 60])],
+    "Liseberg",
+    8,
+  );
+  assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "W4"]);
+});
+
+test("alternates starting with Geoapify when the text contains a digit", () => {
+  const result = mergeSuggestions(
+    [geo("G1", A), geo("G2", B), geo("G3", E)],
+    [wd("W1", C), wd("W2", D)],
+    "Drottninggatan 1",
+    8,
+  );
+  assert.deepEqual(labels(result), ["G1", "W1", "G2", "W2", "G3"]);
+});
+
+// --- Rule 5: cut ---
+
+test("cuts the list to max", () => {
+  const geoList = Array.from({ length: 5 }, (_, index) => geo(`G${index + 1}`, [10 + index, 60]));
+  const wdList = Array.from({ length: 5 }, (_, index) => wd(`W${index + 1}`, [10 + index, 50]));
+
+  const result = mergeSuggestions(geoList, wdList, "x", 8);
+  assert.deepEqual(labels(result), ["W1", "G1", "W2", "G2", "W3", "G3", "W4", "G4"]);
+});
+
+test("handles empty lists on one or both sides", () => {
+  assert.deepEqual(labels(mergeSuggestions([geo("G1", A)], [], "x", 8)), ["G1"]);
+  assert.deepEqual(labels(mergeSuggestions([], [wd("W1", A)], "x", 8)), ["W1"]);
+  assert.deepEqual(mergeSuggestions([], [], "x", 8), []);
+});
+
+// --- Purity ---
+
+// Freezes an object and everything inside it, so any change throws
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object") {
+    Object.values(value).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+test("does not change its inputs and gives the same output for the same input", () => {
+  const geoList = deepFreeze([geoLisebergStockholm, geo("G1", A), geo("G1", A)]);
+  const wdList = deepFreeze([wdLisebergPark, wdLisebergStockholm, wd("W1", B)]);
+  const geoBefore = structuredClone(geoList);
+  const wdBefore = structuredClone(wdList);
+
+  const first = mergeSuggestions(geoList, wdList, "Liseberg", 8);
+  const second = mergeSuggestions(geoList, wdList, "Liseberg", 8);
+
+  assert.deepEqual(geoList, geoBefore);
+  assert.deepEqual(wdList, wdBefore);
+  assert.deepEqual(first, second);
+});
+
+// --- Name normalization ---
+
+const TROMSO: LonLat = [18.9553, 69.6496];
+const BODO: LonLat = [14.4049, 67.2804];
+
+// True if the two names, at the same place, are merged into one entry
+function sameName(geoapifyLabel: string, wikidataLabel: string, location: LonLat): boolean {
+  const result = mergeSuggestions([geo(geoapifyLabel, location)], [wd(wikidataLabel, location)], "x", 8);
+  return result.length === 1 && result[0]!.source === "both";
+}
+
+test('treats "Tromsø" and "Tromso" as the same name', () => {
+  assert.equal(sameName("Tromsø, Troms, Norway", "Tromso", TROMSO), true);
+});
+
+test('treats "Bodø" and "Bodo" as the same name', () => {
+  assert.equal(sameName("Bodø, Nordland, Norway", "Bodo", BODO), true);
+});
+
+test("Swedish å, ä and ö still match their plain letters", () => {
+  assert.equal(sameName("Göteborg, Sweden", "Goteborg", A), true);
+  assert.equal(sameName("Malmö, Sweden", "Malmo", B), true);
+  assert.equal(sameName("Västerås, Sweden", "Vasteras", E), true);
+  assert.equal(sameName("Åre, Sweden", "Are", D), true);
+  // Different letters stay different names
+  assert.equal(sameName("Malmö, Sweden", "Malma", B), false);
+});
+
+test("normalization is symmetric: the special letter can be on either side", () => {
+  for (const [special, plain, location] of [
+    ["Tromsø", "Tromso", TROMSO],
+    ["Bodø", "Bodo", BODO],
+    ["Göteborg", "Goteborg", A],
+  ] as const) {
+    assert.equal(sameName(`${special}, X`, plain, location), true, `${special} (Geoapify) vs ${plain} (Wikidata)`);
+    assert.equal(sameName(`${plain}, X`, special, location), true, `${plain} (Geoapify) vs ${special} (Wikidata)`);
+  }
+});

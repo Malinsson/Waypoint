@@ -309,7 +309,7 @@ Rules (a starting point, to be tuned with the manual test list):
 
 1. Clean each list: remove entries without a label or a valid location, and remove exact duplicates inside one list (same label and coordinates).
 2. Find cross-source duplicates. A Geoapify entry and a Wikidata entry are the same place when both hold:
-   - their names are equal after normalization (lowercase, diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
+   - their names are equal after normalization (lowercase, a few letters replaced (see Edge cases), diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
    - their locations are at most 2 km apart (haversine distance).
 3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `kind` and `location` from Geoapify, `source: "both"`.
 4. Order the result:
@@ -559,6 +559,7 @@ Autocomplete and suggestions
 - Wikidata results that are not good destinations (for example a sports hall, a station, or a district): they are real places with coordinates, so they stay. Classification is an open question.
 - Wikidata is slow, rate limits us, or is down: the dropdown shows Geoapify's results, with `partial: true`.
 - User types a name in another language or spelling (for example "Goteborg" with an umlaut instead of "Gothenburg"): matching depends on how Wikidata and Geoapify handle other languages. Test and record (see Open questions).
+- Non-English letters when merging suggestions: names are compared after lowercasing, an explicit replacement of letters that Unicode does not split into a base letter and a mark (ø to o, æ to ae, ß to ss, ł to l, đ and ð to d, þ to th), and then removal of diacritics with `normalize("NFD")`. Handled: Swedish å, ä, ö (Malmö matches Malmo, Åre matches Are), the replaced letters (Tromsø matches Tromso), and most accented Latin letters (é, ü, ñ). Not handled: the spellings "aa" for å (Aarhus vs Århus), "ae"/"oe" for ä/ö (Goeteborg does not match Göteborg), names in different languages (Gothenburg vs Göteborg), and non-Latin scripts across sources. Removing punctuation joins words, so "Göta-älv" does not match "Göta älv". Whether to handle "aa" is decided from real data in Step 5.
 - A suggestion with a point of interest outside the area Geoapify can route in: see Planning and routing.
 
 Places and accommodation
