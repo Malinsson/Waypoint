@@ -66,13 +66,97 @@ test("does not merge the same name far apart (Liseberg park vs Liseberg district
   );
 });
 
-test("2 km is the limit: about 1.9 km apart merges, about 2.1 km apart does not", () => {
-  const near = mergeSuggestions([geo("Testplats", [18, 59.017])], [wd("Testplats", [18, 59])], "x", 8);
+// A point `km` straight north of `point`. Along a meridian one degree of
+// latitude is the same length everywhere, so the distance is exact.
+function north([lon, lat]: LonLat, km: number): LonLat {
+  return [lon, lat + (km * 1000 * 180) / (Math.PI * 6_371_000)];
+}
+
+const MALMO: LonLat = [13.0038, 55.605];
+const AARHUS: LonLat = [10.2039, 56.1629];
+const STOCKHOLM: LonLat = [18.0686, 59.3293];
+
+// Distances below come from the suggestion report: the same place was
+// 2.4 km (Malmö) and 9.7 km (Aarhus Municipality) apart in the two sources,
+// and the counties 29.1 km apart
+
+test("merges a same-name pair 2.4 km apart", () => {
+  const result = mergeSuggestions([geo("Malmö, Sweden", north(MALMO, 2.4), "city")], [wd("Malmö", MALMO)], "x", 8);
+  assert.deepEqual(
+    result.map((suggestion) => suggestion.source),
+    ["both"],
+  );
+});
+
+test("merges a same-name pair 9.7 km apart", () => {
+  const result = mergeSuggestions(
+    [geo("Aarhus Municipality, Denmark", north(AARHUS, 9.7), "city")],
+    [wd("Aarhus Municipality", AARHUS)],
+    "x",
+    8,
+  );
+  assert.deepEqual(
+    result.map((suggestion) => suggestion.source),
+    ["both"],
+  );
+});
+
+test("does not merge a same-name pair 29.1 km apart", () => {
+  const result = mergeSuggestions(
+    [geo("Stockholm County, Sweden", north(STOCKHOLM, 29.1), "city")],
+    [wd("Stockholm County", STOCKHOLM)],
+    "x",
+    8,
+  );
+  assert.deepEqual(
+    result.map((suggestion) => suggestion.source),
+    ["wikidata", "geoapify"],
+  );
+});
+
+test("15 km is the limit: 14.9 km apart merges, 15.1 km apart does not", () => {
+  const near = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 14.9))], [wd("Testplats", STOCKHOLM)], "x", 8);
   assert.equal(near.length, 1);
   assert.equal(near[0]!.source, "both");
 
-  const far = mergeSuggestions([geo("Testplats", [18, 59.019])], [wd("Testplats", [18, 59])], "x", 8);
+  const far = mergeSuggestions([geo("Testplats", north(STOCKHOLM, 15.1))], [wd("Testplats", STOCKHOLM)], "x", 8);
   assert.equal(far.length, 2);
+});
+
+test("pairs the nearest Wikidata candidate, even when it is listed second", () => {
+  const geoAarhus = geo("Aarhus, Denmark", AARHUS, "city");
+  const farther = wd("AARhus", north(AARHUS, 1.8), "listed first, 1.8 km away");
+  const nearer = wd("Aarhus", north(AARHUS, 0.8), "listed second, 0.8 km away");
+
+  const result = mergeSuggestions([geoAarhus], [farther, nearer], "x", 8);
+
+  // The nearer one is merged; the farther one stays a Wikidata-only row
+  assert.deepEqual(
+    result.map((suggestion) => [suggestion.description, suggestion.source]),
+    [
+      ["listed first, 1.8 km away", "wikidata"],
+      ["listed second, 0.8 km away", "both"],
+    ],
+  );
+});
+
+test("pairs one Wikidata entry with its nearest Geoapify candidate, one-to-one", () => {
+  const fartherGeo = geo("Aarhus, Region Midtjylland", north(AARHUS, 1.5), "address");
+  const nearerGeo = geo("Aarhus, Denmark", north(AARHUS, 0.5), "city");
+
+  const result = mergeSuggestions([fartherGeo, nearerGeo], [wd("Aarhus", AARHUS)], "x", 8);
+
+  // Merged with the nearer one (its location and kind), and the farther
+  // Geoapify entry is not used a second time
+  assert.equal(result.length, 2);
+  assert.deepEqual(result[0], {
+    id: "wd:Aarhus",
+    label: "Aarhus",
+    location: nearerGeo.location,
+    kind: "city",
+    source: "both",
+  });
+  assert.deepEqual(result[1], fartherGeo);
 });
 
 // --- Rule 4: order ---

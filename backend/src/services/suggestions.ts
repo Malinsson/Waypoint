@@ -5,8 +5,11 @@ import type { LonLat, Suggestion } from "../types/geo.js";
 // compares names and distances exactly the way the merge does.
 
 // Two entries farther apart than this are different places, even with the
-// same name (e.g. Liseberg in Gothenburg and Liseberg in Stockholm)
-export const MAX_MERGE_DISTANCE_METERS = 2_000;
+// same name (e.g. Liseberg in Gothenburg and Liseberg in Stockholm). The two
+// sources often put the same city or landmark a few km apart (seen up to
+// 9.7 km); the nearest different place with the same name was 61.7 km away.
+// Counties (about 29 km apart) stay unmerged on purpose.
+export const MAX_MERGE_DISTANCE_METERS = 15_000;
 // A digit in the typed text probably means a street address, which
 // Geoapify knows better than Wikidata
 const ADDRESS_HINT = /\d/;
@@ -109,23 +112,37 @@ export function mergeSuggestions(
   const cleanGeoapify = dedupe(geoapify.filter(isValid));
   const cleanWikidata = dedupe(wikidata.filter(isValid));
 
-  // 2-3. Find places that both sources know, in Wikidata's order. Each
-  // Geoapify entry can be paired once, with the first Wikidata entry that
-  // matches it. A merged entry replaces its Wikidata entry in place, so it
-  // keeps Wikidata's ranking instead of jumping to the top.
-  const pairedGeoapify = new Set<Suggestion>();
+  // 2. Find places that both sources know. Every same-name pair within the
+  // limit is a candidate; the nearest candidates are paired first, and each
+  // entry can be in only one pair. Ties are broken by list position, so the
+  // result never depends on chance.
+  const wikidataNames = cleanWikidata.map((wd) => normalizeName(wd.label));
+  const geoapifyNames = cleanGeoapify.map((geo) => normalizeName(geoapifyName(geo.label)));
 
-  const wikidataWithMerged = cleanWikidata.map((wd): Suggestion => {
-    const wdName = normalizeName(wd.label);
-    const geo = cleanGeoapify.find(
-      (candidate) =>
-        !pairedGeoapify.has(candidate) &&
-        normalizeName(geoapifyName(candidate.label)) === wdName &&
-        haversineMeters(candidate.location, wd.location) <= MAX_MERGE_DISTANCE_METERS,
-    );
+  const candidates: { wdIndex: number; geoIndex: number; meters: number }[] = [];
+  cleanWikidata.forEach((wd, wdIndex) => {
+    cleanGeoapify.forEach((geo, geoIndex) => {
+      if (wikidataNames[wdIndex] !== geoapifyNames[geoIndex]) return;
+      const meters = haversineMeters(geo.location, wd.location);
+      if (meters <= MAX_MERGE_DISTANCE_METERS) candidates.push({ wdIndex, geoIndex, meters });
+    });
+  });
+  candidates.sort((a, b) => a.meters - b.meters || a.wdIndex - b.wdIndex || a.geoIndex - b.geoIndex);
+
+  // Wikidata index -> the Geoapify entry it is paired with
+  const pairOf = new Map<number, Suggestion>();
+  const pairedGeoapify = new Set<number>();
+  for (const { wdIndex, geoIndex } of candidates) {
+    if (pairOf.has(wdIndex) || pairedGeoapify.has(geoIndex)) continue;
+    pairOf.set(wdIndex, cleanGeoapify[geoIndex]!);
+    pairedGeoapify.add(geoIndex);
+  }
+
+  // 3. A merged entry replaces its Wikidata entry in place, so it keeps
+  // Wikidata's ranking instead of jumping to the top
+  const wikidataWithMerged = cleanWikidata.map((wd, wdIndex): Suggestion => {
+    const geo = pairOf.get(wdIndex);
     if (!geo) return wd;
-
-    pairedGeoapify.add(geo);
     // Wikidata has the better name and a description; Geoapify has the
     // finer kind and a location that matches its own map data
     return {
@@ -140,7 +157,7 @@ export function mergeSuggestions(
 
   // 4. The Wikidata list (with merged entries in place) and the Geoapify
   // entries that were not merged take turns
-  const restGeoapify = cleanGeoapify.filter((suggestion) => !pairedGeoapify.has(suggestion));
+  const restGeoapify = cleanGeoapify.filter((_suggestion, geoIndex) => !pairedGeoapify.has(geoIndex));
   const ordered = ADDRESS_HINT.test(text)
     ? alternate(restGeoapify, wikidataWithMerged)
     : alternate(wikidataWithMerged, restGeoapify);
