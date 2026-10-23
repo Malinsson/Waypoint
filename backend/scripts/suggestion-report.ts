@@ -6,6 +6,7 @@
 // Wikidata requests per text (18 texts: 18 Geoapify, up to 36 Wikidata).
 // Not part of the Express app or the build.
 // Run with: npm run report:suggestions
+// Only some texts: npm run report:suggestions -- Gothenburg Aarhus Bodø
 import { CANDIDATES_PER_SOURCE, MAX_SUGGESTIONS } from "../src/services/autocomplete-service.js";
 import { autocomplete } from "../src/services/geoapify-facade.js";
 import {
@@ -41,6 +42,15 @@ const SEARCH_TEXTS = [
 // Spaces out the texts, to stay gentle with Wikidata's public API
 const PAUSE_BETWEEN_TEXTS_MS = 2_000;
 const LANG = "en";
+
+// Texts given on the command line replace the list above. NFC turns a
+// letter typed as base letter + mark (as some terminals send it) into the
+// single character, so "Bodø" is the same text however it was typed.
+const requestedTexts = process.argv
+  .slice(2)
+  .map((text) => text.normalize("NFC").trim())
+  .filter((text) => text !== "");
+const textsToRun = requestedTexts.length > 0 ? requestedTexts : SEARCH_TEXTS;
 
 const COLUMNS: { title: string; width: number; value: (suggestion: Suggestion, index: number) => string }[] = [
   { title: "#", width: 3, value: (_suggestion, index) => String(index + 1) },
@@ -112,7 +122,7 @@ function printNameMatches(geoapify: Suggestion[], wikidata: Suggestion[]): void 
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-for (const [index, text] of SEARCH_TEXTS.entries()) {
+for (const [index, text] of textsToRun.entries()) {
   if (index > 0) await pause(PAUSE_BETWEEN_TEXTS_MS);
   console.log(`\n=== "${text}" ===`);
 
