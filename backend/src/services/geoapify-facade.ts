@@ -71,6 +71,8 @@ async function getJson(
   params: Record<string, string>,
   kindByStatus: Partial<Record<number, UpstreamErrorKind>> = {},
   timeoutMs: number = TIMEOUT_MS,
+  // Lets the caller cancel too; the request stops at whichever comes first
+  signal?: AbortSignal,
 ): Promise<unknown> {
   // URL/searchParams encode every value, so addresses with å, ä, ö or
   // apostrophes are sent correctly
@@ -82,7 +84,8 @@ async function getJson(
 
   let response: Response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+    const timeout = AbortSignal.timeout(timeoutMs);
+    response = await fetch(url, { signal: signal ? AbortSignal.any([signal, timeout]) : timeout });
   } catch (err) {
     // Network failure or timeout. Only the path is logged, never the full
     // URL, because the URL contains the API key.
@@ -146,7 +149,7 @@ export async function geocode(query: string): Promise<GeocodeResult[]> {
 // input, unlike /geocode/search above
 export async function autocomplete(
   text: string,
-  options: { bias?: LonLat | undefined; lang?: string; limit?: number } = {},
+  options: { bias?: LonLat | undefined; lang?: string; limit?: number; signal?: AbortSignal } = {},
 ): Promise<Suggestion[]> {
   const params: Record<string, string> = {
     text,
@@ -157,7 +160,7 @@ export async function autocomplete(
   // Geoapify writes the bias longitude first, the same order as LonLat
   if (options.bias) params.bias = `proximity:${options.bias[0]},${options.bias[1]}`;
 
-  const data = await getJson("/geocode/autocomplete", params, {}, SUGGESTION_TIMEOUT_MS);
+  const data = await getJson("/geocode/autocomplete", params, {}, SUGGESTION_TIMEOUT_MS, options.signal);
   const { results } = parseResponse(autocompleteResponseSchema, data, "/geocode/autocomplete");
 
   // Geoapify can return the same place twice (e.g. one entry per data

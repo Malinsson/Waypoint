@@ -162,7 +162,7 @@ Response 200:
 Field meaning:
 - `id`: prefixed by source (`geo:<Geoapify place id>` or `wd:<Wikidata Q-id>`), so ids never collide. For a merged entry the Wikidata id is used.
 - `description`: optional short text that helps the user tell similar names apart. Comes from Wikidata. Geoapify-only entries usually have none.
-- `kind`: `address`, `city`, or `poi`. A Wikidata-only entry is `poi` (see Open questions).
+- `kind`: `address`, `city`, or `poi`. A Wikidata-only entry is `poi` (see Open questions). A merged entry is `city` if Geoapify says `city`, otherwise `poi`.
 - `source`: `geoapify`, `wikidata`, or `both`. Used for tests and debugging, not shown to the user.
 - `partial`: `true` when one of the two sources failed or timed out, so the list may be missing results.
 
@@ -294,14 +294,14 @@ An empty `results` array (not an error) means nothing was found. Errors: 400 `VA
 1. Rate limit middleware, then validate the query with Zod. Trim the text and collapse repeated spaces.
 2. Start both lookups at the same time, each with its own timeout:
    - `GeoapifyFacade.autocomplete(text, { bias, lang, limit })`
-   - `WikidataFacade.searchPlaces(text, { lang, limit })`
+   - `WikidataFacade.searchPlaces(text, { lang, limit })`, but only if the text contains no digit. A digit means a street address, which Wikidata does not have, so only Geoapify is asked. Not asking Wikidata is not a failure: `partial` stays `false`.
 3. Wait for both with `Promise.allSettled`, so that one failure never cancels the other.
-4. If both failed, return 503 (`UPSTREAM_RATE_LIMITED` if Geoapify's quota is the reason, otherwise `UPSTREAM_UNAVAILABLE`). If only one failed, continue with the other list and set `partial: true`. Log which source failed.
+4. If every source that was asked failed (both, or Geoapify alone for a text with a digit), return 503 (`UPSTREAM_RATE_LIMITED` if Geoapify's quota is the reason, otherwise `UPSTREAM_UNAVAILABLE`). If only one failed, continue with the other list and set `partial: true`. Log which source failed.
 5. Merge the two lists with `mergeSuggestions` (next section) and return at most 8 results.
 
 ## Suggestion merging
 
-Implemented as one pure function, `mergeSuggestions(geoapify, wikidata, text, max)` in `backend/src/services/suggestions.ts`, called by the autocomplete controller. It does no network calls, so it is easy to unit test and easy to explain.
+Implemented as one pure function, `mergeSuggestions(geoapify, wikidata, max)` in `backend/src/services/suggestions.ts`, called by the autocomplete orchestration (`backend/src/services/autocomplete-service.ts`). It does no network calls and does not look at the typed text, so it is easy to unit test and easy to explain.
 
 Why two sources: Geoapify's autocomplete is built for addresses and places in its own data, and some landmarks are missing or ranked below unrelated places (a search for "Liseberg" can return a suburb or a station first). Wikidata knows landmarks by name and gives a short description, but it has no concept of street addresses. Neither alone is enough.
 
@@ -309,12 +309,12 @@ Rules (a starting point, to be tuned with the manual test list):
 
 1. Clean each list: remove entries without a label or a valid location, and remove exact duplicates inside one list (same label and coordinates).
 2. Find cross-source duplicates. A Geoapify entry and a Wikidata entry are the same place when both hold:
-   - their names are equal after normalization (lowercase, diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
+   - their names are equal after normalization (lowercase, a few letters replaced (see Edge cases), diacritics removed, punctuation and extra spaces removed), where the name of a Geoapify entry is the part of its label before the first comma, and
    - their locations are at most 2 km apart (haversine distance).
-3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `kind` and `location` from Geoapify, `source: "both"`.
+3. Merge each duplicate pair into one entry: `label` and `description` from Wikidata, `location` from Geoapify, `source: "both"`. `kind` is `city` if Geoapify's kind is `city`, otherwise `poi`, because Geoapify labels named places such as museums and stations as `address`.
 4. Order the result:
-   1. Merged entries first (both sources agree), in the order Wikidata ranked them.
-   2. Then the remaining entries alternate between the two lists, starting with Wikidata, each list keeping its own order. If the text contains a digit (probably an address), the alternation starts with Geoapify instead.
+   1. A merged entry keeps the position of its Wikidata entry in Wikidata's order. It is not moved to the top.
+   2. The Wikidata list (with merged entries in place) and the Geoapify entries that were not merged alternate, starting with Wikidata, each list keeping its own order. (For a text with a digit, Wikidata is not asked at all; see Orchestration.)
    3. When one list runs out, the rest of the other list follows.
 5. Cut the list to `max` (8).
 
@@ -472,7 +472,7 @@ This is a Could. Only consider it after week 4 and only if the core flow and the
 
 - Rate limit for `/api/geocode/autocomplete`: start with 60 requests per minute per IP, returned as 429 `RATE_LIMITED`. Tune when testing. One autocomplete request costs one Geoapify request and two Wikidata requests.
 - Frontend: debounce 300 ms, minimum 3 characters, maximum 8 suggestions shown. After a 429, no suggestion requests for 30 seconds.
-- Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown).
+- Suggestion sources: ask each source for up to 6 candidates, then cut the merged list to 8. Timeout per source: 4 seconds (shorter than the usual 10 seconds, so a slow source does not hold up the dropdown). If the text contains a digit, only Geoapify is asked.
 - Merging: names compared after normalization, locations at most 2 km apart to count as the same place.
 - Wikidata cache (Could): in memory, keyed by language and normalized text, time to live about 10 minutes, with a size limit.
 - Environment variable `WIKIDATA_USER_AGENT`: app name and contact address, sent with every Wikidata request.
@@ -544,9 +544,11 @@ Autocomplete and suggestions
 - Slow network: older requests are cancelled, and the dropdown keeps showing the previous suggestions or a spinner, never mixed results from different texts.
 - User types very fast, then pastes a long address: debounce means only the final text is sent.
 - Text shorter than 3 characters: no request is sent, the dropdown is closed.
+- Text with a digit (probably a street address, e.g. "Drottninggatan 1"): only Geoapify is asked, Wikidata is skipped, and `partial` stays `false`. If Geoapify fails, the endpoint returns 503 as when both sources fail.
 - Text contains special characters (a-ring, a-umlaut, o-umlaut, apostrophes, ampersands): must be URL-encoded when the frontend calls the backend and when each Facade calls its upstream.
 - Text contains search syntax (quotes, `haswbstatement:`, pipes): treated as plain text by the `WikidataFacade`, see its notes.
 - Geoapify daily quota is used up: Geoapify fails, Wikidata may still answer (`partial: true`). If both fail, the endpoint returns 503, the field falls back to Enter-to-search, and the message explains it.
+- Known limitation, noise among Geoapify suggestions: some rows are places the user did not mean. Two kinds: fuzzy matches ("Gotzenberg" and "Gottenburg" for "Gothenburg", "Aarau" and "Al-Arus" for "Aarhus", "Åhus" for "Århus") and real places with exactly the same name ("Stockholm, Ullervad", "Århus, Skien", "Malmö, Björkvik"). They are not filtered or demoted, because no field in the autocomplete response separates them safely (see Open questions). Geoapify already lists its fuzzy matches last; they reach the dropdown through the alternation with Wikidata. The correct place is usually first.
 - Rate limit hit (429): the field falls back to Enter-to-search for 30 seconds and does not retry in a tight loop. The next keystroke after the pause searches again.
 - User selects a suggestion and then edits the text: the already added destination is unchanged, and the field starts a new search.
 - Browser autofill or password managers suggesting their own values: set `autocomplete="off"` on the field so it does not clash with our dropdown.
@@ -559,6 +561,7 @@ Autocomplete and suggestions
 - Wikidata results that are not good destinations (for example a sports hall, a station, or a district): they are real places with coordinates, so they stay. Classification is an open question.
 - Wikidata is slow, rate limits us, or is down: the dropdown shows Geoapify's results, with `partial: true`.
 - User types a name in another language or spelling (for example "Goteborg" with an umlaut instead of "Gothenburg"): matching depends on how Wikidata and Geoapify handle other languages. Test and record (see Open questions).
+- Non-English letters when merging suggestions: names are compared after lowercasing, an explicit replacement of letters that Unicode does not split into a base letter and a mark (ø to o, æ to ae, ß to ss, ł to l, đ and ð to d, þ to th), and then removal of diacritics with `normalize("NFD")`. Handled: Swedish å, ä, ö (Malmö matches Malmo, Åre matches Are), the replaced letters (Tromsø matches Tromso), and most accented Latin letters (é, ü, ñ). Not handled: the spellings "aa" for å (Aarhus vs Århus), "ae"/"oe" for ä/ö (Goeteborg does not match Göteborg), names in different languages (Gothenburg vs Göteborg), and non-Latin scripts across sources. Removing punctuation joins words, so "Göta-älv" does not match "Göta älv". Whether to handle "aa" is decided from real data in Step 5.
 - A suggestion with a point of interest outside the area Geoapify can route in: see Planning and routing.
 
 Places and accommodation
@@ -585,8 +588,8 @@ Automated (Should):
 - `GeoapifyFacade.autocomplete` with a recorded Geoapify response: results are mapped to `kind` correctly, ids are prefixed with `geo:`, the limit is respected, and exact duplicates are removed.
 - `WikidataFacade.searchPlaces` with recorded responses (one for the search, one for `wbgetentities`): label and description in the requested language, coordinates converted to `[longitude, latitude]`, other globes dropped, preferred rank chosen, entities without a label dropped, ids prefixed with `wd:`.
 - Query building for Wikidata: the search URL contains the text, `haswbstatement:P625`, namespace 0 and the limit; the details URL joins the ids with `|`; the `User-Agent` header is set; search syntax in the text is neutralized. Test by inspecting the request the Facade would send, without sending it.
-- `mergeSuggestions` (pure function): exact duplicates inside one list are removed; the same place in both lists is merged into one entry with `source: "both"`; two places with the same name far apart are not merged; merged entries come first; alternation starts with Wikidata, and with Geoapify when the text contains a digit; the result is cut to `max`; empty lists on one or both sides.
-- Autocomplete orchestration with mocked Facades: both succeed, one fails (`partial: true`), both fail (503), one source exceeds its timeout.
+- `mergeSuggestions` (pure function): exact duplicates inside one list are removed; the same place in both lists is merged into one entry with `source: "both"`; two places with the same name far apart are not merged; a merged entry keeps its position in Wikidata's order and is not moved to the top; alternation starts with Wikidata; the result is cut to `max`; empty lists on one or both sides.
+- Autocomplete orchestration with mocked Facades: both succeed, one fails (`partial: true`), both fail (503), one source exceeds its timeout; a text with a digit asks only Geoapify (`partial: false`), and gives 503 if Geoapify fails.
 - Rate limiting: the 61st request in a minute from one IP returns 429 (use a low limit in the test configuration).
 - Frontend: a hook or component test that checks the debounce, the minimum length, and that a stale response does not overwrite a newer one (use fake timers and a mocked API). A component test that a row with a description shows both lines.
 - Facade `findAccommodation` with a recorded Places response: categories map to the right `type`, unnamed places are dropped, duplicates removed, results sorted by distance, limit applied.
@@ -645,17 +648,18 @@ Autocomplete and Wikidata
 - How does `list=search` rank its results, and does it favor well-known items? One test (Liseberg) put the amusement park first. Check with more searches, including "Stockholm".
 - Does `list=search` match labels and aliases in other languages ("Goteborg" with an umlaut, "Gothenburg")? Test both spellings, and do the same against Geoapify with `lang=en`.
 - What happens when an item has no label in the requested language? Is the `languagefallback` parameter of `wbgetentities` worth using, or is dropping the item better?
-- How large is the `wbgetentities` response when `claims` is requested for 6 entities? If it is too large or slow, look for a way to ask for only `P625`.
+- How large is the `wbgetentities` response when `claims` is requested for 6 entities? If it is too large or slow, look for a way to ask for only `P625`. Measured (fixture `entities-liseberg.json`, the 6 hits for "Liseberg", English only): 84.9 KB, of which `claims` is about 99%. The amusement park alone is 41.8 KB (50 properties). Response time not measured yet.
 - What are Wikimedia's current rules for the `User-Agent` format and the request rate? A secondary source suggests 0.5-1 s between requests, which is slower than our debounce. Read Wikimedia's own policy before deploying, and decide whether the cache and a per-IP limit are enough.
-- Should Wikidata items be classified (for example with property `P31`, "instance of") so that `kind` can be `city` for cities and so that stations, halls, and districts can be ranked lower? Currently every Wikidata-only entry is `poi`.
-- Are the merge rules right? Check the 2 km distance limit, the name normalization, the "merged first, then alternate" order, and the "digit means address" rule against the test list. Is 8 suggestions the right number?
-- Should Geoapify results with low `rank.confidence` be dropped or ranked lower? The autocomplete response contains `rank.confidence` and `rank.match_type`; check which values the bad results (a suburb for "Liseberg", west-coast places for "Stockholm") actually have.
+- Should Wikidata items be classified (for example with property `P31`, "instance of") so that `kind` can be `city` for cities and so that stations, halls, and districts can be ranked lower? Currently every Wikidata-only entry is `poi`. In the recorded "Liseberg" search (fixture `search-liseberg.json`), an urban district in Stockholm came second and the railway station sixth, after the amusement park, a waterpark, a hotel and a concert hall.
+- Are the merge rules right? Check the 2 km distance limit, the name normalization, the alternation order, and the "digit means address" rule against the test list. Is 8 suggestions the right number? Evidence so far: an earlier rule put merged entries first, which placed the Stockholm district before the amusement park for "Liseberg" and a village in Nebraska before Malmö for "Malmo". That rule was removed; a merged entry now keeps its Wikidata position.
+- Should Geoapify results with low `rank.confidence` be dropped or ranked lower? Decided: no, documented as a known limitation (see Edge cases). Evidence from 8 recorded autocomplete responses (47 results; fixtures in `backend/test/fixtures/geoapify/`): `match_type` is always `full_match`. `rank.popularity` does not exist. `population` exists for only 4 results. `rank.confidence` is exactly 1 for every good result and for all Kebnekaise results, and at most 0.72 for most fuzzy matches, but "Åhus" (for "Århus") has 1, and places with exactly the same name always have 1, so confidence measures text match, not importance. Geoapify already orders its results by falling confidence, so moving low-confidence entries to the end of the Geoapify list would change nothing in any of the 8 responses. `rank.importance` is 0.107-0.133 for same-name places and at least 0.509 for the good results, but the relevant Kebnekaise results also have 0.040-0.280, the fuzzy match "Aarau" has 0.577, and importance is missing for all "Bodø" results, so it cannot be used either. Revisit only if a later Geoapify version adds a usable importance or popularity value.
 - Geoapify's default country bias is `countrycode:auto`, which according to its documentation is decided by IP address. Since calls come from our server, that may be the server's country and not the user's. A test with `countrycode:se` did not fix the missing landmarks, so this is not the whole explanation. Decide which explicit bias to send (a fixed country, a list, or `none`) after testing ambiguous names.
 - How does Geoapify count autocomplete requests? Its documentation says one autocomplete request equals one credit. Check the pricing page for the current daily free limit before changing debounce or minimum length.
 - What are good rate limit values? 60 per minute per IP is a guess. Check against real typing behavior.
 - Which Geoapify result types map to `poi`? Check real responses and adjust the mapping in the Facade.
 - Should the Enter fallback (`POST /api/geocode`) also include Wikidata, so that a landmark typed in full and submitted without picking a suggestion is found?
 - Should geocoding, suggestion, and attraction results be cached (in memory or in MongoDB) to save quota? Decide only if the quota becomes a problem.
+-Digit rule. Evidence: in the suggestion report for "Drottninggatan 1 Stockholm", Wikidata returned a single result, "Drottninggatan 14" (a building, wrong house number), and the merged list placed it at position 2, ahead of five correct Geoapify addresses. Decision: do not call Wikidata when the text contains a digit. Limits: one search only, so this is weak evidence; names with digits ("Studio 54") will lose Wikidata suggestions. The saving of two Wikimedia requests per keystroke is expected from the design and has not been measured.
 
 Accommodation
 - Is a 10 km search radius sensible in sparsely populated areas? Check with a real route in northern Sweden and adjust.

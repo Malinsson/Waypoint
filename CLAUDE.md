@@ -109,6 +109,7 @@ cd backend && npm run dev        # tsx watch src/index.ts
 cd backend && npm run build      # tsc, outputs to dist/
 cd backend && npm start          # node dist/index.js (production)
 cd backend && npm test           # node:test via tsx, runs backend/test/**/*.test.ts
+cd backend && npm run report:suggestions  # dev only, REAL quota: 18 Geoapify + up to 36 Wikidata requests per run
 
 # Frontend
 cd frontend && npm run dev       # Vite dev server
