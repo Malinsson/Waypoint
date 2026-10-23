@@ -6,6 +6,7 @@ import { authRouter } from "./routes/auth-routes.js";
 import { geocodeRouter } from "./routes/geocode-routes.js";
 import { tripRouter } from "./routes/trip-routes.js";
 import { notFoundHandler, errorHandler } from "./middleware/error-handler.js";
+import { favoriteRouter } from "./routes/favorites-routes.js";
 
 export const app = express();
 
@@ -20,6 +21,7 @@ app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/trips", tripRouter);
+app.use("/api/favorites", favoriteRouter);
 
 // Must come after all routes, otherwise they would catch requests first
 app.use(notFoundHandler);

@@ -33,7 +33,7 @@ type RequestOptions = {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
   path: string,
   body?: unknown,
   options: RequestOptions = {},
@@ -82,6 +82,8 @@ async function request<T>(
     )
   }
 
+  if (response.status === 204) return undefined as T
+
   // Trusts the backend to match T; nothing checks the shape at runtime
   return (await response.json()) as T
 }
@@ -92,4 +94,12 @@ export function apiGet<T>(path: string, options: RequestOptions = {}): Promise<T
 
 export function apiPost<T>(path: string, body: unknown): Promise<T> {
   return request<T>('POST', path, body)
+}
+
+export function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  return request<T>('PATCH', path, body)
+}
+
+export function apiDelete<T = void>(path: string): Promise<T> {
+  return request<T>('DELETE', path)
 }

@@ -11,6 +11,7 @@ function Header() {
       <Logo />
       <NavLink to="/">Home</NavLink>
       <NavLink to="/plan">Plan</NavLink>
+      <NavLink to="/favorites">Favorites</NavLink>
       <div className={styles.navAccount}>
         {/* Show nothing while a stored token is checked, so the guest
             links do not flash before the user is restored */}

@@ -2,6 +2,7 @@ import styles from './SuggestionDropdown.module.css'
 import type { AutocompleteStatus } from '../../hooks/use-autocomplete.ts'
 import type { PlaceKind, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
+import FavoriteButton from '../AddDestinationForm/FavoriteButton/FavoriteButton.tsx'
 
 type SuggestionDropdownProps = {
   listboxId: string
@@ -62,10 +63,16 @@ function SuggestionDropdown({
             <span className={styles.icon} aria-hidden="true">
               {KIND_ICONS[suggestion.kind]}
             </span>
+            
             <span className={styles.text}>
               <span className={styles.label}>{suggestion.label}</span>
               {suggestion.description && <span className={styles.description}>{suggestion.description}</span>}
             </span>
+
+            <FavoriteButton
+              location={suggestion}
+            />
+
           </li>
         ))}
       </ul>

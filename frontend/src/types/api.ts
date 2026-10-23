@@ -30,6 +30,28 @@ export type LoginInput = {
   password: string
 }
 
+export type FavoriteLocation = {
+  _id: string
+  name: string
+  address: string
+  latitude: number
+  longitude: number
+  wikidataId?: string
+}
+
+export type FavoriteList = {
+  _id: string
+  name: string
+  isDefault: boolean
+  locations: FavoriteLocation[]
+}
+
+export type FavoriteListsResponse = {
+  lists: FavoriteList[]
+}
+
+export type FavoriteLocationInput = Omit<FavoriteLocation, '_id'>
+
 // Mirrors backend/src/types/geo.ts, keep in sync.
 // GeoJSON order: longitude first, the same as the backend
 export type LonLat = [lon: number, lat: number]
