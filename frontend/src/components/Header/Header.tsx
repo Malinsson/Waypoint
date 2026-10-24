@@ -1,14 +1,18 @@
+import styles from './Header.module.css'
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '../context/auth-context.ts'
+import { useAuth } from '../../context/auth-context.ts'
+import Logo from '../Logo/Logo.tsx'
 
 function Header() {
   const { user, loading, logout } = useAuth()
 
   return (
     <nav>
+      <Logo />
       <NavLink to="/">Home</NavLink>
       <NavLink to="/plan">Plan</NavLink>
-      <div className="nav-account">
+      <NavLink to="/favorites">Favorites</NavLink>
+      <div className={styles.navAccount}>
         {/* Show nothing while a stored token is checked, so the guest
             links do not flash before the user is restored */}
         {!loading &&

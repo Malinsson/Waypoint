@@ -1,0 +1,30 @@
+nav {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 2rem;
+  border-bottom: var(--border-light);
+  align-items: center;
+}
+
+nav a {
+  text-decoration: none;
+  color: inherit;
+  font-family: var(--font-detail);
+}
+
+nav a:hover {
+  text-decoration: underline;
+}
+
+/* NavLink adds the "active" class to the link for the current page */
+nav a.active {
+  font-weight: var(--weight-bold);
+  text-decoration: underline;
+}
+
+.navAccount {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-left: auto;
+}

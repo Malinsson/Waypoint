@@ -1,6 +1,25 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../utils/app-error.js";
+import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.js";
+
+const UPSTREAM_RESPONSES: Record<UpstreamErrorKind, { status: number; code: string; message: string }> = {
+  NO_ROUTE: {
+    status: 422,
+    code: "ROUTE_NOT_FOUND",
+    message: "We could not find a driving route between your destinations. Check that they are connected by road.",
+  },
+  RATE_LIMITED: {
+    status: 503,
+    code: "UPSTREAM_RATE_LIMITED",
+    message: "The map service is busy right now. Please try again later.",
+  },
+  UNAVAILABLE: {
+    status: 503,
+    code: "UPSTREAM_UNAVAILABLE",
+    message: "The map service is not available right now. Please try again later.",
+  },
+};
 
 // Runs when no route matched the request
 export const notFoundHandler: RequestHandler = (req, res) => {
@@ -36,7 +55,17 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   }
 
   if (err instanceof AppError) {
-    res.status(err.status).json({ error: { code: err.code, message: err.message } });
+    res.status(err.status).json({
+      error: { code: err.code, message: err.message, ...(err.details && { details: err.details }) },
+    });
+    return;
+  }
+
+  if (err instanceof UpstreamError) {
+    // The real cause goes to the server log; the user gets a plain message
+    console.error(err);
+    const { status, code, message } = UPSTREAM_RESPONSES[err.kind];
+    res.status(status).json({ error: { code, message } });
     return;
   }
 

@@ -1,0 +1,4 @@
+/* OpenLayers draws nothing in a container without an explicit height */
+.map {
+  height: 70vh;
+}

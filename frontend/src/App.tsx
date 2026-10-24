@@ -1,9 +1,11 @@
 import { Route, Routes } from 'react-router-dom'
-import Header from './components/Header.tsx'
-import HomePage from './pages/HomePage.tsx'
-import LoginPage from './pages/LoginPage.tsx'
-import PlanPage from './pages/PlanPage.tsx'
-import RegisterPage from './pages/RegisterPage.tsx'
+import Header from './components/Header/Header.tsx'
+import HomePage from './pages/Home/HomePage.tsx'
+import LoginPage from './pages/Login/LoginPage.tsx'
+import PlanPage from './pages/Plan/PlanPage.tsx'
+import RegisterPage from './pages/Register/RegisterPage.tsx'
+import FavoritePage from './pages/Favorite/FavoritePage.tsx'
+import RequireAuth from './components/RequireAuth/RequireAuth.tsx'
 
 function App() {
   return (
@@ -15,6 +17,14 @@ function App() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/favorites"
+            element={
+              <RequireAuth>
+                <FavoritePage />
+              </RequireAuth>
+            }
+          />
         </Routes>
       </main>
     </>

@@ -1,0 +1,37 @@
+.createForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  margin-bottom: 2rem;
+}
+
+.createForm label {
+  flex-basis: 100%;
+}
+
+.createForm input {
+  min-width: 16rem;
+  padding: 0.5rem;
+}
+
+.lists {
+  display: grid;
+  gap: 1rem;
+}
+
+.list {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 0.5rem;
+}
+
+.list h2 {
+  margin-top: 0;
+}
+
+.list li {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+}

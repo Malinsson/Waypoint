@@ -1,0 +1,10 @@
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.formField .error {
+  margin: 0;
+  font-size: 0.9rem;
+}

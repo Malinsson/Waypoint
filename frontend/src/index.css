@@ -1,63 +1,59 @@
 :root {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
-  line-height: 1.5;
+  --charcoal-blue: #264653;
+  --verdigris: #2a9d8f;
+  --cornsilk: #fefae0;
+  --sandy-brown: #f4a261;
+  --burnt-peach: #e76f51;
+
+  --font-display: "Kaushan Script", cursive;
+  --font-detail: "Iosevka Charon", monospace;
+  --font-body: "Manrope", sans-serif;
+
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-bold: 700;
+
+  --border-light: 1px solid var(--cornsilk);
+  --border-dark: 1px solid var(--charcoal-blue);
+
+
   color-scheme: light dark;
+
+  font-family: var(--font-body);
+  line-height: 1.5;
+  font-size: var(--font-size-md);
+  background-color: var(--cornsilk);
+  color: black;
+
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background-color: var(--charcoal-blue);
+    color: var(--cornsilk);
+  }
+
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
 }
 
-nav {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  border-bottom: 1px solid #ccc;
-}
-
-/* NavLink adds the "active" class to the link for the current page */
-nav a.active {
-  font-weight: bold;
-}
-
-/* Pushes the account links to the right edge of the nav */
-.nav-account {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin-left: auto;
-}
-
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 24rem;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.form-field .error {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.notice {
-  padding: 0.5rem 1rem;
-  border-left: 4px solid #f9a825;
-}
-
 main {
   padding: 1rem 2rem;
 }
 
-/* OpenLayers draws nothing in a container without an explicit height */
-.map {
-  height: 70vh;
+.hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
 }
 
 .error {

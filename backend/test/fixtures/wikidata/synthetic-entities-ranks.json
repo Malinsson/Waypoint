@@ -1,0 +1,229 @@
+{
+  "_synthetic": "SYNTHETIC: Q1413270 and Q124515558 from entities-liseberg.json (recorded), claims reduced to P625. Q1413270 gets three P625 statements (deprecated at 1,1; normal at 2,2; preferred at the real position). Q124515558 gets two (deprecated at 1,1; normal at the real position). No recorded entity had more than one P625.",
+  "entities": {
+    "Q1413270": {
+      "type": "item",
+      "id": "Q1413270",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Liseberg"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "amusement park in Gothenburg, Sweden"
+        }
+      },
+      "claims": {
+        "P625": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "hash": "5fe2c552dfafa71a3ca4c3b762a05bc842c8ba04",
+              "datavalue": {
+                "value": {
+                  "latitude": 1,
+                  "longitude": 1,
+                  "altitude": null,
+                  "precision": null,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                },
+                "type": "globecoordinate"
+              },
+              "datatype": "globe-coordinate"
+            },
+            "type": "statement",
+            "id": "q1413270$0D0A41A6-7E52-4830-B8EC-013977650928",
+            "rank": "deprecated",
+            "references": [
+              {
+                "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+                "snaks": {
+                  "P143": [
+                    {
+                      "snaktype": "value",
+                      "property": "P143",
+                      "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+                      "datavalue": {
+                        "value": {
+                          "entity-type": "item",
+                          "numeric-id": 328,
+                          "id": "Q328"
+                        },
+                        "type": "wikibase-entityid"
+                      },
+                      "datatype": "wikibase-item"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ]
+          },
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "hash": "5fe2c552dfafa71a3ca4c3b762a05bc842c8ba04",
+              "datavalue": {
+                "value": {
+                  "latitude": 2,
+                  "longitude": 2,
+                  "altitude": null,
+                  "precision": null,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                },
+                "type": "globecoordinate"
+              },
+              "datatype": "globe-coordinate"
+            },
+            "type": "statement",
+            "id": "q1413270$0D0A41A6-7E52-4830-B8EC-013977650928",
+            "rank": "normal",
+            "references": [
+              {
+                "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+                "snaks": {
+                  "P143": [
+                    {
+                      "snaktype": "value",
+                      "property": "P143",
+                      "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+                      "datavalue": {
+                        "value": {
+                          "entity-type": "item",
+                          "numeric-id": 328,
+                          "id": "Q328"
+                        },
+                        "type": "wikibase-entityid"
+                      },
+                      "datatype": "wikibase-item"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ]
+          },
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "hash": "5fe2c552dfafa71a3ca4c3b762a05bc842c8ba04",
+              "datavalue": {
+                "value": {
+                  "latitude": 57.695555555556,
+                  "longitude": 11.99,
+                  "altitude": null,
+                  "precision": null,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                },
+                "type": "globecoordinate"
+              },
+              "datatype": "globe-coordinate"
+            },
+            "type": "statement",
+            "id": "q1413270$0D0A41A6-7E52-4830-B8EC-013977650928",
+            "rank": "preferred",
+            "references": [
+              {
+                "hash": "fa278ebfc458360e5aed63d5058cca83c46134f1",
+                "snaks": {
+                  "P143": [
+                    {
+                      "snaktype": "value",
+                      "property": "P143",
+                      "hash": "e4f6d9441d0600513c4533c672b5ab472dc73694",
+                      "datavalue": {
+                        "value": {
+                          "entity-type": "item",
+                          "numeric-id": 328,
+                          "id": "Q328"
+                        },
+                        "type": "wikibase-entityid"
+                      },
+                      "datatype": "wikibase-item"
+                    }
+                  ]
+                },
+                "snaks-order": [
+                  "P143"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "Q124515558": {
+      "type": "item",
+      "id": "Q124515558",
+      "labels": {
+        "en": {
+          "language": "en",
+          "value": "Liseberg Oceana"
+        }
+      },
+      "descriptions": {
+        "en": {
+          "language": "en",
+          "value": "waterpark at Liseberg in Gothenburg"
+        }
+      },
+      "claims": {
+        "P625": [
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "hash": "156f8f4da223ee7e8c3f9776d86485998cf77883",
+              "datavalue": {
+                "value": {
+                  "latitude": 1,
+                  "longitude": 1,
+                  "altitude": null,
+                  "precision": 0.000002777777777777778,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                },
+                "type": "globecoordinate"
+              },
+              "datatype": "globe-coordinate"
+            },
+            "type": "statement",
+            "id": "Q124515558$66b2e493-49fc-a45c-cbe8-db0a5d7fcdf0",
+            "rank": "deprecated"
+          },
+          {
+            "mainsnak": {
+              "snaktype": "value",
+              "property": "P625",
+              "hash": "156f8f4da223ee7e8c3f9776d86485998cf77883",
+              "datavalue": {
+                "value": {
+                  "latitude": 57.6904,
+                  "longitude": 11.994916666666667,
+                  "altitude": null,
+                  "precision": 0.000002777777777777778,
+                  "globe": "http://www.wikidata.org/entity/Q2"
+                },
+                "type": "globecoordinate"
+              },
+              "datatype": "globe-coordinate"
+            },
+            "type": "statement",
+            "id": "Q124515558$66b2e493-49fc-a45c-cbe8-db0a5d7fcdf0",
+            "rank": "normal"
+          }
+        ]
+      }
+    }
+  },
+  "success": 1
+}

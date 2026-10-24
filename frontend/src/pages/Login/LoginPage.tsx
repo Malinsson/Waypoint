@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import FormField from '../components/FormField.tsx'
-import { useAuth } from '../context/auth-context.ts'
-import { hasErrors, validateLogin, type FieldErrors } from '../utils/auth-validation.ts'
+import FormField from '../../components/FormField/FormField.tsx'
+import { useAuth } from '../../context/auth-context.ts'
+import { hasErrors, validateLogin, type FieldErrors } from '../../utils/auth-validation.ts'
+import styles from './LoginPage.module.css'
 
 function LoginPage() {
   const { user, loading, login } = useAuth()
@@ -43,9 +44,9 @@ function LoginPage() {
   return (
     <>
       <h1>Log in</h1>
-      {sessionMessage && <p className="notice">{sessionMessage}</p>}
+      {sessionMessage && <p className={styles.notice}>{sessionMessage}</p>}
       {/* noValidate: show our own messages instead of the browser's pop-ups */}
-      <form className="auth-form" onSubmit={handleSubmit} noValidate>
+      <form className={styles.authForm} onSubmit={handleSubmit} noValidate>
         <FormField
           id="email"
           label="Email"
