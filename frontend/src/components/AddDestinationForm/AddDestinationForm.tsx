@@ -142,7 +142,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
             />
           </div>
           <button type="submit" disabled={disabled || searching}>
-            {searching ? 'Searching…' : 'Add'}
+            {searching ? 'Searching…' : 'Search'}
           </button>
         </div>
       </form>

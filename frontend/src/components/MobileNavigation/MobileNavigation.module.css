@@ -1,0 +1,27 @@
+.mobileNav {
+    display: flex;
+    justify-content: speace-evenly;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: var(--border-light);
+    border-bottom: none;
+
+}
+
+NavLink {
+    text-decoration: none;
+    color: inherit;
+    font-family: var(--font-detail);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+@media (min-width: 768px) {
+    .mobileNav {
+        display: none;
+    }
+}

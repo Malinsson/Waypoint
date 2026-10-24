@@ -6,8 +6,13 @@ import PlanPage from './pages/Plan/PlanPage.tsx'
 import RegisterPage from './pages/Register/RegisterPage.tsx'
 import FavoritePage from './pages/Favorite/FavoritePage.tsx'
 import RequireAuth from './components/RequireAuth/RequireAuth.tsx'
+import Footer from './components/Footer/Footer.tsx'
+import MobileNavigation from './components/MobileNavigation/MobileNavigation.tsx'
 
 function App() {
+
+
+
   return (
     <>
       <Header />
@@ -27,6 +32,8 @@ function App() {
           />
         </Routes>
       </main>
+      <MobileNavigation />
+      <Footer />
     </>
   )
 }

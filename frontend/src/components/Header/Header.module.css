@@ -1,9 +1,16 @@
 nav {
-  display: flex;
   gap: 1rem;
   padding: 1rem 2rem;
   border-bottom: var(--border-light);
   align-items: center;
+}
+
+.mobileNav {
+  display: flex;
+}
+
+.desktopNav {
+  display: none;
 }
 
 nav a {
@@ -27,4 +34,15 @@ nav a.active {
   gap: 1.5rem;
   align-items: center;
   margin-left: auto;
+}
+
+@media (min-width: 768px) {
+  .mobileNav {
+    display: none;
+  }
+
+  .desktopNav {
+    display: flex;
+  }
+
 }
