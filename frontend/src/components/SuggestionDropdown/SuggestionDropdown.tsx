@@ -1,8 +1,13 @@
+import { useState } from 'react'
 import styles from './SuggestionDropdown.module.css'
 import type { AutocompleteStatus } from '../../hooks/use-autocomplete.ts'
-import type { PlaceKind, Suggestion } from '../../types/api.ts'
+import type { FavoriteLocationInput, FavoriteList, PlaceKind, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
 import FavoriteButton from '../AddDestinationForm/FavoriteButton/FavoriteButton.tsx'
+import FavoriteListPopup from '../FavoriteList/FavoriteList.tsx'
+import { addFavoriteToList, createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
+import { BuildingComplex, MapPin, Sparkles } from 'lucide-react'
+
 
 type SuggestionDropdownProps = {
   listboxId: string
@@ -17,14 +22,15 @@ type SuggestionDropdownProps = {
   highlightedIndex: number
   onSelect: (suggestion: Suggestion) => void
   onHighlight: (index: number) => void
+  isLoggedIn?: boolean
 }
 
-// Placeholders until real icons are added
-const KIND_ICONS: Record<PlaceKind, string> = {
-  address: '🏠',
-  city: '🏙️',
-  poi: '📍',
+const KIND_ICONS: Record<PlaceKind, React.ReactNode> = {
+  address: <MapPin />,
+  city: <BuildingComplex />,
+  poi: <Sparkles />,
 }
+
 
 // Only draws the list and its messages. The search field that owns the
 // state and the keyboard handling is AddDestinationForm.
@@ -38,7 +44,78 @@ function SuggestionDropdown({
   highlightedIndex,
   onSelect,
   onHighlight,
+  isLoggedIn = false,
 }: SuggestionDropdownProps) {
+  const [favoriteLists, setFavoriteLists] = useState<FavoriteList[]>([])
+  const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null)
+  const [showCreateList, setShowCreateList] = useState(false)
+  const [loadingLists, setLoadingLists] = useState(false)
+  const [savingFavorite, setSavingFavorite] = useState(false)
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
+
+  function locationInput(suggestion: Suggestion): FavoriteLocationInput {
+    return {
+      name: suggestion.label,
+      address: suggestion.description ?? suggestion.label,
+      latitude: suggestion.location[1],
+      longitude: suggestion.location[0],
+    }
+  }
+
+  async function openFavoriteLists(suggestion: Suggestion) {
+    setSelectedSuggestion(suggestion)
+    setShowCreateList(false)
+    setFavoriteError(null)
+    setLoadingLists(true)
+    try {
+      const result = await fetchFavoriteLists()
+      setFavoriteLists(result.lists)
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : 'Could not load favorite lists.')
+    } finally {
+      setLoadingLists(false)
+    }
+  }
+
+  function closeFavoritePopup() {
+    if (savingFavorite) return
+    setSelectedSuggestion(null)
+    setShowCreateList(false)
+    setFavoriteError(null)
+    setSavingFavorite(false)
+  }
+
+  async function saveToList(list: FavoriteList) {
+    if (!selectedSuggestion) return
+    setSavingFavorite(true)
+    setFavoriteError(null)
+    try {
+      await addFavoriteToList(list._id, locationInput(selectedSuggestion))
+      setSelectedSuggestion(null)
+      setShowCreateList(false)
+      setSavingFavorite(false)
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : 'Could not save this favorite.')
+      setSavingFavorite(false)
+    }
+  }
+
+  async function createListAndSave(name: string) {
+    if (!selectedSuggestion) return
+    setSavingFavorite(true)
+    setFavoriteError(null)
+    try {
+      const { list } = await createFavoriteList(name)
+      await addFavoriteToList(list._id, locationInput(selectedSuggestion))
+      setSelectedSuggestion(null)
+      setShowCreateList(false)
+      setSavingFavorite(false)
+    } catch (err) {
+      setFavoriteError(err instanceof Error ? err.message : 'Could not save this favorite.')
+      setSavingFavorite(false)
+    }
+  }
+
   return (
     // One positioned box under the input, so the messages sit under the list
     // instead of being covered by it
@@ -69,13 +146,36 @@ function SuggestionDropdown({
               {suggestion.description && <span className={styles.description}>{suggestion.description}</span>}
             </span>
 
-            <FavoriteButton
-              location={suggestion}
-            />
+            {isLoggedIn && (
+              <FavoriteButton onClick={() => void openFavoriteLists(suggestion)} />
+            )}
 
           </li>
         ))}
       </ul>
+
+      {selectedSuggestion && !showCreateList && (
+        <FavoriteListPopup
+          lists={favoriteLists}
+          loading={loadingLists}
+          saving={savingFavorite}
+          error={favoriteError}
+          onSelect={(list) => void saveToList(list)}
+          onCreateNew={() => setShowCreateList(true)}
+          onClose={closeFavoritePopup}
+        />
+      )}
+
+      {selectedSuggestion && showCreateList && (
+        <FavoriteListPopup
+          mode="create"
+          loading={false}
+          saving={savingFavorite}
+          error={favoriteError}
+          onCreate={createListAndSave}
+          onClose={closeFavoritePopup}
+        />
+      )}
 
       {/* A live region, so screen readers announce these short messages */}
       <div role="status" className={styles.messages}>

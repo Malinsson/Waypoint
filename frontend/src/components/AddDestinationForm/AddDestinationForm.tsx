@@ -5,6 +5,7 @@ import { useAutocomplete } from '../../hooks/use-autocomplete.ts'
 import type { GeocodeResult, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
 import SuggestionDropdown from '../SuggestionDropdown/SuggestionDropdown.tsx'
+import { useAuth } from '../../context/auth-context.ts'
 
 type AddDestinationFormProps = {
   onAdd: (result: GeocodeResult) => void
@@ -15,6 +16,7 @@ type AddDestinationFormProps = {
 // pressing Enter without choosing one falls back to the full search, where
 // the user confirms which match they meant.
 function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
+  const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [candidates, setCandidates] = useState<GeocodeResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -136,6 +138,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
               highlightedIndex={highlightedIndex}
               onSelect={chooseSuggestion}
               onHighlight={setHighlightedIndex}
+              isLoggedIn={user !== null}
             />
           </div>
           <button type="submit" disabled={disabled || searching}>

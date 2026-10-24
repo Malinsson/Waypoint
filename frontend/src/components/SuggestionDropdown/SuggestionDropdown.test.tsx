@@ -53,7 +53,7 @@ describe('SuggestionDropdown', () => {
 
     const option = screen.getByRole('option', { name: 'Lisebergsgatan, Gothenburg, Sweden' })
     expect(within(option).getByText('Lisebergsgatan, Gothenburg, Sweden')).toBeTruthy()
-    // The icon and the label, and no second line
-    expect(option.textContent).toBe('🏠Lisebergsgatan, Gothenburg, Sweden')
+    // The icon is decorative, so only the label is part of the option text.
+    expect(option.textContent).toBe('Lisebergsgatan, Gothenburg, Sweden')
   })
 })

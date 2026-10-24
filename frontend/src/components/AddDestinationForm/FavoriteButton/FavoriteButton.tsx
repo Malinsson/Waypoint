@@ -1,23 +1,25 @@
 import styles from './FavoriteButton.module.css'
-import type { FavoriteLocation, Suggestion } from '../../../types/api.ts'
+import { Heart } from 'lucide-react'
 
-
-function FavoriteButton({ location }: { location: Suggestion }) {
-
-    function handleFavoriteClick() {
-
-    }
-
-    return (
-        <button 
-        type="button"
-        onClick={handleFavoriteClick}
-        className={styles.favoriteButton}
-        >
-            <span className={styles.favoriteIcon}>★</span>
-            Favorite
-        </button>
-    );
+type FavoriteButtonProps = {
+  onClick: () => void
 }
 
-export default FavoriteButton;
+function FavoriteButton({ onClick }: FavoriteButtonProps) {
+  return (
+    <button
+      type="button"
+      aria-label="Add location to favorites"
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={(event) => {
+        event.stopPropagation()
+        onClick()
+      }}
+      className={styles.favoriteButton}
+    >
+      <Heart aria-hidden="true" />
+    </button>
+  )
+}
+
+export default FavoriteButton

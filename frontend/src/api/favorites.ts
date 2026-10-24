@@ -31,6 +31,16 @@ export function addFavorite(
   return apiPost<{ location: FavoriteLocation }>('/api/favorites', location)
 }
 
+export function addFavoriteToList(
+  listId: string,
+  location: FavoriteLocationInput,
+): Promise<{ location: FavoriteLocation }> {
+  return apiPost<{ location: FavoriteLocation }>(
+    `/api/favorites/lists/${listId}/locations`,
+    location,
+  )
+}
+
 export function removeFavorite(locationId: string): Promise<void> {
   return apiDelete(`/api/favorites/${locationId}`)
 }
