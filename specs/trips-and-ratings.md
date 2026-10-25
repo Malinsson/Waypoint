@@ -59,7 +59,7 @@ Coordinates: `Location` stores `latitude` and `longitude`; the API contract uses
     comment: { type: String, trim: true, maxlength: 1000 },
   },` | Array order is the trip order. No `kind`. |
 | `route` | Mixed | Snapshot of the planning result (geometry, total distance, total duration). |
-| `breakpoints` | array of `{ location: [lon, lat], locationId?: ObjectId ref Location }` | Snapshot from the Python service. `locationId` is set only when the stop is a named place (for example a chosen accommodation). Only entries with a `locationId` can be rated. |
+| `breakpoints` | array of `{ latitude: number, longitude: number, locationId?: ObjectId ref Location }` | Snapshot from the Python service. `locationId` is set only when the stop is a named place (for example a chosen accommodation). Only entries with a `locationId` can be rated. |
 | `drivingLimitHours` | number, 1-12 | Value used when the plan was made. |
 | `accommodationPreferences` | object | `types` is an ordered list, same shape as in planning. |
 | `totalRating` | object | `{ stars: number, min: 1, max: 5 }, comment: string, max 1000, trimmed, optional }`. Set by the user, optional |
