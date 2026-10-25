@@ -62,7 +62,7 @@ function FavoritePage() {
                 {list.locations.map((location) => (
                   <li key={location._id}>
                     <strong>{location.name}</strong>
-                    <span>{location.address}</span>
+                    {location.description && <span>{location.description}</span>}
                   </li>
                 ))}
               </ul>

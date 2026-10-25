@@ -2,7 +2,7 @@ import { Schema, model } from "mongoose";
 
 export interface Location {
   name: string;
-  address: string;
+  description: string | undefined;
   latitude: number;
   longitude: number;
   wikidataId?: string;
@@ -18,7 +18,7 @@ const locationSchema = new Schema<Location>(
       trim: true,
       maxlength: 80,
     },
-    address: {
+    description: {
       type: String,
       trim: true,
       maxlength: 200,

@@ -7,7 +7,7 @@ const DEFAULT_LIST_NAME = "Favorites";
 
 export type LocationInput = {
   name: string;
-  address: string;
+  description: string | undefined;
   latitude: number;
   longitude: number;
   wikidataId?: string | undefined;
@@ -44,7 +44,7 @@ async function createLocation(input: LocationInput) {
   const locationData = {
     _id: locationId,
     name: input.name,
-    address: input.address,
+    description: input.description,
     latitude: input.latitude,
     longitude: input.longitude,
     ...(input.wikidataId === undefined ? {} : { wikidataId: input.wikidataId }),

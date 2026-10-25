@@ -33,7 +33,7 @@ export type LoginInput = {
 export type FavoriteLocation = {
   _id: string
   name: string
-  address: string
+  description: string | undefined
   latitude: number
   longitude: number
   wikidataId?: string

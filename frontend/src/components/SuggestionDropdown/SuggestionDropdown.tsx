@@ -56,7 +56,7 @@ function SuggestionDropdown({
   function locationInput(suggestion: Suggestion): FavoriteLocationInput {
     return {
       name: suggestion.label,
-      address: suggestion.description ?? suggestion.label,
+      description: suggestion.description || undefined,
       latitude: suggestion.location[1],
       longitude: suggestion.location[0],
     }

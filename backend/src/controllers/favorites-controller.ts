@@ -15,7 +15,7 @@ import { AppError } from "../utils/app-error.js";
 
 const locationSchema = z.object({
   name: z.string("Name is required").trim().min(1).max(80),
-  address: z.string("Address is required").trim().min(1).max(200),
+  description: z.string().trim().min(1).max(200).optional(),
   latitude: z.number("Latitude is required").min(-90).max(90),
   longitude: z.number("Longitude is required").min(-180).max(180),
   wikidataId: z.string().trim().max(100).optional(),
@@ -41,7 +41,11 @@ function routeParam(req: Request, name: string): string {
 }
 
 function locationInput(req: Request): LocationInput {
-  return locationSchema.parse(req.body);
+  const input = locationSchema.parse(req.body);
+  return {
+    ...input,
+    description: input.description,
+  };
 }
 
 export async function listFavoritesController(req: Request, res: Response) {
@@ -86,5 +90,4 @@ export async function removeLocationFromListController(req: Request, res: Respon
   );
   res.status(204).send();
 }
-
 
