@@ -124,6 +124,22 @@ export type PlanResponse = {
   warnings: PlanWarning[]
 }
 
+export type SavedTrip = {
+  _id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type SaveTripResponse = {
+  trip: SavedTrip
+}
+
+export type ListTripsResponse = {
+  trips: SavedTrip[]
+}
+
+
 // The error shape every backend endpoint returns (see CLAUDE.md)
 export type ApiErrorBody = {
   error: {

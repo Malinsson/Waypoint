@@ -1,4 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
+import AppLayout from './AppLayout.tsx'
+import TripsPage from './pages/Trips/TripsPage.tsx'
 import Header from './components/Header/Header.tsx'
 import HomePage from './pages/Home/HomePage.tsx'
 import LoginPage from './pages/Login/LoginPage.tsx'
@@ -22,14 +24,13 @@ function App() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/favorites"
-            element={
-              <RequireAuth>
-                <FavoritePage />
-              </RequireAuth>
-            }
-          />
+
+          {/* Protected routes */}
+          <Route element={ <RequireAuth><AppLayout /></RequireAuth> }>
+            <Route path="/favorites" element={<FavoritePage />} />
+            <Route path="/trips" element={<TripsPage />} />
+          </Route>
+
         </Routes>
       </main>
       <MobileNavigation />

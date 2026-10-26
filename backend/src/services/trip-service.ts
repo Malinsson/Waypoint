@@ -47,16 +47,18 @@ async function getOwnedTrip(userId: string, id: string) {
 
 async function upsertLocation(input: TripDestinationInput) {
   const [longitude, latitude] = input.location;
+  const name = input.name.slice(0, 80);
+  const description = input.description?.slice(0, 200);
   const filter = input.wikidataId
     ? { wikidataId: input.wikidataId }
-    : { name: input.name, longitude, latitude };
+    : { name, longitude, latitude };
 
   return Location.findOneAndUpdate(
     filter,
     {
       $set: {
-        name: input.name,
-        description: input.description,
+        name,
+        ...(description === undefined ? {} : { description }),
         longitude,
         latitude,
         ...(input.wikidataId ? { wikidataId: input.wikidataId } : {}),

@@ -1,5 +1,11 @@
-import type { Destination, GeocodeResponse, PlanResponse } from '../types/api.ts'
-import { apiPost } from './client.ts'
+import type {
+  Destination,
+  GeocodeResponse,
+  ListTripsResponse,
+  PlanResponse,
+  SaveTripResponse,
+} from '../types/api.ts'
+import { apiPost, apiGet, apiPatch, apiDelete } from './client.ts'
 
 export function geocodeAddress(query: string): Promise<GeocodeResponse> {
   return apiPost<GeocodeResponse>('/api/geocode', { query })
@@ -18,4 +24,35 @@ export function planTrip(destinations: Destination[]): Promise<PlanResponse> {
     // the trip is driven in exactly the order of the list.
     options: { optimizeOrder: false },
   })
+}
+
+export function saveTrip(plan: PlanResponse, name?: string): Promise<SaveTripResponse> {
+  return apiPost<SaveTripResponse>('/api/trips', {
+    ...(name ? { name } : {}),
+    destinations: plan.destinations.map((destination) => ({
+      name: destination.name,
+      location: destination.location,
+    })),
+    route: plan.route,
+    // Breakpoint calculation is not part of the current planning response yet.
+    breakpoints: [],
+    drivingLimitHours: 6,
+    accommodationPreference: { types: ['hotel'] },
+  })
+}
+
+export function listTrips(): Promise<ListTripsResponse> {
+  return apiGet<ListTripsResponse>('/api/trips')
+}
+
+export function getTrip(id: string): Promise<SaveTripResponse> {
+  return apiGet<SaveTripResponse>(`/api/trips/${id}`, {})
+}
+
+export function updateTrip(id: string, name: string): Promise<SaveTripResponse> {
+  return apiPatch<SaveTripResponse>(`/api/trips/${id}`, { name })
+}
+
+export function deleteTrip(id: string): Promise<void> {
+  return apiDelete<void>(`/api/trips/${id}`)
 }
