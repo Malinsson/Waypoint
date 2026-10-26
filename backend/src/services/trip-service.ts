@@ -20,7 +20,7 @@ export type SaveTripInput = {
   destinations: TripDestinationInput[];
   route: unknown;
   breakpoints: BreakpointInput[];
-  drivingLimitHours: number;
+  maxDrivingHours: number;
   accommodationPreference: { types: string[] };
 };
 
@@ -84,7 +84,7 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
     destinations: locations.map((location) => ({ locationId: location._id })),
     breakpoints: input.breakpoints,
     route: input.route,
-    drivingLimitHours: input.drivingLimitHours,
+    maxDrivingHours: input.maxDrivingHours,
     accommodationPreference: input.accommodationPreference,
   });
 }

@@ -10,6 +10,7 @@ import FavoritePage from './pages/Favorite/FavoritePage.tsx'
 import RequireAuth from './components/RequireAuth/RequireAuth.tsx'
 import Footer from './components/Footer/Footer.tsx'
 import MobileNavigation from './components/MobileNavigation/MobileNavigation.tsx'
+import TripDetailPage from './pages/TripDetail/TripDetail.tsx'
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
           <Route element={ <RequireAuth><AppLayout /></RequireAuth> }>
             <Route path="/favorites" element={<FavoritePage />} />
             <Route path="/trips" element={<TripsPage />} />
+            <Route path="/trips/:id" element={<TripDetailPage />} />
           </Route>
 
         </Routes>

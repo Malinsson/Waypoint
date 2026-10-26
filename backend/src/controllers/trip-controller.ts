@@ -66,7 +66,7 @@ const tripInputSchema = z.object({
     longitude: z.number().min(-180).max(180),
     latitude: z.number().min(-90).max(90),
   })).default([]),
-  drivingLimitHours: z.number().min(1).max(MAX_DRIVING_HOURS).default(6),
+  maxDrivingHours: z.number().min(1).max(MAX_DRIVING_HOURS).default(6),
   accommodationPreference: z.object({
     types: z.array(z.enum(ACCOMMODATION_TYPES)).min(1).default(["hotel"]),
   }).prefault({}),

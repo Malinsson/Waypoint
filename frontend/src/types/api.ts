@@ -139,6 +139,56 @@ export type ListTripsResponse = {
   trips: SavedTrip[]
 }
 
+export type TripStop = {
+  name: string
+  location: LonLat
+}
+
+// Mirrors backend/src/models/trip.ts, keep in sync
+export type Trip = {
+  _id: string
+  name: string
+  destinations: TripDestination[]
+  breakpoints: TripBreakpoint[]
+  route: PlanResponse['route']
+  maxDrivingHours: number
+  accommodationPreference: { types: string[] }
+  totalRating?: TripRating
+  createdAt: string
+  updatedAt: string
+  completedAt?: string
+}
+
+export type TripRating = {
+  stars: number
+  comment?: string
+}
+
+export type TripLocation = {
+  _id: string
+  name: string
+  description?: string
+  latitude: number
+  longitude: number
+  wikidataId?: string
+}
+
+export type TripDestination = {
+  locationId: TripLocation
+  rating?: TripRating
+}
+
+export type TripBreakpoint = {
+  longitude: number
+  latitude: number
+  locationId?: TripLocation
+  rating?: TripRating
+}
+
+export type TripDetailResponse = {
+  trip: Trip
+}
+
 
 // The error shape every backend endpoint returns (see CLAUDE.md)
 export type ApiErrorBody = {

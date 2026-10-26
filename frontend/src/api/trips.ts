@@ -4,6 +4,7 @@ import type {
   ListTripsResponse,
   PlanResponse,
   SaveTripResponse,
+  TripDetailResponse,
 } from '../types/api.ts'
 import { apiPost, apiGet, apiPatch, apiDelete } from './client.ts'
 
@@ -36,7 +37,7 @@ export function saveTrip(plan: PlanResponse, name?: string): Promise<SaveTripRes
     route: plan.route,
     // Breakpoint calculation is not part of the current planning response yet.
     breakpoints: [],
-    drivingLimitHours: 6,
+    maxDrivingHours: 6,
     accommodationPreference: { types: ['hotel'] },
   })
 }
@@ -45,8 +46,8 @@ export function listTrips(): Promise<ListTripsResponse> {
   return apiGet<ListTripsResponse>('/api/trips')
 }
 
-export function getTrip(id: string): Promise<SaveTripResponse> {
-  return apiGet<SaveTripResponse>(`/api/trips/${id}`, {})
+export function getTrip(id: string): Promise<TripDetailResponse> {
+  return apiGet<TripDetailResponse>(`/api/trips/${id}`)
 }
 
 export function updateTrip(id: string, name: string): Promise<SaveTripResponse> {

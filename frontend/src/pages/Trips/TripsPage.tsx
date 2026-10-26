@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom'
 import { listTrips } from '../../api/trips.ts'
 import type { SaveTripResponse } from '../../types/api.ts';
 
@@ -28,7 +29,9 @@ function TripsPage() {
           {trips.length == 0 ? (<li>No trips found</li>) :
           (trips.map((trip) => (
             <li key={trip._id}>
-              <strong>{trip.name}</strong> - Created at: {new Date(trip.createdAt).toLocaleString()}
+                <NavLink to={`/trips/${trip._id}`}>
+                    {trip.name} - Created at: {new Date(trip.createdAt).toLocaleString()}
+                </NavLink>
             </li>
           )))} 
         </ul>
