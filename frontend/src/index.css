@@ -24,6 +24,11 @@
   --corner-radius-md: 0.75rem;
   --corner-radius-lg: 1rem;
 
+  --max-width: 1440px;
+
+  --padding-mobile: 0.5rem 1rem;
+  --padding-desktop: 1rem 2rem;
+
   color-scheme: light dark;
 
   font-family: var(--font-body);
@@ -44,11 +49,16 @@ body {
 }
 
 main {
-  padding: 1rem 2rem;
+  margin: 0 auto;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--font-detail);
 }
 
 nav {
-  background-color: var(--cornsilk);
+  background-color: var(--sandy-brown);
 }
 
 .hint {
@@ -58,6 +68,16 @@ nav {
 
 .error {
   color: #c62828;
+}
+
+.defaultButton {
+  background-color: var(--verdigris);
+  color: var(--cornsilk);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--corner-radius-md);
+  cursor: pointer;
+  font-family: var(--font-detail);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -70,4 +90,15 @@ nav {
     background-color: var(--charcoal-blue);
   }
 
+}
+
+.mainSection {
+    padding: var(--padding-mobile);
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .mainSection {
+        padding: var(--padding-desktop);
+    }
 }

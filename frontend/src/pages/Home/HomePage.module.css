@@ -1,0 +1,69 @@
+.hero {
+    text-align: center;
+    width: 100%;
+    height: 50vh;
+    position: relative;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    font-family: var(--font-heading);
+}
+
+.heroText {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.heroSlogan {
+    width: 70%;
+    height: auto;
+    margin-top: 15%;
+}
+
+.heroImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    align-self: top;
+}
+
+.intro {
+    padding: 1rem 1.5rem;
+}
+
+.intro p {
+    text-align: left;
+}
+
+
+
+@media (min-width: 768px) {
+    .hero {
+        height: 60vh;
+    }
+
+    .heroSlogan {
+        width: 50%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .hero {
+        height: 70vh;
+    }
+
+    .heroText {
+        align-items: center;
+    }
+
+    .heroSlogan {
+        width: 40%;
+        margin-top: 0;
+    }
+}
