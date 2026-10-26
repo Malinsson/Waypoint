@@ -20,6 +20,9 @@
   --border-light: 1px solid var(--cornsilk);
   --border-dark: 1px solid var(--charcoal-blue);
 
+  --corner-radius-sm: 0.5rem;
+  --corner-radius-md: 0.75rem;
+  --corner-radius-lg: 1rem;
 
   color-scheme: light dark;
 
