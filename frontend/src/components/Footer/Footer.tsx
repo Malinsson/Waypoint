@@ -4,6 +4,8 @@ import styles from './Footer.module.css'
 function Footer() {
     return (
         <footer className={styles.footer}>
+            <div className='decorativeDivider decorativeDivider--top'></div>
+
             <img src="/Icons/logo.svg" alt="Waypoint logo" className={styles.logo} />
 
             <ul className={styles.links}>

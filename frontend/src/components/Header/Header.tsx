@@ -41,6 +41,7 @@ function Header() {
             </>
           ))}
       </div>
+      <div className='decorativeDivider decorativeDivider--bottom'></div>
     </nav>
 
 
@@ -69,6 +70,7 @@ function Header() {
             </>
           ))}
       </div>
+      <div className='decorativeDivider decorativeDivider--bottom'></div>
     </nav>
 
     </>

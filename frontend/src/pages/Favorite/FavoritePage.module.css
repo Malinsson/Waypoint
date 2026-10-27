@@ -13,17 +13,18 @@
 .createForm input {
   min-width: 16rem;
   padding: 0.5rem;
+  width: 100%;
 }
 
 .lists {
   display: grid;
+  width: 100%;
+  max-width: var(--max-content-width);
   gap: 1rem;
 }
 
 .list {
   padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 0.5rem;
 }
 
 .list h2 {
@@ -34,4 +35,19 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .createForm {
+    flex-wrap: nowrap;
+    gap: 1rem;
+  }
+
+  .createForm label {
+    flex-basis: auto;
+  }
+
+  .lists {
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
 }

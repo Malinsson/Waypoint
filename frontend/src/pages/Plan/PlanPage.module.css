@@ -4,6 +4,7 @@
   grid-template-columns: minmax(18rem, 24rem) 1fr;
   gap: 1.5rem;
   align-items: start;
+  width: 100%;
 }
 
 .planPanel h1 {

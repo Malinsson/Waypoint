@@ -5,8 +5,6 @@
     bottom: 0;
     left: 0;
     right: 0;
-    border-top: var(--border-light);
-    border-bottom: none;
     padding: 0.5rem;
     
 }
@@ -23,7 +21,6 @@
     padding: 0.5rem 0;
     width: calc(100% / 4);
     font-size: var(--font-size-sm);
-    border-radius: var(--corner-radius-md);
 }
 
 .active {

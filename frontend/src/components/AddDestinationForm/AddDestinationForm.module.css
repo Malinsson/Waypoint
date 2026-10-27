@@ -1,5 +1,6 @@
 .addDestination {
   margin-bottom: 1rem;
+  width: 100%;
 }
 
 .addDestinationRow {
@@ -11,6 +12,7 @@
 /* Positioned, so the spinner and the dropdown can be placed relative to the input */
 .combobox {
   position: relative;
+  width: 100%;
   flex: 1;
 }
 

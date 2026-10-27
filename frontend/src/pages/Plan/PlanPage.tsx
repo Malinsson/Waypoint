@@ -9,6 +9,7 @@ import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import type { Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
+import { Button } from '../../components/atoms/Button.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -121,16 +122,16 @@ function PlanPage() {
           <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
 
           <div className={styles.planActions}>
-            <button
+            <Button
               type="button"
               onClick={handlePlan}
               disabled={planning || destinations.length < MIN_DESTINATIONS}
             >
               {planning ? 'Planning…' : 'Plan trip'}
-            </button>
-            <button type="button" onClick={startOver} disabled={planning || destinations.length === 0}>
+            </Button>
+            <Button type="button" onClick={startOver} disabled={planning || destinations.length === 0}>
               Start over
-            </button>
+            </Button>
           </div>
 
           {planning && (

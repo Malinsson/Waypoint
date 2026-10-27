@@ -39,7 +39,7 @@ function RegisterPage() {
   }
 
   return (
-    <>
+    <section className="mainSection">
       <h1>Create an account</h1>
       {/* noValidate: show our own messages instead of the browser's pop-ups */}
       <form className={styles.authForm} onSubmit={handleSubmit} noValidate>
@@ -82,7 +82,7 @@ function RegisterPage() {
       <p>
         Already have an account? <Link to="/login">Log in</Link>
       </p>
-    </>
+    </section>
   )
 }
 

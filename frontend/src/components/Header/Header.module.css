@@ -1,15 +1,17 @@
 nav {
   gap: 1rem;
   padding: 1rem 2rem;
-  border-bottom: var(--border-light);
   align-items: center;
+  position: relative;
 }
 
 .mobileNav {
+  position: relative;
   display: flex;
 }
 
 .desktopNav {
+  position: relative;
   display: none;
 }
 

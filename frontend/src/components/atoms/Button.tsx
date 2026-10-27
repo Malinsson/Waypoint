@@ -25,7 +25,7 @@ export function Button({
             type={type}
             onClick={onClick}
             disabled={disabled}
-            className={`${styles.buttonBase} ${styles[variant]} ${className}`}
+            className={`decorativeBorder ${styles.buttonBase} ${styles[variant]} ${className}`}
         >
             {children}
         </button>

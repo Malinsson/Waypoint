@@ -6,8 +6,10 @@ function MobileNavigation() {
 
     return (
         <nav className={styles.mobileNav} aria-label="Main navigation">
+            <div className='decorativeDivider decorativeDivider--top'></div>
+
             {navLinks.map((link) => (
-                <NavLink key={link.to} to={link.to} className={({ isActive }) => isActive ? styles.active : undefined } >
+                <NavLink key={link.to} to={link.to} className={({ isActive }) =>  (isActive ? `decorativeBorder ${styles.active}` : '')} >
                     <span className={styles.icon}>{link.icon}</span>
                     <span className={styles.label}>{link.label}</span>
                 </NavLink>
