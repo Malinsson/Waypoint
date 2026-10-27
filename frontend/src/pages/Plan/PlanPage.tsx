@@ -110,71 +110,73 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <div className={styles.planLayout}>
-      <aside className={styles.planPanel}>
-        <h1>Plan a trip</h1>
+    <section className="mainSection">
+      <div className={styles.planLayout}>
+        <aside className={styles.planPanel}>
+          <h1>Plan a trip</h1>
 
-        <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
-        {!canAddMore && <p className="hint">You can add at most {MAX_DESTINATIONS} destinations.</p>}
+          <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
+          {!canAddMore && <p className="hint">You can add at most {MAX_DESTINATIONS} destinations.</p>}
 
-        <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
+          <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
 
-        <div className={styles.planActions}>
-          <button
-            type="button"
-            onClick={handlePlan}
-            disabled={planning || destinations.length < MIN_DESTINATIONS}
-          >
-            {planning ? 'Planning…' : 'Plan trip'}
-          </button>
-          <button type="button" onClick={startOver} disabled={planning || destinations.length === 0}>
-            Start over
-          </button>
-        </div>
-
-        {planning && (
-          <p className="hint" role="status">
-            Planning your trip…
-          </p>
-        )}
-
-        {planError && (
-          <div className="banner error" role="alert">
-            <p>{planError}</p>
-            <button type="button" onClick={handlePlan}>
-              Try again
+          <div className={styles.planActions}>
+            <button
+              type="button"
+              onClick={handlePlan}
+              disabled={planning || destinations.length < MIN_DESTINATIONS}
+            >
+              {planning ? 'Planning…' : 'Plan trip'}
+            </button>
+            <button type="button" onClick={startOver} disabled={planning || destinations.length === 0}>
+              Start over
             </button>
           </div>
-        )}
 
-        {plan && <TripSummary plan={plan} />}
+          {planning && (
+            <p className="hint" role="status">
+              Planning your trip…
+            </p>
+          )}
 
-        {plan && (
-          <section aria-label="Save trip">
-            {user ? (
-              <>
-                <button type="button" onClick={handleSave} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save trip'}
-                </button>
-                {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
-                {saveError && <p className="banner error" role="alert">{saveError}</p>}
-              </>
-            ) : (
-              <p className="hint">
-                <Link to="/login">Log in</Link> to save this trip.
-              </p>
-            )}
-          </section>
-        )}
-      </aside>
+          {planError && (
+            <div className="banner error" role="alert">
+              <p>{planError}</p>
+              <button type="button" onClick={handlePlan}>
+                Try again
+              </button>
+            </div>
+          )}
 
-      <MapView
-        center={SWEDEN_CENTER}
-        zoom={5}
-        markers={markers}
-        route={plan ? plan.route.geometry.coordinates : null}
-      />
-    </div>
+          {plan && <TripSummary plan={plan} />}
+
+          {plan && (
+            <section aria-label="Save trip">
+              {user ? (
+                <>
+                  <button type="button" onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving…' : 'Save trip'}
+                  </button>
+                  {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
+                  {saveError && <p className="banner error" role="alert">{saveError}</p>}
+                </>
+              ) : (
+                <p className="hint">
+                  <Link to="/login">Log in</Link> to save this trip.
+                </p>
+              )}
+            </section>
+          )}
+        </aside>
+
+        <MapView
+          center={SWEDEN_CENTER}
+          zoom={5}
+          markers={markers}
+          route={plan ? plan.route.geometry.coordinates : null}
+        />
+      </div>
+    </section>
   )
 }
 

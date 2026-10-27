@@ -6,6 +6,8 @@ import type { GeocodeResult, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
 import SuggestionDropdown from '../SuggestionDropdown/SuggestionDropdown.tsx'
 import { useAuth } from '../../context/auth-context.ts'
+import { Search } from 'lucide-react'
+import { Button } from '../atoms/Button.tsx'
 
 type AddDestinationFormProps = {
   onAdd: (result: GeocodeResult) => void
@@ -108,6 +110,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
         <label htmlFor="destination-query">Add a destination</label>
         <div className={styles.addDestinationRow}>
           <div className={styles.combobox}>
+            <Search className={styles.searchIcon} />
             <input
               id="destination-query"
               type="text"
@@ -126,6 +129,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
               onBlur={() => setOpen(false)}
               placeholder="City or address"
               disabled={disabled}
+              className="inputField"
             />
             {status === 'loading' && <span className={styles.spinner} aria-hidden="true" />}
             <SuggestionDropdown
@@ -141,9 +145,11 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
               isLoggedIn={user !== null}
             />
           </div>
-          <button type="submit" disabled={disabled || searching}>
+          <Button 
+          type="submit" 
+          disabled={disabled || searching}>
             {searching ? 'Searching…' : 'Search'}
-          </button>
+          </Button>
         </div>
       </form>
 

@@ -29,6 +29,8 @@
   --padding-mobile: 0.5rem 1rem;
   --padding-desktop: 1rem 2rem;
 
+  --mobile-nav-height: 5rem;
+
   color-scheme: light dark;
 
   font-family: var(--font-body);
@@ -46,6 +48,7 @@
 
 body {
   margin: 0;
+  padding-bottom: var(--mobile-nav-height);
 }
 
 main {
@@ -57,10 +60,22 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-detail);
 }
 
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
 nav {
   background-color: var(--sandy-brown);
 }
 
+/* Shared styles below */
 .hint {
   font-size: 0.9rem;
   opacity: 0.8;
@@ -70,14 +85,11 @@ nav {
   color: #c62828;
 }
 
-.defaultButton {
-  background-color: var(--verdigris);
-  color: var(--cornsilk);
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: var(--corner-radius-md);
-  cursor: pointer;
-  font-family: var(--font-detail);
+.inputField {
+  padding: 0.5rem;
+  border: var(--border-light);
+  border-radius: var(--corner-radius-sm);
+  width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -98,7 +110,48 @@ nav {
 }
 
 @media (min-width: 768px) {
-    .mainSection {
-        padding: var(--padding-desktop);
-    }
+  .mainSection {
+    padding: var(--padding-desktop);
+  }
+
+  body {
+    padding-bottom: 0;
+  }
+}
+
+
+/* CSS */
+.button-89 {
+  --b: 3px;   /* border thickness */
+  --s: .45em; /* size of the corner */
+  --color: #373B44;
+  
+  padding: calc(.5em + var(--s)) calc(.9em + var(--s));
+  color: var(--color);
+  --_p: var(--s);
+  background:
+    conic-gradient(from 90deg at var(--b) var(--b),#0000 90deg,var(--color) 0)
+    var(--_p) var(--_p)/calc(100% - var(--b) - 2*var(--_p)) calc(100% - var(--b) - 2*var(--_p));
+  transition: .3s linear, color 0s, background-color 0s;
+  outline: var(--b) solid #0000;
+  outline-offset: .6em;
+  font-size: 16px;
+
+  border: 0;
+
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.button-89:hover,
+.button-89:focus-visible{
+  --_p: 0px;
+  outline-color: var(--color);
+  outline-offset: .05em;
+}
+
+.button-89:active {
+  background: var(--color);
+  color: #fff;
 }
