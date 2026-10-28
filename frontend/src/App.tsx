@@ -11,6 +11,7 @@ import RequireAuth from './components/RequireAuth/RequireAuth.tsx'
 import Footer from './components/Footer/Footer.tsx'
 import MobileNavigation from './components/MobileNavigation/MobileNavigation.tsx'
 import TripDetailPage from './pages/TripDetail/TripDetail.tsx'
+import FavoriteDetailPage from './pages/FavoriteDetail/FavoriteDetailPage.tsx'
 
 function App() {
 
@@ -29,6 +30,8 @@ function App() {
           {/* Protected routes */}
           <Route element={ <RequireAuth><AppLayout /></RequireAuth> }>
             <Route path="/favorites" element={<FavoritePage />} />
+            <Route path="/favorites/:id" element={<FavoriteDetailPage />} />
+
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailPage />} />
           </Route>

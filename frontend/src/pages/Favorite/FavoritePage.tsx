@@ -60,14 +60,17 @@ function FavoritePage() {
             {list.locations.length === 0 ? (
               <p>No saved locations in this list.</p>
             ) : (
-              <ul>
-                {list.locations.map((location) => (
-                  <li key={location._id}>
-                    <strong>{location.name}</strong>
-                    {location.description && <span>{location.description}</span>}
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <ul>
+                  {list.locations.map((location) => (
+                    <li key={location._id}>
+                      <strong>{location.name}</strong>
+                      {location.description && <span>{location.description}</span>}
+                    </li>
+                  ))}
+                </ul>
+                <NavLink to={`/favorites/${list._id}`}>View list</NavLink>
+              </div>
             )}
           </article>
         ))}

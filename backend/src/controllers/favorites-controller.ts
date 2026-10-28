@@ -9,6 +9,7 @@ import {
   listFavorites,
   removeLocationFromList,
   renameFavoriteList,
+  getFavoriteList,
   type LocationInput,
 } from "../services/favorites-service.js";
 import { AppError } from "../utils/app-error.js";
@@ -89,5 +90,9 @@ export async function removeLocationFromListController(req: Request, res: Respon
     routeParam(req, "locationId"),
   );
   res.status(204).send();
+}
+
+export async function getFavoriteListController(req: Request, res: Response) {
+  res.json({ list: await getFavoriteList(userId(req), routeParam(req, "listId")) });
 }
 

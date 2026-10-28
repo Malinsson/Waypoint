@@ -131,3 +131,9 @@ export async function removeLocationFromList(userId: string, listId: string, loc
     throw new AppError(404, "NOT_FOUND", "Favorite was not found in this list");
   }
 }
+
+export async function getFavoriteList(userId: string, listId: string) {
+  const list = await getOwnedList(userId, listId);
+  await list.populate("locations");
+  return list;
+}
