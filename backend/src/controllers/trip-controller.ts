@@ -26,14 +26,29 @@ const destinationSchema = z
     wikidataId: z.string().trim().max(100, "Wikidata ID must be at most 100 characters").regex(/^Q\d+$/).optional(),
   })
 
+export function hasDuplicateDestinations(destinations: Array<{ location: [number, number] }>) {
+  const seen = new Set<string>();
 
-const planSchema = z.object({
+  for (const destination of destinations) {
+    const [lon, lat] = destination.location;
+    const key = `${lon.toFixed(6)},${lat.toFixed(6)}`;
+    if (seen.has(key)) {
+      return true;
+    }
+    seen.add(key);
+  }
+
+  return false;
+}
+
+export const planSchema = z.object({
   destinations: z
       .array(destinationSchema, "Destinations are required")
       .min(2, "Add at least 2 destinations")
       .max(10, "You can add at most 10 destinations")
       // The frontend matches the response to its list by id, so ids must be unique
-      .refine((d) => new Set(d.map((x) => x.id)).size === d.length, "Destination ids must be unique"),
+      .refine((d) => new Set(d.map((x) => x.id)).size === d.length, "Destination ids must be unique")
+      .refine((d) => !hasDuplicateDestinations(d), "You already added that destination to this trip"),
   options: z
     .object({
       optimizeOrder: z.boolean().default(false),
@@ -55,12 +70,13 @@ export async function plan(req: Request, res: Response) {
 
 
 
-const tripInputSchema = z.object({
+export const tripInputSchema = z.object({
   name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters").optional(),
   destinations: z
     .array(destinationSchema.omit({ id: true }), "Destinations are required")
     .min(2, "Add at least 2 destinations")
-    .max(10, "You can add at most 10 destinations"),
+    .max(10, "You can add at most 10 destinations")
+    .refine((d) => !hasDuplicateDestinations(d), "You already added that destination to this trip"),
   route: z.unknown().refine((route) => route !== undefined, "Route is required"),
   breakpoints: z.array(z.object({
     longitude: z.number().min(-180).max(180),

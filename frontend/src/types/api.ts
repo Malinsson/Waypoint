@@ -63,6 +63,7 @@ export type PlaceKind = 'address' | 'city' | 'poi'
 export type GeocodeResult = {
   label: string
   location: LonLat
+  description: string | undefined
   kind: PlaceKind
 }
 
@@ -90,6 +91,7 @@ export type Destination = {
   id: string
   name: string
   location: LonLat
+  description: string | undefined
 }
 
 export type PlannedDestination = Destination & {

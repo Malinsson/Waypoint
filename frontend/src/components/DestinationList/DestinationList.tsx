@@ -1,4 +1,5 @@
 import type { Destination } from '../../types/api.ts'
+import { Button } from '../atoms/Button.tsx'
 import styles from './DestinationList.module.css'
 
 type DestinationListProps = {
@@ -20,16 +21,18 @@ function DestinationList({ destinations, onRemove, disabled }: DestinationListPr
         {destinations.map((destination, index) => (
           <li key={destination.id}>
             <span className="destination-name">
-              <strong>{index + 1}.</strong> {destination.name}
+              <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
             </span>
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => onRemove(destination.id)}
               disabled={disabled}
               aria-label={`Remove ${destination.name}`}
             >
               Remove
-            </button>
+            </Button>
+            <div className="decorativeDivider decorativeDivider--bottom"></div>
           </li>
         ))}
       </ol>

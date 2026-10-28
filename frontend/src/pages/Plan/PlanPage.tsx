@@ -25,6 +25,7 @@ function PlanPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
@@ -44,12 +45,26 @@ function PlanPage() {
     setPlanError(null)
     setSaveError(null)
     setSavedMessage(null)
+    setDuplicateDestinationError(null)
+  }
+
+  function isDuplicateDestination(existing: Destination, candidate: GeocodeResult) {
+    const [existingLon, existingLat] = existing.location
+    const [candidateLon, candidateLat] = candidate.location
+    const key = (lon: number, lat: number) => `${lon.toFixed(6)},${lat.toFixed(6)}`
+
+    return key(existingLon, existingLat) === key(candidateLon, candidateLat)
   }
 
   function addDestination(result: GeocodeResult) {
+    if (destinations.some((destination) => isDuplicateDestination(destination, result))) {
+      setDuplicateDestinationError('This destination is already in your trip.')
+      return
+    }
+
     updateDestinations([
       ...destinations,
-      { id: crypto.randomUUID(), name: result.label, location: result.location },
+      { id: crypto.randomUUID(), name: result.label, location: result.location, description: result.description || undefined },
     ])
   }
 
@@ -117,6 +132,11 @@ function PlanPage() {
           <h1>Plan a trip</h1>
 
           <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
+          {duplicateDestinationError && (
+            <p className="error" role="alert">
+              {duplicateDestinationError}
+            </p>
+          )}
           {!canAddMore && <p className="hint">You can add at most {MAX_DESTINATIONS} destinations.</p>}
 
           <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
