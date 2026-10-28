@@ -1,8 +1,8 @@
-import { Schema, model, Types } from "mongoose";
+import { Schema, model } from "mongoose";
 
 export interface Location {
   name: string;
-  address: string;
+  description: string | undefined;
   latitude: number;
   longitude: number;
   wikidataId?: string;
@@ -18,9 +18,8 @@ const locationSchema = new Schema<Location>(
       trim: true,
       maxlength: 80,
     },
-    address: {
+    description: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 200,
     },
@@ -38,12 +37,14 @@ const locationSchema = new Schema<Location>(
     },
     wikidataId: {
       type: String,
-      optional: true,
     },
   },
   {
     timestamps: true,
   }
 );
+
+// Create a unique index on the wikidataId field to ensure that each location with a Wikidata ID is unique in the database. The sparse option allows documents without a wikidataId to be stored without violating the uniqueness constraint.
+locationSchema.index({ wikidataId: 1 }, { unique: true, sparse: true });
 
 export const Location = model<Location>("Location", locationSchema);

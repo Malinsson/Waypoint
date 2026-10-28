@@ -42,3 +42,5 @@ export type RouteResult = {
 
 export const ACCOMMODATION_TYPES = ["hotel", "hostel", "camping", "parking"] as const;
 export type AccommodationType = (typeof ACCOMMODATION_TYPES)[number];
+
+export const MAX_DRIVING_HOURS = 16;

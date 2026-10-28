@@ -5,5 +5,13 @@
 
 .icon {
     width: auto;
-    height: 3rem;
+    height: 2.5rem;
 }
+
+@media (min-width: 768px) {
+    .icon {
+        height: 3rem;
+    }
+
+}
+

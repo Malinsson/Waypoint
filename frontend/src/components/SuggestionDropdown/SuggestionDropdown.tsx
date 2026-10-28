@@ -3,7 +3,7 @@ import styles from './SuggestionDropdown.module.css'
 import type { AutocompleteStatus } from '../../hooks/use-autocomplete.ts'
 import type { FavoriteLocationInput, FavoriteList, PlaceKind, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
-import FavoriteButton from '../AddDestinationForm/FavoriteButton/FavoriteButton.tsx'
+import FavoriteButton from '../FavoriteButton/FavoriteButton.tsx'
 import FavoriteListPopup from '../FavoriteList/FavoriteList.tsx'
 import { addFavoriteToList, createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
 import { BuildingComplex, MapPin, Sparkles } from 'lucide-react'
@@ -56,7 +56,7 @@ function SuggestionDropdown({
   function locationInput(suggestion: Suggestion): FavoriteLocationInput {
     return {
       name: suggestion.label,
-      address: suggestion.description ?? suggestion.label,
+      description: suggestion.description || undefined,
       latitude: suggestion.location[1],
       longitude: suggestion.location[0],
     }

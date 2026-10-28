@@ -1,7 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { NavLink } from 'react-router-dom'
 import { createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
 import type { FavoriteList } from '../../types/api.ts'
 import styles from './FavoritePage.module.css'
+import { Button } from '../../components/atoms/Button.tsx'
 
 function FavoritePage() {
   const [lists, setLists] = useState<FavoriteList[]>([])
@@ -33,7 +35,7 @@ function FavoritePage() {
   }
 
   return (
-    <section>
+    <section className="mainSection">
       <h1>Favorites</h1>
       {loading && <p>Loading favorites…</p>}
       {error && <p className="error" role="alert">{error}</p>}
@@ -47,25 +49,28 @@ function FavoritePage() {
           placeholder="e.g. Summer road trip"
           maxLength={80}
         />
-        <button type="submit">Create list</button>
+        <Button type="submit">Create list</Button>
       </form>
 
       {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
       <div className={styles.lists}>
         {lists.map((list) => (
-          <article key={list._id} className={styles.list}>
+          <article key={list._id} className={`decorativeBorder ${styles.list}`}>
             <h2>{list.name}</h2>
             {list.locations.length === 0 ? (
               <p>No saved locations in this list.</p>
             ) : (
-              <ul>
-                {list.locations.map((location) => (
-                  <li key={location._id}>
-                    <strong>{location.name}</strong>
-                    <span>{location.address}</span>
-                  </li>
-                ))}
-              </ul>
+              <div>
+                <ul>
+                  {list.locations.map((location) => (
+                    <li key={location._id}>
+                      <strong>{location.name}</strong>
+                      {location.description && <span>{location.description}</span>}
+                    </li>
+                  ))}
+                </ul>
+                <NavLink to={`/favorites/${list._id}`}>View list</NavLink>
+              </div>
             )}
           </article>
         ))}

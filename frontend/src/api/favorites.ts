@@ -10,6 +10,10 @@ export function fetchFavoriteLists(): Promise<FavoriteListsResponse> {
   return apiGet<FavoriteListsResponse>('/api/favorites')
 }
 
+export function fetchFavoriteList(listId: string): Promise<{ list: FavoriteList }> {
+  return apiGet<{ list: FavoriteList }>(`/api/favorites/lists/${listId}`)
+}
+
 export function createFavoriteList(name: string): Promise<{ list: FavoriteList }> {
   return apiPost<{ list: FavoriteList }>('/api/favorites/lists', { name })
 }
@@ -41,6 +45,10 @@ export function addFavoriteToList(
   )
 }
 
-export function removeFavorite(locationId: string): Promise<void> {
-  return apiDelete(`/api/favorites/${locationId}`)
+export function removeFavoriteFromList(listId: string, locationId: string): Promise<void> {
+  return apiDelete(`/api/favorites/lists/${listId}/locations/${locationId}`)
+}
+
+export function getFavoriteList(listId: string): Promise<{ list: FavoriteList }> {
+  return apiGet<{ list: FavoriteList }>(`/api/favorites/lists/${listId}`)
 }

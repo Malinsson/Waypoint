@@ -42,7 +42,7 @@ function LoginPage() {
   }
 
   return (
-    <>
+    <section className="mainSection">
       <h1>Log in</h1>
       {sessionMessage && <p className={styles.notice}>{sessionMessage}</p>}
       {/* noValidate: show our own messages instead of the browser's pop-ups */}
@@ -77,7 +77,7 @@ function LoginPage() {
       <p>
         No account yet? <Link to="/register">Register</Link>
       </p>
-    </>
+    </section>
   )
 }
 

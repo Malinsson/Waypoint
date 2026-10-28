@@ -34,15 +34,36 @@ function HomePage() {
 
   return (
     <>
-      <h1>Waypoint</h1>
-      <h2>Server status</h2>
-      {state.kind === 'loading' && <p>Checking server…</p>}
-      {state.kind === 'ok' && (
+      <section className={styles.hero}>
+        <div className={styles.heroText}>
+          <img src="/Icons/slogan.svg" alt="Waypoint slogan, Plan save Go" className={styles.heroSlogan} />
+        </div>
+        <img src="/Images/hero.webp" alt="A scenic road winding through mountains" className={styles.heroImage} />
+      </section>
+
+      <section className={`${styles.intro} mainSection`}>
+        <h1>Welcome to Waypoint</h1>
         <p>
-          API: {state.health.status}, Database: {state.health.database}
+          Waypoint is a travel planning application that helps you organize your trips efficiently. With our intuitive interface, you can add destinations, optimize your route, and save your favorite locations for future reference. 
         </p>
-      )}
-      {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
+        <p>
+          Simply enter your desired destinations, and Waypoint will generate a comprehensive travel plan, including driving distances, estimated travel times and suggested accommodations. You can also save your trips and access them anytime, making it easy to plan your next adventure.
+        </p>
+        <p>
+          Start planning your next adventure today!
+        </p>
+
+
+        <h2>Server status</h2>
+        {state.kind === 'loading' && <p>Checking server…</p>}
+        {state.kind === 'ok' && (
+          <p>
+            API: {state.health.status}, Database: {state.health.database}
+          </p>
+        )}
+        {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
+        
+      </section>
     </>
   )
 }

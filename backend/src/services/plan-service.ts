@@ -6,11 +6,14 @@ import { geocode, getRoute } from "./geoapify-facade.js";
 // would change nothing (and Geoapify charges extra for it)
 const MIN_WAYPOINTS_TO_OPTIMIZE = 4;
 
+// Raw input from the frontend
 export type DestinationInput = {
   id: string;
   name?: string | undefined;
   location?: LonLat | undefined;
   address?: string | undefined;
+  description?: string | undefined;
+  wikidataId?: string | undefined;
 };
 
 export type PlanInput = {
@@ -26,7 +29,13 @@ export type PlanInput = {
 
 export type Warning = { code: string; message: string };
 
-type LocatedDestination = { id: string; name?: string | undefined; location: LonLat };
+type LocatedDestination = { 
+  id: string; 
+  name?: string | undefined; 
+  location: LonLat;
+  description?: string | undefined;
+  wikidataId?: string | undefined; 
+};
 
 export type PlanResult = {
   destinations: (LocatedDestination & { order: number; inputIndex: number })[];
@@ -48,7 +57,7 @@ async function resolveLocations(destinations: DestinationInput[]): Promise<Locat
 
   for (const [index, destination] of destinations.entries()) {
     if (destination.location) {
-      located.push({ id: destination.id, name: destination.name, location: destination.location });
+      located.push({ id: destination.id, name: destination.name, location: destination.location, description: destination.description, wikidataId: destination.wikidataId });
       continue;
     }
 

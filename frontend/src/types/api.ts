@@ -33,7 +33,7 @@ export type LoginInput = {
 export type FavoriteLocation = {
   _id: string
   name: string
-  address: string
+  description: string | undefined
   latitude: number
   longitude: number
   wikidataId?: string
@@ -63,6 +63,7 @@ export type PlaceKind = 'address' | 'city' | 'poi'
 export type GeocodeResult = {
   label: string
   location: LonLat
+  description: string | undefined
   kind: PlaceKind
 }
 
@@ -90,6 +91,7 @@ export type Destination = {
   id: string
   name: string
   location: LonLat
+  description: string | undefined
 }
 
 export type PlannedDestination = Destination & {
@@ -123,6 +125,73 @@ export type PlanResponse = {
   breakPoints: unknown[]
   warnings: PlanWarning[]
 }
+
+export type SavedTrip = {
+  _id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type SaveTripResponse = {
+  trip: SavedTrip
+}
+
+export type ListTripsResponse = {
+  trips: SavedTrip[]
+}
+
+export type TripStop = {
+  name: string
+  location: LonLat
+}
+
+// Mirrors backend/src/models/trip.ts, keep in sync
+export type Trip = {
+  _id: string
+  name: string
+  destinations: TripDestination[]
+  breakpoints: TripBreakpoint[]
+  route: PlanResponse['route']
+  maxDrivingHours: number
+  accommodationPreference: { types: string[] }
+  totalRating?: TripRating
+  createdAt: string
+  updatedAt: string
+  completedAt?: string
+}
+
+export type TripRating = {
+  stars: number
+  comment?: string
+}
+
+export type TripLocation = {
+  _id: string
+  name: string
+  description?: string
+  latitude: number
+  longitude: number
+  wikidataId?: string
+}
+
+export type TripDestination = {
+  locationId: TripLocation
+  description: string | undefined
+  rating?: TripRating
+}
+
+export type TripBreakpoint = {
+  longitude: number
+  latitude: number
+  locationId?: TripLocation
+  rating?: TripRating
+}
+
+export type TripDetailResponse = {
+  trip: Trip
+}
+
 
 // The error shape every backend endpoint returns (see CLAUDE.md)
 export type ApiErrorBody = {

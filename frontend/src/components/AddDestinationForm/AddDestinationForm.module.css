@@ -1,22 +1,35 @@
 .addDestination {
   margin-bottom: 1rem;
+  width: 100%;
 }
 
 .addDestinationRow {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
 /* Positioned, so the spinner and the dropdown can be placed relative to the input */
 .combobox {
   position: relative;
+  width: 100%;
   flex: 1;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  margin-top: -0.5rem;
 }
 
 .combobox input {
   width: 100%;
   /* Room for the spinner */
   padding-right: 2rem;
+  padding-left: 2rem;
 }
 
 .spinner {
@@ -26,7 +39,7 @@
   width: 1rem;
   height: 1rem;
   margin-top: -0.5rem;
-  border: 2px solid var(--charcoal-blue);
+  border: 2px solid var(--sandy-brown);
   border-right-color: transparent;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;

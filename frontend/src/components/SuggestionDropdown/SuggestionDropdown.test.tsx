@@ -16,6 +16,7 @@ const withoutDescription: Suggestion = {
   id: 'geo:51a3',
   label: 'Lisebergsgatan, Gothenburg, Sweden',
   location: [11.989, 57.6951],
+  description: undefined,
   kind: 'address',
   source: 'geoapify',
 }

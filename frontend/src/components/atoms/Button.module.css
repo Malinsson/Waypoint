@@ -1,0 +1,58 @@
+.buttonBase {
+    font-family: var(--font-detail);
+    padding: 0.5rem 1rem;
+    margin: 0;
+    cursor: pointer;
+    align-items: center;
+    background-color: initial;
+    display: inline-block;
+    flex-direction: row;
+    flex-shrink: 0;
+    font-size: var(--font-size-sm);
+    justify-content: center;
+    outline: none;
+    overflow: visible;
+    pointer-events: auto;
+    position: relative;
+    text-align: center;
+    text-decoration: none;
+    text-transform: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    vertical-align: middle;
+    width: auto;
+    word-break: keep-all;
+    background-position: 0 90%;
+    align-self: center;
+    background-repeat: repeat no-repeat;
+    background-size: 4px 3px;
+}
+
+.primary {
+    background-color: var(--verdigris);
+    color: var(--cornsilk);
+}
+
+.secondary {
+  background-color: var(--sandy-brown);
+  color: var(--white);
+}
+
+.tertiary {
+  background-color: var(--burnt-peach);
+  color: var(--charcoal-blue);
+  border: var(--border-light);
+}
+
+.buttonBase:disabled {
+    opacity: 0.5;
+    background-color: var(--background-color);
+    cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .buttonBase {
+    font-size: var(--font-size-md);
+  }
+}
