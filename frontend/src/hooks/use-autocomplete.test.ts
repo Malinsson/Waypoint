@@ -28,7 +28,7 @@ function deferred<T>() {
 }
 
 function suggestion(label: string): Suggestion {
-  return { id: `geo:${label}`, label, location: [11.99, 57.69], kind: 'poi', source: 'geoapify' }
+  return { id: `geo:${label}`, label, location: [11.99, 57.69],description: 'Amusement park in Gothenburg, Sweden', kind: 'poi', source: 'geoapify' }
 }
 
 function response(...labels: string[]): SuggestionResponse {
