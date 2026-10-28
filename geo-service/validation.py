@@ -16,19 +16,24 @@ def validate_request(body):
 
     if "legs" not in body:
         raise ValidationError("Missing 'legs' field in request body.")
+    
     if "maxDrivingSeconds" not in body:
         raise ValidationError("Missing 'maxDrivingSeconds' field in request body.")
 
     if not isinstance(body["legs"], list):
         raise ValidationError("The 'legs' field must be a list.")
 
+
     max_driving_seconds = body["maxDrivingSeconds"]
     if not isinstance(max_driving_seconds, int) or isinstance(max_driving_seconds, bool):
         raise ValidationError("The 'maxDrivingSeconds' field must be an integer.")
+    
     if max_driving_seconds <= 0:
         raise ValidationError("The 'maxDrivingSeconds' field must be a positive integer.")
+    
     if max_driving_seconds > 100_000:
         raise ValidationError("The 'maxDrivingSeconds' field must not exceed 100000 seconds.")
+
 
     for leg_index, leg in enumerate(body["legs"]):
         if not isinstance(leg, dict):
@@ -36,8 +41,10 @@ def validate_request(body):
 
         if "durationSeconds" not in leg:
             raise ValidationError(f"Missing 'durationSeconds' field in leg {leg_index}.")
+        
         if not _is_number(leg["durationSeconds"]):
             raise ValidationError(f"The 'durationSeconds' field in leg {leg_index} must be a number.")
+        
         if leg["durationSeconds"] < 0:
             raise ValidationError(f"The 'durationSeconds' field in leg {leg_index} cannot be negative.")
 
