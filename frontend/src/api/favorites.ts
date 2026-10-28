@@ -45,8 +45,8 @@ export function addFavoriteToList(
   )
 }
 
-export function removeFavorite(locationId: string): Promise<void> {
-  return apiDelete(`/api/favorites/${locationId}`)
+export function removeFavoriteFromList(listId: string, locationId: string): Promise<void> {
+  return apiDelete(`/api/favorites/lists/${listId}/locations/${locationId}`)
 }
 
 export function getFavoriteList(listId: string): Promise<{ list: FavoriteList }> {

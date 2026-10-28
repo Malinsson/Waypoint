@@ -43,7 +43,7 @@ function TripsDetailPage() {
   const center = markers[0]?.location ?? [16.5, 62.5]
 
   return (
-    <div>
+    <section className="mainSection">
       <p><Link to="/trips">Back to saved trips</Link></p>
       <h1>Trip details</h1>
       {loading && <p>Loading trip details...</p>}
@@ -65,7 +65,8 @@ function TripsDetailPage() {
           <ol>
             {trip.destinations.map((destination) => (
               <li key={destination.locationId._id}>
-                {destination.locationId.name}
+                {destination.locationId.name} {destination.locationId.description && `- ${destination.locationId.description}`}
+                {destination.description && ` - ${destination.description ?? ""}`}
                 {destination.rating && ` — Rated ${destination.rating.stars}/5`}
               </li>
             ))}
@@ -88,7 +89,7 @@ function TripsDetailPage() {
           <p>{trip.accommodationPreference.types.join(', ')}</p>
         </>
       )}
-    </div>
+    </section>
   )
 }
 

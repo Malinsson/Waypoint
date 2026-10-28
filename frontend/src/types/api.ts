@@ -175,6 +175,7 @@ export type TripLocation = {
 
 export type TripDestination = {
   locationId: TripLocation
+  description: string | undefined
   rating?: TripRating
 }
 
