@@ -113,6 +113,13 @@ export type PlanWarning = {
   message: string
 }
 
+// Mirrors backend/src/services/geoservice-service.ts, keep in sync
+export type Breakpoint = {
+    legIndex: number;
+    location: LonLat;
+    cumulativeSeconds: number;
+};
+
 export type PlanResponse = {
   destinations: PlannedDestination[]
   orderOptimized: boolean
@@ -123,7 +130,7 @@ export type PlanResponse = {
     legs: RouteLeg[]
   }
   // Not shown yet; break points are added in a later step
-  breakPoints: unknown[]
+  breakPoints: Breakpoint[]
   warnings: PlanWarning[]
 }
 

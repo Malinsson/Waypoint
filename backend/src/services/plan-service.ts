@@ -126,7 +126,6 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
 
   // Only true if something actually moved
   const orderOptimized = route.waypointOrder.some((inputIndex, order) => inputIndex !== order);
-
   let breakPoints: BreakPoints = [];
   try {
     const result = await findBreakPoints({
@@ -137,6 +136,12 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
       })),
       maxDrivingSeconds: input.options.maxDrivingHours * 3600,
     });
+        console.log("Sending legs to geoservice:", route.legs.map((leg) => ({
+        durationSeconds: leg.durationSeconds,
+        distanceMeters: leg.distanceMeters,
+      })));
+      
+      console.log("Max driving seconds:", input.options.maxDrivingHours * 3600);
     breakPoints = result.breakPoints;
   } catch (error) {
     if (!(error instanceof UpstreamError)) throw error;

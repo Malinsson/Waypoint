@@ -7,7 +7,7 @@ import DestinationList from '../../components/DestinationList/DestinationList.ts
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
+import type { Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 
@@ -90,7 +90,11 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      setPlan(await planTrip(destinations))
+      const nextPlan = await planTrip(destinations)
+      setPlan(nextPlan)
+
+
+
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
       setPlanError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -126,6 +130,7 @@ function PlanPage() {
       })),
     [destinations],
   )
+
 
   const canAddMore = destinations.length < MAX_DESTINATIONS
 

@@ -11,7 +11,7 @@ const breakpointsRequestSchema = z.object({
     z.object({
       coordinates: z.array(z.tuple([z.number(), z.number()])).min(2),
       durationSeconds: z.number().min(0).max(1_000_000),
-      distanceMeters: z.number().min(0).max(1_000_000),
+      distanceMeters: z.number().min(0),
     }),
   ),
   maxDrivingSeconds: z.number().min(1).max(1_000_000),
@@ -60,6 +60,7 @@ export async function resolveBreakPoints(input: GeoServiceInput): Promise<GeoSer
     data = await response.json();
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+      console.error("Geoservice fetch failed:", reason);
     throw new UpstreamError("UNAVAILABLE", `Geoservice returned invalid JSON: ${reason}`);
   }
 
