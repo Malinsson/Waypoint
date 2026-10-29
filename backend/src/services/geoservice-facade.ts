@@ -28,10 +28,12 @@ const breakpointsResponseSchema = z.object({
 });
 
 export async function resolveBreakPoints(input: GeoServiceInput): Promise<GeoServiceResult> {
+  console.log("resolveBreakPoints called");
   const requestBody = breakpointsRequestSchema.parse(input);
   let response: Response;
 
   try {
+    console.log("Posting to geoservice /find-break-points")
     response = await fetch(`${SERVICE_URL}/find-break-points`, {
       method: "POST",
       headers: {
