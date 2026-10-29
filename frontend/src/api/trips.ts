@@ -36,7 +36,7 @@ export function saveTrip(plan: PlanResponse, name?: string): Promise<SaveTripRes
     })),
     route: plan.route,
     // Breakpoint calculation is not part of the current planning response yet.
-    breakpoints: [],
+    breakpoints: plan.breakPoints,
     maxDrivingHours: 6,
     accommodationPreference: { types: ['hotel'] },
   })

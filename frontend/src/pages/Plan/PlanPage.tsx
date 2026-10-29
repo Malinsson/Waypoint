@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHealth } from '../../api/health.ts'
 import { planTrip, saveTrip } from '../../api/trips.ts'
@@ -7,7 +7,7 @@ import DestinationList from '../../components/DestinationList/DestinationList.ts
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
+import type { Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 
@@ -26,6 +26,7 @@ function PlanPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
+  const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
@@ -34,7 +35,7 @@ function PlanPage() {
   // opens wakes the backend, so it is ready when the user starts typing.
   // The answer and any error are ignored on purpose.
   useEffect(() => {
-    getHealth().catch(() => {})
+    warmupPromise.current = getHealth().catch(() => undefined)
   }, [])
 
   // Any change to the list makes the old route wrong, so it is cleared and
@@ -86,7 +87,23 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
-      setPlan(await planTrip(destinations))
+      // The page warm-up may still be waking Render's geoservice. Waiting for
+      // it prevents the plan request from racing the cold start.
+      await warmupPromise.current
+      const nextPlan = await planTrip(destinations)
+      setPlan(nextPlan)
+
+
+      
+
+      console.log('Breakpoints returned by planTrip:', nextPlan.breakPoints)
+      if (nextPlan.breakPoints.length) {
+        console.log('Breakpoints found:')
+        nextPlan.breakPoints.forEach((bp: Breakpoint) => {
+          console.log(`  Leg ${bp.legIndex}: ${bp.location[0].toFixed(6)},${bp.location[1].toFixed(6)} at ${bp.cumulativeSeconds} seconds`)
+        })
+      }
+
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
       setPlanError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
@@ -122,6 +139,7 @@ function PlanPage() {
       })),
     [destinations],
   )
+
 
   const canAddMore = destinations.length < MAX_DESTINATIONS
 

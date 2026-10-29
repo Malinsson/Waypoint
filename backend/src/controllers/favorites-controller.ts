@@ -12,6 +12,7 @@ import {
   getFavoriteList,
   type LocationInput,
 } from "../services/favorites-service.js";
+import { requireUserId } from "../middleware/auth.js";
 import { AppError } from "../utils/app-error.js";
 
 const locationSchema = z.object({
@@ -25,13 +26,6 @@ const locationSchema = z.object({
 const listNameSchema = z.object({
   name: z.string("List name is required").trim().min(1).max(80),
 });
-
-function userId(req: Request): string {
-  if (!req.user) {
-    throw new AppError(401, "UNAUTHORIZED", "You need to log in to do this");
-  }
-  return req.user.id;
-}
 
 function routeParam(req: Request, name: string): string {
   const value = req.params[name];
@@ -50,42 +44,42 @@ function locationInput(req: Request): LocationInput {
 }
 
 export async function listFavoritesController(req: Request, res: Response) {
-  res.json({ lists: await listFavorites(userId(req)) });
+  res.json({ lists: await listFavorites(requireUserId(req)) });
 }
 
 export async function createFavoriteController(req: Request, res: Response) {
-  res.status(201).json({ location: await createFavorite(userId(req), locationInput(req)) });
+  res.status(201).json({ location: await createFavorite(requireUserId(req), locationInput(req)) });
 }
 
 export async function deleteFavoriteController(req: Request, res: Response) {
-  await deleteFavorite(userId(req), routeParam(req, "id"));
+  await deleteFavorite(requireUserId(req), routeParam(req, "id"));
   res.status(204).send();
 }
 
 export async function createFavoriteListController(req: Request, res: Response) {
   const { name } = listNameSchema.parse(req.body);
-  res.status(201).json({ list: await createFavoriteList(userId(req), name) });
+  res.status(201).json({ list: await createFavoriteList(requireUserId(req), name) });
 }
 
 export async function renameFavoriteListController(req: Request, res: Response) {
   const { name } = listNameSchema.parse(req.body);
-  res.json({ list: await renameFavoriteList(userId(req), routeParam(req, "listId"), name) });
+  res.json({ list: await renameFavoriteList(requireUserId(req), routeParam(req, "listId"), name) });
 }
 
 export async function deleteFavoriteListController(req: Request, res: Response) {
-  await deleteFavoriteList(userId(req), routeParam(req, "listId"));
+  await deleteFavoriteList(requireUserId(req), routeParam(req, "listId"));
   res.status(204).send();
 }
 
 export async function addLocationToListController(req: Request, res: Response) {
   res.status(201).json({
-    location: await addLocationToList(userId(req), routeParam(req, "listId"), locationInput(req)),
+    location: await addLocationToList(requireUserId(req), routeParam(req, "listId"), locationInput(req)),
   });
 }
 
 export async function removeLocationFromListController(req: Request, res: Response) {
   await removeLocationFromList(
-    userId(req),
+    requireUserId(req),
     routeParam(req, "listId"),
     routeParam(req, "locationId"),
   );
@@ -93,6 +87,5 @@ export async function removeLocationFromListController(req: Request, res: Respon
 }
 
 export async function getFavoriteListController(req: Request, res: Response) {
-  res.json({ list: await getFavoriteList(userId(req), routeParam(req, "listId")) });
+  res.json({ list: await getFavoriteList(requireUserId(req), routeParam(req, "listId")) });
 }
-

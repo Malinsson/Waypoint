@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
+import { requireUserId } from "../middleware/auth.js";
 import { getUserById, loginUser, registerUser } from "../services/auth-service.js";
-import { AppError } from "../utils/app-error.js";
 
 // Normalized to lowercase here so "Anna@x.com" and "anna@x.com" are the
 // same account both when registering and when logging in
@@ -47,10 +47,6 @@ export async function login(req: Request, res: Response) {
 }
 
 export async function me(req: Request, res: Response) {
-  // requireAuth runs first, so this only guards against wiring mistakes
-  if (!req.user) {
-    throw new AppError(401, "UNAUTHORIZED", "You need to log in to do this");
-  }
-  const user = await getUserById(req.user.id);
+  const user = await getUserById(requireUserId(req));
   res.json({ user });
 }

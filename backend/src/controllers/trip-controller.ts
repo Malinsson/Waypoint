@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { planTrip } from "../services/plan-service.js";
+import { requireUserId } from "../middleware/auth.js";
 import {
   deleteTrip as deleteTripService,
   getTrip as getTripService,
@@ -90,34 +91,27 @@ export const tripInputSchema = z.object({
 
 export async function saveTrip(req: Request, res: Response) {
   const input = tripInputSchema.parse(req.body);
-  res.status(201).json({ trip: await saveTripService(userId(req), input) });
+  res.status(201).json({ trip: await saveTripService(requireUserId(req), input) });
 }
 
 export async function listTrips(req: Request, res: Response) {
-  res.json({ trips: await listTripsService(userId(req)) });
+  res.json({ trips: await listTripsService(requireUserId(req)) });
 }
 
 export async function getTrip(req: Request, res: Response) {
-  res.json({ trip: await getTripService(userId(req), routeParam(req)) });
+  res.json({ trip: await getTripService(requireUserId(req), routeParam(req)) });
 }
 
 export async function updateTrip(req: Request, res: Response) {
   const { name } = z.object({
     name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters"),
   }).parse(req.body);
-  res.json({ trip: await updateTripService(userId(req), routeParam(req), name) });
+  res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), name) });
 }
 
 export async function deleteTrip(req: Request, res: Response) {
-  await deleteTripService(userId(req), routeParam(req));
+  await deleteTripService(requireUserId(req), routeParam(req));
   res.status(204).send();
-}
-
-function userId(req: Request): string {
-  if (!req.user) {
-    throw new AppError(401, "UNAUTHORIZED", "You need to log in to do this");
-  }
-  return req.user.id;
 }
 
 function routeParam(req: Request): string {

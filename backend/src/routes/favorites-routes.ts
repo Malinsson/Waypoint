@@ -14,6 +14,7 @@ import {
 
 export const favoriteRouter = Router();
 
+// All routes below require authentication
 favoriteRouter.use(requireAuth);
 
 favoriteRouter.get("/", listFavoritesController);
