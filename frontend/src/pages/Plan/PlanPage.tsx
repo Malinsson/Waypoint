@@ -94,6 +94,15 @@ function PlanPage() {
       setPlan(nextPlan)
 
 
+      
+
+      console.log('Breakpoints returned by planTrip:', nextPlan.breakPoints)
+      if (nextPlan.breakPoints.length) {
+        console.log('Breakpoints found:')
+        nextPlan.breakPoints.forEach((bp: Breakpoint) => {
+          console.log(`  Leg ${bp.legIndex}: ${bp.location[0].toFixed(6)},${bp.location[1].toFixed(6)} at ${bp.cumulativeSeconds} seconds`)
+        })
+      }
 
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
