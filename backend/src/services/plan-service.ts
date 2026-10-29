@@ -1,6 +1,8 @@
 import type { AccommodationType, LonLat, RouteResult } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
+import { UpstreamError } from "../utils/upstream-error.js";
 import { geocode, getRoute } from "./geoapify-facade.js";
+import { findBreakPoints } from "./geoservice-service.js";
 
 // With 3 waypoints the single stop in between cannot move, so optimizing
 // would change nothing (and Geoapify charges extra for it)
@@ -29,6 +31,8 @@ export type PlanInput = {
 
 export type Warning = { code: string; message: string };
 
+type BreakPoints = Awaited<ReturnType<typeof findBreakPoints>>["breakPoints"];
+
 type LocatedDestination = { 
   id: string; 
   name?: string | undefined; 
@@ -46,7 +50,7 @@ export type PlanResult = {
     geometry: RouteResult["geometry"];
     legs: { fromIndex: number; toIndex: number; distanceMeters: number; durationSeconds: number }[];
   };
-  breakPoints: never[];
+  breakPoints: BreakPoints;
   warnings: Warning[];
 };
 
@@ -123,6 +127,26 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
   // Only true if something actually moved
   const orderOptimized = route.waypointOrder.some((inputIndex, order) => inputIndex !== order);
 
+  let breakPoints: BreakPoints = [];
+  try {
+    const result = await findBreakPoints({
+      legs: route.legs.map((leg) => ({
+        coordinates: leg.coordinates,
+        durationSeconds: leg.durationSeconds,
+        distanceMeters: leg.distanceMeters,
+      })),
+      maxDrivingSeconds: input.options.maxDrivingHours * 3600,
+    });
+    breakPoints = result.breakPoints;
+  } catch (error) {
+    if (!(error instanceof UpstreamError)) throw error;
+    console.warn("Break-point service unavailable:", error.message);
+    warnings.push({
+      code: "BREAK_POINTS_UNAVAILABLE",
+      message: "We created the route, but stop suggestions are temporarily unavailable.",
+    });
+  }
+
   return {
     destinations,
     orderOptimized,
@@ -138,8 +162,7 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
         durationSeconds: leg.durationSeconds,
       })),
     },
-    // Filled in by the Python service in the next step
-    breakPoints: [],
+    breakPoints,
     warnings,
   };
 }
