@@ -23,6 +23,10 @@ app.use("/api/geocode", geocodeRouter);
 app.use("/api/trips", tripRouter);
 app.use("/api/favorites", favoriteRouter);
 
+app.get("/api/live", (_req, res) => {
+  res.json({ status: "ok" })
+})
+
 // Must come after all routes, otherwise they would catch requests first
 app.use(notFoundHandler);
 app.use(errorHandler);
