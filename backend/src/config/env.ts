@@ -20,4 +20,5 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
   geoapifyApiKey: requireEnv("GEOAPIFY_API_KEY"),
   wikidataUserAgent: requireEnv("WIKIDATA_USER_AGENT"),
+  geoserviceApiKey: requireEnv("GEOSERVICE_API_KEY"),
 };

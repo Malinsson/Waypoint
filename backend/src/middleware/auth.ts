@@ -10,6 +10,16 @@ function getUserIdFromRequest(req: Request): string | null {
   return token ? verifyToken(token) : null;
 }
 
+// For endpoints that need an account. Checks the token signature and expiry, and
+// looks the user up in the database on every request. This is more secure than
+// requireAuth, but slower.
+export function requireUserId(req: Request): string {
+  if (!req.user) {
+    throw new AppError(401, "UNAUTHORIZED", "You need to log in to do this");
+  }
+  return req.user.id;
+}
+
 // For endpoints that work for everyone. A missing, invalid, or expired token
 // is not an error here: the request simply continues as a guest.
 export const optionalAuth: RequestHandler = (req, _res, next) => {
