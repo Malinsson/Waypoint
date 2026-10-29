@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHealth } from '../../api/health.ts'
 import { planTrip, saveTrip } from '../../api/trips.ts'
@@ -26,6 +26,7 @@ function PlanPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
+  const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
@@ -34,7 +35,7 @@ function PlanPage() {
   // opens wakes the backend, so it is ready when the user starts typing.
   // The answer and any error are ignored on purpose.
   useEffect(() => {
-    getHealth().catch(() => {})
+    warmupPromise.current = getHealth().catch(() => undefined)
   }, [])
 
   // Any change to the list makes the old route wrong, so it is cleared and
@@ -86,6 +87,9 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
+      // The page warm-up may still be waking Render's geoservice. Waiting for
+      // it prevents the plan request from racing the cold start.
+      await warmupPromise.current
       setPlan(await planTrip(destinations))
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list

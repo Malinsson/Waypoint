@@ -1,6 +1,7 @@
 export type HealthResponse = {
   status: 'ok'
   database: 'connected' | 'disconnected'
+  geoservice: 'running' | 'unavailable'
 }
 
 export type User = {

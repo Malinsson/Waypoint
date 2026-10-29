@@ -70,3 +70,23 @@ export async function resolveBreakPoints(input: GeoServiceInput): Promise<GeoSer
     throw new UpstreamError("UNAVAILABLE", `Geoservice returned an unexpected response: ${reason}`);
   }
 }
+
+// Health check to wake up the geoservice and verify that it is reachable. Returns true if the service is reachable, false otherwise.
+export async function checkHealth(): Promise<boolean> {
+  let response: Response;
+  try {
+    response = await fetch(`${SERVICE_URL}/health`, {
+      method: "GET",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch (error) {
+    return false;
+  }
+
+  if (!response.ok) {
+    return false;
+  }
+
+  return true;
+}
+
