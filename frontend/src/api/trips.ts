@@ -12,7 +12,11 @@ export function geocodeAddress(query: string): Promise<GeocodeResponse> {
   return apiPost<GeocodeResponse>('/api/geocode', { query })
 }
 
-export function planTrip(destinations: Destination[]): Promise<PlanResponse> {
+export function optimizeRoute(destinations: Destination[], manuallyReordered = false): boolean {
+  return destinations.length >= 4 && !manuallyReordered
+}
+
+export function planTrip(destinations: Destination[], manuallyReordered = false): Promise<PlanResponse> {
   return apiPost<PlanResponse>('/api/trips/plan', {
     destinations: destinations.map((destination) => ({
       id: destination.id,
@@ -21,9 +25,7 @@ export function planTrip(destinations: Destination[]): Promise<PlanResponse> {
       name: destination.name.slice(0, 100),
       location: destination.location,
     })),
-    // The "Optimize order" toggle is a later (Should) feature. Until then
-    // the trip is driven in exactly the order of the list.
-    options: { optimizeOrder: false },
+    options: { optimizeOrder: optimizeRoute(destinations, manuallyReordered) },
   })
 }
 

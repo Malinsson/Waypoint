@@ -131,12 +131,12 @@ function PlanPage() {
   // Memoized so the map only redraws markers when the list really changes
   const markers = useMemo<MapMarker[]>(
     () =>
-      destinations.map((destination, index) => ({
+      (plan?.destinations ?? destinations).map((destination, index) => ({
         id: destination.id,
         location: destination.location,
         label: String(index + 1),
       })),
-    [destinations],
+    [destinations, plan?.destinations],
   )
 
 
@@ -158,7 +158,7 @@ function PlanPage() {
 
           <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
 
-          {!plan && <LocateMe onLocate={(location) => addDestination({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
+          {destinations.length === 0 && <LocateMe onLocate={(location) => addDestination({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
 
           <div className={styles.planActions}>
             <Button
