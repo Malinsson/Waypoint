@@ -20,6 +20,7 @@ const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
 function PlanPage() {
   const { user } = useAuth()
   const [destinations, setDestinations] = useState<Destination[]>([])
+  const [manuallyReordered, setManuallyReordered] = useState(false)
   const [roundTrip, setRoundTrip] = useState(false)
   const [plan, setPlan] = useState<PlanResponse | null>(null)
   const [planning, setPlanning] = useState(false)
@@ -44,6 +45,7 @@ function PlanPage() {
   // the user plans again
   function updateDestinations(next: Destination[]) {
     setDestinations(next)
+    setManuallyReordered(false)
     setPlan(null)
     setPlanError(null)
     setSaveError(null)
@@ -75,6 +77,17 @@ function PlanPage() {
     updateDestinations(destinations.filter((destination) => destination.id !== id))
   }
 
+  function reorderDestinations(orderedIds: string[]) {
+    const orderedDestinations = orderedIds
+      .filter((id) => !id.endsWith('-return'))
+      .map((id) => destinations.find((destination) => destination.id === id))
+      .filter((destination): destination is Destination => destination !== undefined)
+
+    if (orderedDestinations.length !== destinations.length) return
+    updateDestinations(orderedDestinations)
+    setManuallyReordered(true)
+  }
+
   function startOver() {
     updateDestinations([])
     setRoundTrip(false)
@@ -93,7 +106,7 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      const nextPlan = await planTrip(destinations, false, roundTrip)
+      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip)
       setPlan(nextPlan)
       
 
@@ -163,6 +176,7 @@ function PlanPage() {
           <DestinationList
             destinations={plan?.destinations ?? destinations}
             onRemove={removeDestination}
+            onReorder={reorderDestinations}
             roundTrip={roundTrip}
             onRoundTripChange={(enabled) => {
               setRoundTrip(enabled)
