@@ -20,6 +20,7 @@ const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
 function PlanPage() {
   const { user } = useAuth()
   const [destinations, setDestinations] = useState<Destination[]>([])
+  const [roundTrip, setRoundTrip] = useState(false)
   const [plan, setPlan] = useState<PlanResponse | null>(null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
@@ -76,6 +77,7 @@ function PlanPage() {
 
   function startOver() {
     updateDestinations([])
+    setRoundTrip(false)
     setResetCount((count) => count + 1)
   }
 
@@ -91,7 +93,7 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      const nextPlan = await planTrip(destinations)
+      const nextPlan = await planTrip(destinations, false, roundTrip)
       setPlan(nextPlan)
       
 
@@ -155,10 +157,20 @@ function PlanPage() {
             </p>
           )}
           {!canAddMore && <p className="hint">You can add at most {MAX_DESTINATIONS} destinations.</p>}
-
-          <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
-
+          
           {destinations.length === 0 && <LocateMe onLocate={(location) => addDestination({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
+
+          <DestinationList
+            destinations={plan?.destinations ?? destinations}
+            onRemove={removeDestination}
+            roundTrip={roundTrip}
+            onRoundTripChange={(enabled) => {
+              setRoundTrip(enabled)
+              setPlan(null)
+            }}
+            disabled={planning}
+          />
+
 
           <div className={styles.planActions}>
             <Button

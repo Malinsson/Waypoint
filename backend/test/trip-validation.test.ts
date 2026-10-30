@@ -48,3 +48,36 @@ test("duplicate helper tolerates tiny coordinate drift from the same place", () 
   const duplicates = [{ location: [18.0686, 59.3293] }, { location: [18.0686001, 59.3293001] }];
   assert.equal(hasDuplicateDestinations(duplicates), true);
 });
+
+test("saved round trip accepts the same first and last destination", () => {
+  const result = tripInputSchema.safeParse({
+    name: "Round trip",
+    destinations: [
+      { name: "Stockholm", location: [18.0686, 59.3293] },
+      { name: "Gothenburg", location: [11.9746, 57.7089] },
+      { name: "Stockholm", location: [18.0686, 59.3293] },
+    ],
+    roundTrip: true,
+    route: { type: "LineString", coordinates: [] },
+    maxDrivingHours: 6,
+    accommodationPreference: { types: ["hotel"] },
+  });
+
+  assert.equal(result.success, true);
+});
+
+test("saved duplicate destinations remain invalid without round trip", () => {
+  const result = tripInputSchema.safeParse({
+    name: "Not a round trip",
+    destinations: [
+      { name: "Stockholm", location: [18.0686, 59.3293] },
+      { name: "Gothenburg", location: [11.9746, 57.7089] },
+      { name: "Stockholm", location: [18.0686, 59.3293] },
+    ],
+    route: { type: "LineString", coordinates: [] },
+    maxDrivingHours: 6,
+    accommodationPreference: { types: ["hotel"] },
+  });
+
+  assert.equal(result.success, false);
+});

@@ -5,10 +5,12 @@ import styles from './DestinationList.module.css'
 type DestinationListProps = {
   destinations: Destination[]
   onRemove: (id: string) => void
+  roundTrip: boolean
+  onRoundTripChange: (enabled: boolean) => void
   disabled: boolean
 }
 
-function DestinationList({ destinations, onRemove, disabled }: DestinationListProps) {
+function DestinationList({ destinations, onRemove, roundTrip, onRoundTripChange, disabled }: DestinationListProps) {
   if (destinations.length === 0) {
     return <p className="hint">Add at least two destinations to plan your trip.</p>
   }
@@ -27,7 +29,7 @@ function DestinationList({ destinations, onRemove, disabled }: DestinationListPr
               type="button"
               variant="secondary"
               onClick={() => onRemove(destination.id)}
-              disabled={disabled}
+              disabled={disabled || destinations.length < 2}
               aria-label={`Remove ${destination.name}`}
             >
               Remove
@@ -36,7 +38,15 @@ function DestinationList({ destinations, onRemove, disabled }: DestinationListPr
           </li>
         ))}
       </ol>
-      <p className="hint">The first is your start and the last is your end.</p>
+      <Button
+        type="button"
+        variant={roundTrip ? "secondary" : "primary"}
+        disabled={disabled}
+        onClick={() => onRoundTripChange(!roundTrip)}
+      >
+        {roundTrip ? 'Disable round trip' : 'Enable round trip (start and end at the same location)'}
+      </Button>
+      <p className="hint">{roundTrip ? 'Your trip will start and end at the same location.' : 'Your trip will start at the first destination and end at the last.'}</p>
     </>
   )
 }

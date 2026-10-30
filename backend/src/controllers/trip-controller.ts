@@ -42,23 +42,40 @@ export function hasDuplicateDestinations(destinations: Array<{ location: [number
   return false;
 }
 
+function hasOnlyRoundTripDuplicate(
+  destinations: Array<{ location: [number, number] }>,
+  roundTrip: boolean,
+) {
+  if (!roundTrip || destinations.length < 2) return false;
+  const first = destinations[0];
+  const last = destinations.at(-1);
+  if (!first || !last) return false;
+
+  const withoutClosingDestination = destinations.slice(0, -1);
+  const firstAndLastMatch =
+      first.location[0].toFixed(6) === last.location[0].toFixed(6) &&
+      first.location[1].toFixed(6) === last.location[1].toFixed(6);
+
+  return firstAndLastMatch && !hasDuplicateDestinations(withoutClosingDestination);
+}
+
 export const planSchema = z.object({
-  destinations: z
-      .array(destinationSchema, "Destinations are required")
-      .min(2, "Add at least 2 destinations")
-      .max(10, "You can add at most 10 destinations")
-      // The frontend matches the response to its list by id, so ids must be unique
-      .refine((d) => new Set(d.map((x) => x.id)).size === d.length, "Destination ids must be unique")
-      .refine((d) => !hasDuplicateDestinations(d), "You already added that destination to this trip"),
   options: z
-    .object({
-      optimizeOrder: z.boolean().default(false),
+      .object({
+        optimizeOrder: z.boolean().default(false),
+        roundTrip: z.boolean().default(false),
       maxDrivingHours: z.number().min(1, "Driving limit must be at least 1 hour").max(MAX_DRIVING_HOURS, `Driving limit must be at most ${MAX_DRIVING_HOURS} hours`).default(6),
       accommodationTypes: z.array(z.enum(ACCOMMODATION_TYPES)).min(1, "Choose at least one accommodation type").default(["hotel"]),
     })
     // prefault (not default) so a missing `options` still gets the inner
     // defaults above. Zod 4's .default({}) would return {} as-is.
     .prefault({}),
+  destinations: z
+    .array(destinationSchema, "Destinations are required")
+    .min(2, "Add at least 2 destinations")
+    .max(10, "You can add at most 10 destinations")
+    .refine((d) => new Set(d.map((x) => x.id)).size === d.length, "Destination ids must be unique")
+    .refine((d) => !hasDuplicateDestinations(d), "You already added that destination to this trip"),
 });
 
 
@@ -76,8 +93,8 @@ export const tripInputSchema = z.object({
   destinations: z
     .array(destinationSchema.omit({ id: true }), "Destinations are required")
     .min(2, "Add at least 2 destinations")
-    .max(10, "You can add at most 10 destinations")
-    .refine((d) => !hasDuplicateDestinations(d), "You already added that destination to this trip"),
+    .max(10, "You can add at most 10 destinations"),
+  roundTrip: z.boolean().default(false),
   route: z.unknown().refine((route) => route !== undefined, "Route is required"),
   breakpoints: z.array(z.object({
     longitude: z.number().min(-180).max(180),
@@ -87,6 +104,11 @@ export const tripInputSchema = z.object({
   accommodationPreference: z.object({
     types: z.array(z.enum(ACCOMMODATION_TYPES)).min(1).default(["hotel"]),
   }).prefault({}),
+}).superRefine((input, ctx) => {
+  if (!hasDuplicateDestinations(input.destinations)) return;
+  if (!hasOnlyRoundTripDuplicate(input.destinations, input.roundTrip)) {
+    ctx.addIssue({ code: "custom", path: ["destinations"], message: "You already added that destination to this trip" });
+  }
 });
 
 export async function saveTrip(req: Request, res: Response) {

@@ -122,6 +122,7 @@ export type Breakpoint = {
 
 export type PlanResponse = {
   destinations: PlannedDestination[]
+  roundTrip: boolean
   orderOptimized: boolean
   route: {
     distanceMeters: number

@@ -22,6 +22,7 @@ export type PlanInput = {
   destinations: DestinationInput[];
   options: {
     optimizeOrder: boolean;
+    roundTrip: boolean;
     // Validated now so the API contract is final; used once break points
     // and accommodation are added
     maxDrivingHours: number;
@@ -43,6 +44,7 @@ type LocatedDestination = {
 
 export type PlanResult = {
   destinations: (LocatedDestination & { order: number; inputIndex: number })[];
+  roundTrip: boolean;
   orderOptimized: boolean;
   route: {
     distanceMeters: number;
@@ -107,8 +109,11 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
   const warnings: Warning[] = [];
 
   const located = await resolveLocations(input.destinations);
+  const routeDestinations = input.options.roundTrip && located[0]
+    ? [...located, { ...located[0], id: `${located[0].id}-return` }]
+    : located;
   const route = await getRouteInBestOrder(
-    located.map((destination) => destination.location),
+    routeDestinations.map((destination) => destination.location),
     input.options.optimizeOrder,
     warnings,
   );
@@ -116,7 +121,7 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
   // waypointOrder[order] = inputIndex. Rebuild the list in the order that
   // was actually driven, remembering where each item was in the request.
   const destinations = route.waypointOrder.map((inputIndex, order) => {
-    const destination = located[inputIndex];
+    const destination = routeDestinations[inputIndex];
     if (!destination) {
       // The Facade validates the order, so this would be a bug
       throw new Error(`Waypoint order refers to missing destination ${inputIndex}`);
@@ -154,6 +159,7 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
 
   return {
     destinations,
+    roundTrip: input.options.roundTrip,
     orderOptimized,
     route: {
       distanceMeters: route.distanceMeters,

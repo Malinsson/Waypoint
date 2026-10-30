@@ -16,7 +16,11 @@ export function optimizeRoute(destinations: Destination[], manuallyReordered = f
   return destinations.length >= 4 && !manuallyReordered
 }
 
-export function planTrip(destinations: Destination[], manuallyReordered = false): Promise<PlanResponse> {
+export function planTrip(
+  destinations: Destination[],
+  manuallyReordered = false,
+  roundTrip = false,
+): Promise<PlanResponse> {
   return apiPost<PlanResponse>('/api/trips/plan', {
     destinations: destinations.map((destination) => ({
       id: destination.id,
@@ -24,8 +28,12 @@ export function planTrip(destinations: Destination[], manuallyReordered = false)
       // labels are cut rather than rejected
       name: destination.name.slice(0, 100),
       location: destination.location,
+      ...(destination.description ? { description: destination.description } : {}),
     })),
-    options: { optimizeOrder: optimizeRoute(destinations, manuallyReordered) },
+    options: {
+      optimizeOrder: optimizeRoute(destinations, manuallyReordered),
+      roundTrip,
+    },
   })
 }
 
@@ -39,6 +47,7 @@ export function saveTrip(plan: PlanResponse, name?: string): Promise<SaveTripRes
     route: plan.route,
     // Breakpoint calculation is not part of the current planning response yet.
     breakpoints: plan.breakPoints,
+    roundTrip: plan.roundTrip,
     maxDrivingHours: 6,
     accommodationPreference: { types: ['hotel'] },
   })
