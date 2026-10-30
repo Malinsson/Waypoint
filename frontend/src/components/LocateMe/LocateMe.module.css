@@ -1,0 +1,13 @@
+.locateMe {
+  margin-top: 1rem;
+}
+
+.locateMe button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.locateMe p {
+  margin-bottom: 0;
+}

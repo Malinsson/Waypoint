@@ -10,6 +10,7 @@ import { useAuth } from '../../context/auth-context.ts'
 import type { Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
+import LocateMe from '../../components/LocateMe/LocateMe.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -92,8 +93,6 @@ function PlanPage() {
       await warmupPromise.current
       const nextPlan = await planTrip(destinations)
       setPlan(nextPlan)
-
-
       
 
       console.log('Breakpoints returned by planTrip:', nextPlan.breakPoints)
@@ -159,6 +158,8 @@ function PlanPage() {
 
           <DestinationList destinations={destinations} onRemove={removeDestination} disabled={planning} />
 
+          {!plan && <LocateMe onLocate={(location) => addDestination({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
+
           <div className={styles.planActions}>
             <Button
               type="button"
@@ -167,7 +168,7 @@ function PlanPage() {
             >
               {planning ? 'Planning…' : 'Plan trip'}
             </Button>
-            <Button type="button" onClick={startOver} disabled={planning || destinations.length === 0}>
+            <Button type="button" variant="secondary" onClick={startOver} disabled={planning || destinations.length === 0}>
               Start over
             </Button>
           </div>
@@ -186,6 +187,7 @@ function PlanPage() {
               </button>
             </div>
           )}
+
 
           {plan && <TripSummary plan={plan} />}
 
