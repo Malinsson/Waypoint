@@ -117,7 +117,7 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
             )}
             <Button
               type="button"
-              variant="secondary"
+              variant="tertiary"
               onClick={() => onRemove(destination.id)}
               disabled={disabled || destinations.length < 2 || isReturn}
               aria-label={`Remove ${destination.name}`}
@@ -131,7 +131,7 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
       </ol>
       <Button
         type="button"
-        variant={roundTrip ? "secondary" : "primary"}
+        variant={roundTrip ? "tertiary" : "primary"}
         disabled={disabled}
         onClick={() => onRoundTripChange(!roundTrip)}
       >

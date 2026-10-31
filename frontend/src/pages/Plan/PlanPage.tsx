@@ -194,7 +194,7 @@ function PlanPage() {
             >
               {planning ? 'Planning…' : 'Plan trip'}
             </Button>
-            <Button type="button" variant="secondary" onClick={startOver} disabled={planning || destinations.length === 0}>
+            <Button type="button" variant="tertiary" onClick={startOver} disabled={planning || destinations.length === 0}>
               Start over
             </Button>
           </div>
