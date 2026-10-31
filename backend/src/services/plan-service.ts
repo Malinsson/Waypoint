@@ -25,7 +25,7 @@ export type PlanInput = {
     roundTrip: boolean;
     // Validated now so the API contract is final; used once break points
     // and accommodation are added
-    maxDrivingHours: number;
+    maxDrivingSeconds: number;
     accommodationTypes: AccommodationType[];
   };
 };
@@ -165,7 +165,7 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
         durationSeconds: leg.durationSeconds,
         distanceMeters: leg.distanceMeters,
       })),
-      maxDrivingSeconds: input.options.maxDrivingHours * 3600,
+      maxDrivingSeconds: input.options.maxDrivingSeconds,
     });
     breakPoints = result.breakPoints;
   } catch (error) {

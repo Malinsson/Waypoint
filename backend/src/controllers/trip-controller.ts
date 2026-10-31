@@ -11,6 +11,7 @@ import {
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
+import { getMaxDrivingSeconds, updateMaxDrivingSeconds } from "../services/auth-service.js";
 
 // [longitude, latitude], the same order as GeoJSON
 const lonLatSchema = z.tuple([
@@ -64,7 +65,8 @@ export const planSchema = z.object({
       .object({
         optimizeOrder: z.boolean().default(false),
         roundTrip: z.boolean().default(false),
-      maxDrivingHours: z.number().min(1, "Driving limit must be at least 1 hour").max(MAX_DRIVING_HOURS, `Driving limit must be at most ${MAX_DRIVING_HOURS} hours`).default(6),
+      maxDrivingSeconds: z.number().int().multipleOf(3_600, "Driving limit must use whole hours").min(3_600, "Driving limit must be at least 1 hour").max(MAX_DRIVING_HOURS * 3_600, `Driving limit must be at most ${MAX_DRIVING_HOURS} hours`).optional(),
+      maxDrivingHours: z.number().min(1).max(MAX_DRIVING_HOURS).optional(),
       accommodationTypes: z.array(z.enum(ACCOMMODATION_TYPES)).min(1, "Choose at least one accommodation type").default(["hotel"]),
     })
     // prefault (not default) so a missing `options` still gets the inner
@@ -81,7 +83,15 @@ export const planSchema = z.object({
 
 export async function plan(req: Request, res: Response) {
   const input = planSchema.parse(req.body);
-  const result = await planTrip(input);
+  const maxDrivingSeconds = input.options.maxDrivingSeconds
+    ?? (input.options.maxDrivingHours === undefined
+      ? req.user ? await getMaxDrivingSeconds(req.user.id) : 21_600
+      : input.options.maxDrivingHours * 3_600);
+  if (req.user) await updateMaxDrivingSeconds(req.user.id, maxDrivingSeconds);
+  const result = await planTrip({
+    ...input,
+    options: { ...input.options, maxDrivingSeconds },
+  });
   res.json(result);
 }
 

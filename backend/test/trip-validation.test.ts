@@ -26,6 +26,30 @@ test("plan schema rejects duplicate destination coordinates", () => {
   }
 });
 
+test("plan schema accepts max driving seconds in the supported range", () => {
+  const result = planSchema.safeParse({
+    destinations: [
+      { id: "first", name: "Stockholm", location: [18.0686, 59.3293] },
+      { id: "second", name: "Gothenburg", location: [11.9746, 57.7089] },
+    ],
+    options: { maxDrivingSeconds: 18_000, accommodationTypes: ["hotel"] },
+  });
+  assert.equal(result.success, true);
+});
+
+test("plan schema rejects non-hour and out-of-range driving limits", () => {
+  for (const maxDrivingSeconds of [3_601, 57_601]) {
+    const result = planSchema.safeParse({
+      destinations: [
+        { id: "first", name: "Stockholm", location: [18.0686, 59.3293] },
+        { id: "second", name: "Gothenburg", location: [11.9746, 57.7089] },
+      ],
+      options: { maxDrivingSeconds, accommodationTypes: ["hotel"] },
+    });
+    assert.equal(result.success, false);
+  }
+});
+
 test("saved trip schema rejects duplicate destination coordinates", () => {
   const result = tripInputSchema.safeParse({
     name: "Weekend trip",

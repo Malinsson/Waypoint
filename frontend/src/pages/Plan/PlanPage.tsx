@@ -14,6 +14,10 @@ import LocateMe from '../../components/LocateMe/LocateMe.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
+const DEFAULT_MAX_DRIVING_SECONDS = 21_600
+const MIN_MAX_DRIVING_SECONDS = 3_600
+const MAX_MAX_DRIVING_SECONDS = 57_600
+const DRIVING_STEP_SECONDS = 3_600
 // Roughly the middle of Sweden, so the whole country fits at zoom 5
 const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
 
@@ -23,6 +27,7 @@ function PlanPage() {
   const [manuallyReordered, setManuallyReordered] = useState(false)
   const [roundTrip, setRoundTrip] = useState(false)
   const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(['hotel'])
+  const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(DEFAULT_MAX_DRIVING_SECONDS)
   const [plan, setPlan] = useState<PlanResponse | null>(null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
@@ -34,6 +39,10 @@ function PlanPage() {
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
+
+  useEffect(() => {
+    setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
+  }, [user])
 
   // Render's free services sleep when idle. A quiet request when the page
   // opens wakes the backend, so it is ready when the user starts typing.
@@ -107,7 +116,7 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes)
+      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds)
       setPlan(nextPlan)
       
 
@@ -127,7 +136,7 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
-      await saveTrip(plan, undefined, accommodationTypes)
+      await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
       setSavedMessage('Trip saved.')
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save your trip. Please try again.')
@@ -209,6 +218,23 @@ function PlanPage() {
               </label>
             ))}
           </fieldset>
+
+          <label htmlFor="max-driving-time">
+            Maximum driving time: {maxDrivingSeconds / 3_600} hours
+          </label>
+          <input
+            id="max-driving-time"
+            type="range"
+            min={MIN_MAX_DRIVING_SECONDS}
+            max={MAX_MAX_DRIVING_SECONDS}
+            step={DRIVING_STEP_SECONDS}
+            value={maxDrivingSeconds}
+            onChange={(event) => setMaxDrivingSeconds(Number(event.target.value))}
+            disabled={planning}
+          />
+          <p className="hint">
+            {user ? 'This preference is saved for your account.' : 'Guests start with 6 hours each time.'}
+          </p>
 
 
           <div className={styles.planActions}>

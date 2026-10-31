@@ -21,6 +21,7 @@ export function planTrip(
   manuallyReordered = false,
   roundTrip = false,
   accommodationTypes: string[] = ['hotel'],
+  maxDrivingSeconds = 21_600,
 ): Promise<PlanResponse> {
   return apiPost<PlanResponse>('/api/trips/plan', {
     destinations: destinations.map((destination) => ({
@@ -35,11 +36,17 @@ export function planTrip(
       optimizeOrder: optimizeRoute(destinations, manuallyReordered),
       roundTrip,
       accommodationTypes,
+      maxDrivingSeconds,
     },
   })
 }
 
-export function saveTrip(plan: PlanResponse, name?: string, accommodationTypes: string[] = ['hotel']): Promise<SaveTripResponse> {
+export function saveTrip(
+  plan: PlanResponse,
+  name?: string,
+  accommodationTypes: string[] = ['hotel'],
+  maxDrivingSeconds = 21_600,
+): Promise<SaveTripResponse> {
   return apiPost<SaveTripResponse>('/api/trips', {
     ...(name ? { name } : {}),
     destinations: plan.destinations.map((destination) => ({
@@ -53,7 +60,7 @@ export function saveTrip(plan: PlanResponse, name?: string, accommodationTypes: 
       accommodation: breakPoint.accommodation,
     })),
     roundTrip: plan.roundTrip,
-    maxDrivingHours: 6,
+    maxDrivingHours: maxDrivingSeconds / 3_600,
     accommodationPreference: { types: accommodationTypes },
   })
 }
