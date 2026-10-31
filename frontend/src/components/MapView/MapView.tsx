@@ -20,6 +20,7 @@ export type MapMarker = {
   location: LonLat
   // Short text drawn inside the marker, e.g. "1"
   label: string
+  kind?: 'destination' | 'accommodation'
 }
 
 type MapViewProps = {
@@ -31,11 +32,11 @@ type MapViewProps = {
   route?: LonLat[] | null
 }
 
-function markerStyle(label: string): Style {
+function markerStyle(label: string, kind: MapMarker['kind']): Style {
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: '#1976d2' }),
+      fill: new Fill({ color: kind === 'accommodation' ? '#2e7d32' : '#1976d2' }),
       stroke: new Stroke({ color: '#fff', width: 2 }),
     }),
     text: new Text({
@@ -100,7 +101,7 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
     source.addFeatures(
       markers.map((marker) => {
         const feature = new Feature(new Point(fromLonLat(marker.location)))
-        feature.setStyle(markerStyle(marker.label))
+        feature.setStyle(markerStyle(marker.label, marker.kind))
         return feature
       }),
     )

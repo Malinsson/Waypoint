@@ -7,7 +7,7 @@ import DestinationList from '../../components/DestinationList/DestinationList.ts
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
+import type { AccommodationType, Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 import LocateMe from '../../components/LocateMe/LocateMe.tsx'
@@ -22,6 +22,7 @@ function PlanPage() {
   const [destinations, setDestinations] = useState<Destination[]>([])
   const [manuallyReordered, setManuallyReordered] = useState(false)
   const [roundTrip, setRoundTrip] = useState(false)
+  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(['hotel'])
   const [plan, setPlan] = useState<PlanResponse | null>(null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
@@ -106,17 +107,9 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip)
+      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes)
       setPlan(nextPlan)
       
-
-      console.log('Breakpoints returned by planTrip:', nextPlan.breakPoints)
-      if (nextPlan.breakPoints.length) {
-        console.log('Breakpoints found:')
-        nextPlan.breakPoints.forEach((bp: Breakpoint) => {
-          console.log(`  Leg ${bp.legIndex}: ${bp.location[0].toFixed(6)},${bp.location[1].toFixed(6)} at ${bp.cumulativeSeconds} seconds`)
-        })
-      }
 
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
@@ -134,7 +127,7 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
-      await saveTrip(plan)
+      await saveTrip(plan, undefined, accommodationTypes)
       setSavedMessage('Trip saved.')
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save your trip. Please try again.')
@@ -145,13 +138,24 @@ function PlanPage() {
 
   // Memoized so the map only redraws markers when the list really changes
   const markers = useMemo<MapMarker[]>(
-    () =>
-      (plan?.destinations ?? destinations).map((destination, index) => ({
+    () => {
+      const destinationMarkers = (plan?.destinations ?? destinations).map((destination, index) => ({
         id: destination.id,
         location: destination.location,
         label: String(index + 1),
-      })),
-    [destinations, plan?.destinations],
+        kind: 'destination' as const,
+      }))
+      const accommodationMarkers = (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
+        breakPoint.accommodation.map((place) => ({
+          id: `accommodation-${breakPointIndex}-${place.id}`,
+          location: place.location,
+          label: place.type[0]!.toUpperCase(),
+          kind: 'accommodation' as const,
+        })),
+      )
+      return [...destinationMarkers, ...accommodationMarkers]
+    },
+    [destinations, plan?.destinations, plan?.breakPoints],
   )
 
 
@@ -185,6 +189,27 @@ function PlanPage() {
             disabled={planning}
           />
 
+          <fieldset>
+            <legend>Accommodation</legend>
+            {(['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[]).map((type) => (
+              <label key={type} style={{ display: 'block' }}>
+                <input
+                  type="checkbox"
+                  checked={accommodationTypes.includes(type)}
+                  onChange={() => setAccommodationTypes((current) => {
+                    if (current.includes(type)) {
+                      return current.length === 1 ? current : current.filter((value) => value !== type)
+                    }
+                    return (['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[])
+                      .filter((value) => value === type || current.includes(value))
+                  })}
+                  disabled={planning}
+                />
+                {type[0].toUpperCase() + type.slice(1)}
+              </label>
+            ))}
+          </fieldset>
+
 
           <div className={styles.planActions}>
             <Button
@@ -216,6 +241,41 @@ function PlanPage() {
 
 
           {plan && <TripSummary plan={plan} />}
+
+          {plan && plan.warnings.length > 0 && (
+            <section aria-label="Planning notices">
+              {plan.warnings.map((warning) => (
+                <p className="hint" role="status" key={warning.code}>[{warning.code}] {warning.message}</p>
+              ))}
+            </section>
+          )}
+
+          {plan && plan.breakPoints.length > 0 && (
+            <section aria-label="Accommodation suggestions">
+              <h2>Places to stay</h2>
+              <p className="hint">Distances are straight-line distances from the stop. These are suggestions, not bookings.</p>
+              {plan.breakPoints.map((breakPoint: Breakpoint, index) => (
+                <article key={`${breakPoint.legIndex}-${index}`}>
+                  <h3>Stop {index + 1}</h3>
+                  {breakPoint.accommodation.length === 0 ? (
+                    <p className="hint">No accommodation found nearby</p>
+                  ) : (
+                    <ul>
+                      {breakPoint.accommodation.map((place) => (
+                        <li key={place.id}>
+                          <strong>{place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
+                          {place.address && <><br /><span className="hint">{place.address}</span></>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {breakPoint.accommodationRadiusMeters === 25_000 && (
+                    <p className="hint">Nothing within 10 km. Showing places within 25 km.</p>
+                  )}
+                </article>
+              ))}
+            </section>
+          )}
 
           {plan && (
             <section aria-label="Save trip">

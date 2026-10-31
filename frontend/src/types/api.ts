@@ -118,7 +118,20 @@ export type Breakpoint = {
     legIndex: number;
     location: LonLat;
     cumulativeSeconds: number;
+    accommodationRadiusMeters: number;
+    accommodation: Accommodation[];
 };
+
+export type AccommodationType = 'hotel' | 'hostel' | 'camping' | 'parking'
+
+export type Accommodation = {
+  id: string
+  name: string
+  type: AccommodationType
+  location: LonLat
+  distanceMeters: number
+  address?: string
+}
 
 export type PlanResponse = {
   destinations: PlannedDestination[]
@@ -130,7 +143,6 @@ export type PlanResponse = {
     geometry: { type: 'LineString'; coordinates: LonLat[] }
     legs: RouteLeg[]
   }
-  // Not shown yet; break points are added in a later step
   breakPoints: Breakpoint[]
   warnings: PlanWarning[]
 }

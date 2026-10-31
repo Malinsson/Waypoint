@@ -99,6 +99,14 @@ export const tripInputSchema = z.object({
   breakpoints: z.array(z.object({
     longitude: z.number().min(-180).max(180),
     latitude: z.number().min(-90).max(90),
+    accommodation: z.array(z.object({
+      id: z.string().trim().min(1),
+      name: z.string().trim().min(1),
+      type: z.enum(ACCOMMODATION_TYPES),
+      location: lonLatSchema,
+      distanceMeters: z.number().min(0),
+      address: z.string().trim().optional(),
+    })).max(5).default([]),
   })).default([]),
   maxDrivingHours: z.number().min(1).max(MAX_DRIVING_HOURS).default(6),
   accommodationPreference: z.object({

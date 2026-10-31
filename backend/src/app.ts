@@ -7,6 +7,7 @@ import { geocodeRouter } from "./routes/geocode-routes.js";
 import { tripRouter } from "./routes/trip-routes.js";
 import { notFoundHandler, errorHandler } from "./middleware/error-handler.js";
 import { favoriteRouter } from "./routes/favorites-routes.js";
+import { accommodationRouter } from "./routes/accommodation-routes.js";
 
 export const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/geocode", geocodeRouter);
 app.use("/api/trips", tripRouter);
 app.use("/api/favorites", favoriteRouter);
+app.use("/api/accommodation", accommodationRouter);
 
 app.get("/api/live", (_req, res) => {
   res.json({ status: "ok" })

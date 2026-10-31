@@ -1,7 +1,7 @@
 import type { AccommodationType, LonLat, RouteResult } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
 import { UpstreamError } from "../utils/upstream-error.js";
-import { geocode, getRoute } from "./geoapify-facade.js";
+import { findAccommodation, geocode, getRoute } from "./geoapify-facade.js";
 import { findBreakPoints } from "./geoservice-service.js";
 
 // With 3 waypoints the single stop in between cannot move, so optimizing
@@ -34,6 +34,29 @@ export type Warning = { code: string; message: string };
 
 type BreakPoints = Awaited<ReturnType<typeof findBreakPoints>>["breakPoints"];
 
+class AccommodationRequestBudget {
+  private used = 0;
+  private active = 0;
+  private readonly queue: (() => void)[] = [];
+
+  async run<T>(operation: () => Promise<T>): Promise<T | undefined> {
+    if (this.used >= 30) return undefined;
+    if (this.active >= 3) await new Promise<void>((resolve) => this.queue.push(resolve));
+    if (this.used >= 30) {
+      this.queue.shift()?.();
+      return undefined;
+    }
+    this.used += 1;
+    this.active += 1;
+    try {
+      return await operation();
+    } finally {
+      this.active -= 1;
+      this.queue.shift()?.();
+    }
+  }
+}
+
 type LocatedDestination = { 
   id: string; 
   name?: string | undefined; 
@@ -52,7 +75,10 @@ export type PlanResult = {
     geometry: RouteResult["geometry"];
     legs: { fromIndex: number; toIndex: number; distanceMeters: number; durationSeconds: number }[];
   };
-  breakPoints: BreakPoints;
+  breakPoints: (BreakPoints[number] & {
+    accommodationRadiusMeters: number;
+    accommodation: Awaited<ReturnType<typeof findAccommodation>>["accommodation"];
+  })[];
   warnings: Warning[];
 };
 
@@ -141,12 +167,6 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
       })),
       maxDrivingSeconds: input.options.maxDrivingHours * 3600,
     });
-        console.log("Sending legs to geoservice:", route.legs.map((leg) => ({
-        durationSeconds: leg.durationSeconds,
-        distanceMeters: leg.distanceMeters,
-      })));
-      
-      console.log("Max driving seconds:", input.options.maxDrivingHours * 3600);
     breakPoints = result.breakPoints;
   } catch (error) {
     if (!(error instanceof UpstreamError)) throw error;
@@ -155,6 +175,32 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
       code: "BREAK_POINTS_UNAVAILABLE",
       message: "We created the route, but stop suggestions are temporarily unavailable.",
     });
+  }
+
+  const budget = new AccommodationRequestBudget();
+  const accommodationWarnings = new Set<string>();
+  const accommodationBreakPoints = await Promise.all(breakPoints.map(async (breakPoint, index) => {
+    if (index >= 10) {
+      return { ...breakPoint, accommodationRadiusMeters: 10_000, accommodation: [] };
+    }
+    const result = await findAccommodation(breakPoint.location, input.options.accommodationTypes, budget);
+    if (result.unavailable) accommodationWarnings.add("ACCOMMODATION_UNAVAILABLE");
+    if (result.partial) accommodationWarnings.add("ACCOMMODATION_PARTIAL");
+    if (result.limitReached) accommodationWarnings.add("ACCOMMODATION_LIMIT_REACHED");
+    return { ...breakPoint, accommodationRadiusMeters: result.radiusMeters, accommodation: result.accommodation };
+  }));
+  if (breakPoints.length > 10) accommodationWarnings.add("TOO_MANY_BREAK_POINTS");
+  if (accommodationWarnings.has("ACCOMMODATION_UNAVAILABLE")) {
+    warnings.push({ code: "ACCOMMODATION_UNAVAILABLE", message: "Accommodation suggestions are temporarily unavailable." });
+  }
+  if (accommodationWarnings.has("ACCOMMODATION_PARTIAL")) {
+    warnings.push({ code: "ACCOMMODATION_PARTIAL", message: "Some accommodation types could not be loaded." });
+  }
+  if (accommodationWarnings.has("ACCOMMODATION_LIMIT_REACHED")) {
+    warnings.push({ code: "ACCOMMODATION_LIMIT_REACHED", message: "The accommodation search limit was reached; some stops have no suggestions." });
+  }
+  if (accommodationWarnings.has("TOO_MANY_BREAK_POINTS")) {
+    warnings.push({ code: "TOO_MANY_BREAK_POINTS", message: "Accommodation was searched for the first 10 stops only." });
   }
 
   return {
@@ -173,7 +219,7 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
         durationSeconds: leg.durationSeconds,
       })),
     },
-    breakPoints,
+    breakPoints: accommodationBreakPoints,
     warnings,
   };
 }

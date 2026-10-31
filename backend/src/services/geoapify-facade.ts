@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { config } from "../config/env.js";
-import type { GeocodeResult, LonLat, PlaceKind, RouteResult, Suggestion } from "../types/geo.js";
+import type { AccommodationSearchResult, RequestBudget, SearchPlaces } from "./accommodation-service.js";
+import { findAccommodation as findAccommodationForPoint } from "./accommodation-service.js";
+import type { AccommodationType, GeocodeResult, LonLat, PlaceKind, RouteResult, Suggestion } from "../types/geo.js";
 import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.js";
 
 // Facade: the only file that knows Geoapify's URLs, parameters, API key and
@@ -8,6 +10,7 @@ import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.j
 // provider could be swapped without touching anything else.
 
 const BASE_URL = "https://api.geoapify.com/v1";
+const PLACES_BASE_URL = "https://api.geoapify.com/v2";
 const TIMEOUT_MS = 10_000;
 // Stop optimization is much slower than plain routing (measured 13 s for 4
 // and 25-29 s for 5 Swedish cities), so only that request gets more time
@@ -17,6 +20,13 @@ const MAX_GEOCODE_RESULTS = 5;
 // rather than holding up the dropdown (see Configuration in the spec)
 const SUGGESTION_TIMEOUT_MS = 4_000;
 const DEFAULT_SUGGESTION_LIMIT = 6;
+
+const placesResponseSchema = z.object({
+  features: z.array(z.object({
+    geometry: z.object({ coordinates: z.array(z.number()).min(2) }),
+    properties: z.record(z.string(), z.unknown()),
+  })),
+});
 
 // Zod schemas for the parts of Geoapify's responses we use. If Geoapify
 // ever changes its format we get a clear error instead of `undefined` deep
@@ -73,10 +83,11 @@ async function getJson(
   timeoutMs: number = TIMEOUT_MS,
   // Lets the caller cancel too; the request stops at whichever comes first
   signal?: AbortSignal,
+  baseUrl: string = BASE_URL,
 ): Promise<unknown> {
   // URL/searchParams encode every value, so addresses with å, ä, ö or
   // apostrophes are sent correctly
-  const url = new URL(BASE_URL + path);
+  const url = new URL(baseUrl + path);
   for (const [name, value] of Object.entries(params)) {
     url.searchParams.set(name, value);
   }
@@ -179,7 +190,33 @@ export async function autocomplete(
       source: "geoapify",
     });
   }
+
   return suggestions;
+}
+
+export async function searchPlaces(categories: string[], point: LonLat, radiusMeters: number, limit: number) {
+  const data = await getJson("/places", {
+    categories: categories.join(","),
+    filter: `circle:${point[0]},${point[1]},${radiusMeters}`,
+    limit: String(limit),
+  }, {}, TIMEOUT_MS, undefined, PLACES_BASE_URL);
+  const { features } = parseResponse(placesResponseSchema, data, "/places");
+  return features.flatMap(({ geometry, properties }) => {
+    const id = typeof properties.place_id === "string" ? properties.place_id : undefined;
+    if (!id) return [];
+    const name = typeof properties.name === "string" ? properties.name : undefined;
+    const address = typeof properties.formatted === "string" ? properties.formatted : undefined;
+    return [{ id, ...(name ? { name } : {}), location: toLonLat(geometry.coordinates), ...(address ? { address } : {}) }];
+  });
+}
+
+export function findAccommodation(
+  point: LonLat,
+  types: AccommodationType[],
+  budget?: RequestBudget,
+  radiusMeters?: number,
+): Promise<AccommodationSearchResult> {
+  return findAccommodationForPoint(point, types, searchPlaces satisfies SearchPlaces, budget, radiusMeters);
 }
 
 // True if `order` contains each index 0..n-1 exactly once and keeps the

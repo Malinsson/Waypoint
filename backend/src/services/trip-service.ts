@@ -13,6 +13,14 @@ export type TripDestinationInput = {
 export type BreakpointInput = {
   longitude: number;
   latitude: number;
+  accommodation?: {
+    id: string;
+    name: string;
+    type: string;
+    location: [number, number];
+    distanceMeters: number;
+    address?: string | undefined;
+  }[];
 };
 
 export type SaveTripInput = {
@@ -82,7 +90,23 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
     userId: ownerId,
     name,
     destinations: locations.map((location) => ({ locationId: location._id })),
-    breakpoints: input.breakpoints,
+    breakpoints: input.breakpoints.map((breakpoint) => ({
+      longitude: breakpoint.longitude,
+      latitude: breakpoint.latitude,
+      ...(breakpoint.accommodation
+        ? {
+            accommodation: breakpoint.accommodation.map((place) => ({
+              id: place.id,
+              name: place.name,
+              type: place.type,
+              longitude: place.location[0],
+              latitude: place.location[1],
+              distanceMeters: place.distanceMeters,
+              ...(place.address === undefined ? {} : { address: place.address }),
+            })),
+          }
+        : {}),
+    })),
     route: input.route,
     maxDrivingHours: input.maxDrivingHours,
     accommodationPreference: input.accommodationPreference,

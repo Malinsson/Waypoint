@@ -48,6 +48,7 @@
 .buttonBase:disabled {
     opacity: 0.5;
     background-color: var(--background-color);
+    color: var(--text-color);
     cursor: not-allowed;
 }
 
