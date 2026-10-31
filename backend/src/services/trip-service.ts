@@ -21,6 +21,8 @@ export type BreakpointInput = {
     distanceMeters: number;
     address?: string | undefined;
   }[];
+  selectedAccommodationId?: string | undefined;
+  skipped?: boolean | undefined;
 };
 
 export type SaveTripInput = {
@@ -84,6 +86,14 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
   }
 
   const locations = await Promise.all(input.destinations.map(upsertLocation));
+  for (const breakpoint of input.breakpoints) {
+    if (
+      breakpoint.selectedAccommodationId
+      && !breakpoint.accommodation?.some(({ id }) => id === breakpoint.selectedAccommodationId)
+    ) {
+      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
+    }
+  }
   const name = input.name ?? `${input.destinations[0]?.name ?? "Origin"} to ${input.destinations.at(-1)?.name ?? "Destination"}`;
 
   return Trip.create({
@@ -93,6 +103,8 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
     breakpoints: input.breakpoints.map((breakpoint) => ({
       longitude: breakpoint.longitude,
       latitude: breakpoint.latitude,
+      ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
+      ...(breakpoint.skipped ? { skipped: true } : {}),
       ...(breakpoint.accommodation
         ? {
             accommodation: breakpoint.accommodation.map((place) => ({

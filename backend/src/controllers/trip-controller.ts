@@ -117,6 +117,8 @@ export const tripInputSchema = z.object({
       distanceMeters: z.number().min(0),
       address: z.string().trim().optional(),
     })).max(5).default([]),
+    selectedAccommodationId: z.string().trim().min(1).optional(),
+    skipped: z.boolean().default(false),
   })).default([]),
   maxDrivingHours: z.number().min(1).max(MAX_DRIVING_HOURS).default(6),
   accommodationPreference: z.object({

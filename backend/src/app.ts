@@ -16,7 +16,8 @@ export const app = express();
 app.set("trust proxy", 1);
 
 app.use(cors({ origin: config.corsOrigin }));
-app.use(express.json());
+// Saved trips include route geometry and accommodation snapshots.
+app.use(express.json({ limit: "1mb" }));
 
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);

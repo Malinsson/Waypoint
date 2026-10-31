@@ -26,6 +26,8 @@ interface Breakpoint {
     locationId?: Types.ObjectId;
     rating?: Rating;
     accommodation?: AccommodationSnapshot[];
+    selectedAccommodationId?: string;
+    skipped?: boolean;
 }
 
 export interface Trip {
@@ -104,7 +106,9 @@ const tripSchema = new Schema<Trip>({
             latitude: { type: Number, required: true, min: -90, max: 90 },
             distanceMeters: { type: Number, required: true, min: 0 },
             address: { type: String, trim: true },
-        }]
+        }],
+        selectedAccommodationId: { type: String, trim: true },
+        skipped: { type: Boolean, default: false }
     }],
     route: { 
         type: Schema.Types.Mixed,

@@ -121,6 +121,8 @@ export type Breakpoint = {
     cumulativeSeconds: number;
     accommodationRadiusMeters: number;
     accommodation: Accommodation[];
+    selectedAccommodationId?: string;
+    skipped?: boolean;
 };
 
 export type AccommodationType = 'hotel' | 'hostel' | 'camping' | 'parking'
@@ -208,6 +210,14 @@ export type TripBreakpoint = {
   latitude: number
   locationId?: TripLocation
   rating?: TripRating
+  accommodation?: TripAccommodation[]
+  selectedAccommodationId?: string
+  skipped?: boolean
+}
+
+export type TripAccommodation = Omit<Accommodation, 'location'> & {
+  longitude: number
+  latitude: number
 }
 
 export type TripDetailResponse = {

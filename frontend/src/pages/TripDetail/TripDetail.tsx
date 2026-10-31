@@ -33,9 +33,20 @@ function TripsDetailPage() {
     () =>
       trip?.destinations.map((destination, index) => ({
         id: destination.locationId._id,
-        location: [destination.locationId.longitude, destination.locationId.latitude],
+        location: [destination.locationId.longitude, destination.locationId.latitude] as [number, number],
         label: String(index + 1),
-      })) ?? [],
+      })) .concat(
+        trip?.breakpoints.flatMap((breakpoint, index) => {
+          const place = breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)
+          if (!place || breakpoint.skipped) return []
+          return [{
+            id: `breakpoint-${index}-${place.id}`,
+            location: [place.longitude, place.latitude] as [number, number],
+            label: place.type[0]!.toUpperCase(),
+            kind: 'accommodation' as const,
+          }]
+        }) ?? [],
+      ) ?? [],
     [trip],
   )
 
@@ -78,7 +89,11 @@ function TripsDetailPage() {
               <ul>
                 {trip.breakpoints.map((breakpoint, index) => (
                   <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
-                    {breakpoint.locationId?.name ?? 'Suggested stop'} ({breakpoint.latitude}, {breakpoint.longitude})
+                    {breakpoint.skipped
+                      ? 'Stop skipped'
+                      : breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)?.name
+                        ?? breakpoint.locationId?.name
+                        ?? 'Suggested stop'}
                   </li>
                 ))}
               </ul>

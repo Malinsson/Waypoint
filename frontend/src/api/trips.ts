@@ -57,7 +57,9 @@ export function saveTrip(
     breakpoints: plan.breakPoints.map((breakPoint) => ({
       longitude: breakPoint.location[0],
       latitude: breakPoint.location[1],
-      accommodation: breakPoint.accommodation,
+      accommodation: breakPoint.accommodation ?? [],
+      ...(breakPoint.selectedAccommodationId ? { selectedAccommodationId: breakPoint.selectedAccommodationId } : {}),
+      ...(breakPoint.skipped ? { skipped: true } : {}),
     })),
     roundTrip: plan.roundTrip,
     maxDrivingHours: maxDrivingSeconds / 3_600,

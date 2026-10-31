@@ -143,6 +143,31 @@ function PlanPage() {
     } finally {
       setSaving(false)
     }
+
+  }
+
+  function chooseAccommodation(breakPointIndex: number, accommodationId: string) {
+    if (!plan) return
+    setPlan({
+      ...plan,
+      breakPoints: plan.breakPoints.map((breakPoint, index) =>
+        index === breakPointIndex
+          ? { ...breakPoint, selectedAccommodationId: accommodationId, skipped: false }
+          : breakPoint,
+      ),
+    })
+  }
+
+  function skipBreakPoint(breakPointIndex: number) {
+    if (!plan) return
+    setPlan({
+      ...plan,
+      breakPoints: plan.breakPoints.map((breakPoint, index) => {
+        if (index !== breakPointIndex) return breakPoint
+        const { selectedAccommodationId: _selectedAccommodationId, ...withoutSelection } = breakPoint
+        return { ...withoutSelection, skipped: true }
+      }),
+    })
   }
 
   // Memoized so the map only redraws markers when the list really changes
@@ -155,12 +180,14 @@ function PlanPage() {
         kind: 'destination' as const,
       }))
       const accommodationMarkers = (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
-        breakPoint.accommodation.map((place) => ({
+        breakPoint.accommodation
+          .filter((place) => place.id === breakPoint.selectedAccommodationId && !breakPoint.skipped)
+          .map((place) => ({
           id: `accommodation-${breakPointIndex}-${place.id}`,
           location: place.location,
           label: place.type[0]!.toUpperCase(),
           kind: 'accommodation' as const,
-        })),
+          })),
       )
       return [...destinationMarkers, ...accommodationMarkers]
     },
@@ -283,17 +310,30 @@ function PlanPage() {
               {plan.breakPoints.map((breakPoint: Breakpoint, index) => (
                 <article key={`${breakPoint.legIndex}-${index}`}>
                   <h3>Stop {index + 1}</h3>
-                  {breakPoint.accommodation.length === 0 ? (
+                  {breakPoint.skipped ? (
+                    <p className="hint">Stop skipped.</p>
+                  ) : breakPoint.accommodation.length === 0 ? (
                     <p className="hint">No accommodation found nearby</p>
                   ) : (
                     <ul>
                       {breakPoint.accommodation.map((place) => (
                         <li key={place.id}>
-                          <strong>{place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
+                          <button
+                            type="button"
+                            onClick={() => chooseAccommodation(index, place.id)}
+                            aria-pressed={place.id === breakPoint.selectedAccommodationId}
+                          >
+                            <strong>{place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
+                          </button>
                           {place.address && <><br /><span className="hint">{place.address}</span></>}
                         </li>
                       ))}
                     </ul>
+                  )}
+                  {!breakPoint.skipped && (
+                    <button type="button" onClick={() => skipBreakPoint(index)}>
+                      Skip this stop
+                    </button>
                   )}
                   {breakPoint.accommodationRadiusMeters === 25_000 && (
                     <p className="hint">Nothing within 10 km. Showing places within 25 km.</p>
