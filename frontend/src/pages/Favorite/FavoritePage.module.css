@@ -1,13 +1,14 @@
 .createForm {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: end;
-  margin-bottom: 2rem;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 1rem;
 }
 
 .createForm label {
   flex-basis: 100%;
+  font-family: var(--font-detail);
+  font-size: var(--font-size-lg);
 }
 
 .createForm input {
@@ -16,8 +17,22 @@
   width: 100%;
 }
 
+.createForm input:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  align-self: flex-end;
+  padding: 0.5rem 0;
+}
+
 .lists {
   display: grid;
+  grid-template-columns: 1fr;
   width: 100%;
   max-width: var(--max-content-width);
   gap: 1rem;
@@ -25,6 +40,7 @@
 
 .list {
   padding: 1rem;
+  cursor: pointer;
 }
 
 .list h2 {
@@ -35,6 +51,22 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 0.75rem;
+}
+
+.createNewList {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.newListText {
+  width: 80%;
+}
+
+.newListIcon {
+  width: 20%;
+  max-height: 3rem;
+  height: auto;
 }
 
 @media (min-width: 768px) {
@@ -48,6 +80,6 @@
   }
 
   .lists {
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
 }

@@ -1,15 +1,17 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { NavLink } from 'react-router-dom'
 import { createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
 import type { FavoriteList } from '../../types/api.ts'
 import styles from './FavoritePage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
+import { Plus } from 'lucide-react'
+import PopupBase from '../../components/PopupBase/PopupBase.tsx'
 
 function FavoritePage() {
   const [lists, setLists] = useState<FavoriteList[]>([])
   const [newListName, setNewListName] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showCreateNewList, setShowCreateNewList] = useState(false)
 
   useEffect(() => {
     fetchFavoriteLists()
@@ -24,6 +26,7 @@ function FavoritePage() {
     event.preventDefault()
     const name = newListName.trim()
     if (!name) return
+    setShowCreateNewList(false)
 
     try {
       const { list } = await createFavoriteList(name)
@@ -39,23 +42,41 @@ function FavoritePage() {
       <h1>Favorites</h1>
       {loading && <p>Loading favorites…</p>}
       {error && <p className="error" role="alert">{error}</p>}
+      {showCreateNewList && (
+        <PopupBase
+          onCancel={() => setShowCreateNewList(false)}
+          isOpen={showCreateNewList}
+        >
+          <form className={styles.createForm} onSubmit={handleCreateList}>
+            <label htmlFor="new-list-name">Create a favorite list</label>
+            <input
+              id="new-list-name"
+              value={newListName}
+              onChange={(event) => setNewListName(event.target.value)}
+              placeholder="e.g. Summer road trip"
+              maxLength={80}
+              className="decorativeBorder"
+            />
+            <div className={styles.actions}>
+              <Button type="submit">Create list</Button>
+              <Button type="button" variant="secondary" onClick={() => setShowCreateNewList(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+          
+        </PopupBase>
+      )}
 
-      <form className={styles.createForm} onSubmit={handleCreateList}>
-        <label htmlFor="new-list-name">Create a favorite list</label>
-        <input
-          id="new-list-name"
-          value={newListName}
-          onChange={(event) => setNewListName(event.target.value)}
-          placeholder="e.g. Summer road trip"
-          maxLength={80}
-        />
-        <Button type="submit">Create list</Button>
-      </form>
 
       {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
       <div className={styles.lists}>
         {lists.map((list) => (
-          <article key={list._id} className={`decorativeBorder ${styles.list}`}>
+          <article 
+          key={list._id} 
+          className={`decorativeBorder ${styles.list}`}
+          onClick={() => window.location.href = `/favorites/${list._id}`}
+          >
             <h2>{list.name}</h2>
             {list.locations.length === 0 ? (
               <p>No saved locations in this list.</p>
@@ -69,11 +90,18 @@ function FavoritePage() {
                     </li>
                   ))}
                 </ul>
-                <NavLink to={`/favorites/${list._id}`}>View list</NavLink>
               </div>
             )}
           </article>
         ))}
+
+        <div className={`decorativeBorder ${styles.list} ${styles.createNewList}`} onClick={() => setShowCreateNewList(true)}>
+          <div className={styles.newListText}>
+            <h2>Create a new list</h2>
+            <p>Click here or use the form above to create a new favorite list.</p>
+          </div>
+          <Plus className={styles.newListIcon} />
+        </div>
       </div>
     </section>
   )

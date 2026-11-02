@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate, NavLink } from 'react-router-dom'
 import FormField from '../../components/FormField/FormField.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import { hasErrors, validateRegister, type FieldErrors } from '../../utils/auth-validation.ts'
 import styles from './RegisterPage.module.css'
+import { Button } from '../../components/atoms/Button.tsx'
 
 function RegisterPage() {
   const { user, loading, register } = useAuth()
@@ -75,12 +76,12 @@ function RegisterPage() {
             {formError}
           </p>
         )}
-        <button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} className={styles.submitButton}>
           {submitting ? 'Creating account…' : 'Create account'}
-        </button>
+        </Button>
       </form>
       <p>
-        Already have an account? <Link to="/login">Log in</Link>
+        Already have an account? <NavLink className={styles.link} to="/login">Log in</NavLink>
       </p>
     </section>
   )

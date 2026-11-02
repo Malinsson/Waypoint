@@ -1,6 +1,25 @@
+section h1 {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
 .authForm {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  margin-top: 2rem;
+  width: 70%;
   max-width: 24rem;
+}
+
+.submitButton {
+  align-self: center;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.link {
+  text-decoration: underline;
+  color: var(--primary-color);
+  font-weight: bold;
 }

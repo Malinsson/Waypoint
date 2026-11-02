@@ -204,7 +204,12 @@ function PlanPage() {
     <section className="mainSection">
 
       {showConfirmationPopup && (
-        <ConfirmationPopup message="Are you sure you want to start over? All your current destinations will be lost." onConfirm={startOver} onCancel={() => setShowConfirmationPopup(false)} />
+        <ConfirmationPopup 
+        message="Are you sure you want to start over? All your current destinations will be lost." 
+        onConfirm={startOver} 
+        onCancel={() => setShowConfirmationPopup(false)}
+        isOpen={showConfirmationPopup}
+        />
       )}
 
       <div className={styles.planLayout}>

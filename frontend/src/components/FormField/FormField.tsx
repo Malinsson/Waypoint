@@ -26,6 +26,7 @@ function FormField({ id, label, type, value, onChange, error, autoComplete }: Fo
         // Lets screen readers announce the field as invalid and read the message
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
+        className="decorativeBorder"
       />
       {error && (
         <p id={errorId} className="error">
