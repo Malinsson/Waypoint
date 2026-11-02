@@ -1,0 +1,33 @@
+.mainSection{
+
+}
+
+.details {
+    font-size: var(--font-size-sm);
+}
+
+.tripDetails {
+    width: 100%;
+
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+@media (min-width: 768px) {
+    .mainSection{
+        flex-direction: row;
+    }
+    .row {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .actions {
+        gap: 1rem;
+    }
+}

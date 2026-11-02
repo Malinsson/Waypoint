@@ -121,7 +121,7 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
     map.getView().fit(line.getExtent(), { padding: FIT_PADDING })
   }, [route])
 
-  return <div ref={containerRef} className={`decorativeBorder ${styles.map}`} tabIndex={0} />
+  return <div ref={containerRef} className={styles.map} tabIndex={0} />
 }
 
 export default MapView

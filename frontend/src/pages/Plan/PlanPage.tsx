@@ -11,6 +11,7 @@ import type { AccommodationType, Destination, GeocodeResult, PlanResponse, Break
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 import LocateMe from '../../components/LocateMe/LocateMe.tsx'
+import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -35,6 +36,7 @@ function PlanPage() {
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
@@ -102,6 +104,7 @@ function PlanPage() {
     updateDestinations([])
     setRoundTrip(false)
     setResetCount((count) => count + 1)
+    setShowConfirmationPopup(false)
   }
 
   async function handlePlan() {
@@ -199,6 +202,11 @@ function PlanPage() {
 
   return (
     <section className="mainSection">
+
+      {showConfirmationPopup && (
+        <ConfirmationPopup message="Are you sure you want to start over? All your current destinations will be lost." onConfirm={startOver} onCancel={() => setShowConfirmationPopup(false)} />
+      )}
+
       <div className={styles.planLayout}>
         <aside className={styles.planPanel}>
           <h1>Plan a trip</h1>
@@ -272,7 +280,7 @@ function PlanPage() {
             >
               {planning ? 'Planning…' : 'Plan trip'}
             </Button>
-            <Button type="button" variant="tertiary" onClick={startOver} disabled={planning || destinations.length === 0}>
+            <Button type="button" variant="tertiary" onClick={() => setShowConfirmationPopup(true)} disabled={planning || destinations.length === 0}>
               Start over
             </Button>
           </div>

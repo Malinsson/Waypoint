@@ -1,4 +1,11 @@
 /* OpenLayers draws nothing in a container without an explicit height */
 .map {
-  height: 80vh;
+  height: calc(80vh - var(--mobile-nav-height));
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .map {
+    height: 80vh;
+  }
 }
