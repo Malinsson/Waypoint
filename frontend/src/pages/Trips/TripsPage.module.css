@@ -1,0 +1,31 @@
+.tripList {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: var(--max-content-width);
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.tripItem {
+    padding: 1rem;
+    cursor: pointer;
+    position: relative;
+}
+
+.tripItem span {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    font-size: var(--font-size-sm);
+}
+
+.chevron {
+    height: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .tripList {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

@@ -83,7 +83,6 @@ function TripsDetailPage() {
         />
       )}
 
-      <p><NavLink to="/trips">Back to saved trips</NavLink></p>
       {loading && <p>Loading trip details...</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {trip && (
@@ -99,7 +98,7 @@ function TripsDetailPage() {
             <MapView center={center} zoom={5} markers={markers} route={routeCoordinates} />
 
             <article className={styles.tripInfo}>
-              <h3>Route summary</h3>
+              <h2>Route summary</h2>
               <p>{formatDistance(trip.route.distanceMeters)} · {formatDuration(trip.route.durationSeconds)} driving</p>
               <p>Maximum driving time: {trip.maxDrivingHours} hours</p>
 
@@ -137,7 +136,9 @@ function TripsDetailPage() {
           </div>
 
           <div className={styles.actions}>
-            <NavLink to={`/trips/${trip._id}/edit`} className="baseButton">Edit trip</NavLink>
+            <Button type="button">
+              <NavLink to={`/trips/${trip._id}/edit`}>Edit trip</NavLink>
+            </Button>
             <Button type="button" onClick={handleCompleteTrip}>Mark as completed</Button>
             <Button type="button" variant="tertiary" onClick={() => setShowDeleteConfirmation(true)}>Delete trip</Button>
           </div>

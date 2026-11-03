@@ -74,7 +74,7 @@ async function upsertLocation(input: TripDestinationInput) {
         ...(input.wikidataId ? { wikidataId: input.wikidataId } : {}),
       },
     },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   );
 }
 

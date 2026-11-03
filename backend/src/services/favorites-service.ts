@@ -24,7 +24,7 @@ async function getDefaultList(userId: string) {
   return FavoriteList.findOneAndUpdate(
     { user: objectId(userId), isDefault: true },
     { $setOnInsert: { name: DEFAULT_LIST_NAME, locations: [] } },
-    { new: true, upsert: true },
+    { returnDocument: "after", upsert: true },
   );
 }
 

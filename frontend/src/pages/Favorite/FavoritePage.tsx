@@ -5,6 +5,7 @@ import styles from './FavoritePage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 import { Plus } from 'lucide-react'
 import PopupBase from '../../components/PopupBase/PopupBase.tsx'
+import { NavLink } from 'react-router-dom'
 
 function FavoritePage() {
   const [lists, setLists] = useState<FavoriteList[]>([])
@@ -72,10 +73,10 @@ function FavoritePage() {
       {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
       <div className={styles.lists}>
         {lists.map((list) => (
-          <article 
+          <NavLink 
           key={list._id} 
           className={`decorativeBorder ${styles.list}`}
-          onClick={() => window.location.href = `/favorites/${list._id}`}
+          to={`/favorites/${list._id}`}
           >
             <h2>{list.name}</h2>
             {list.locations.length === 0 ? (
@@ -83,7 +84,7 @@ function FavoritePage() {
             ) : (
               <div>
                 <ul>
-                  {list.locations.map((location) => (
+                  {list.locations.slice(0, 3).map((location) => (
                     <li key={location._id}>
                       <strong>{location.name}</strong>
                       {location.description && <span>{location.description}</span>}
@@ -92,7 +93,7 @@ function FavoritePage() {
                 </ul>
               </div>
             )}
-          </article>
+          </NavLink>
         ))}
 
         <div className={`decorativeBorder ${styles.list} ${styles.createNewList}`} onClick={() => setShowCreateNewList(true)}>

@@ -26,6 +26,18 @@
   align-items: flex-start;
   padding: 0.5rem;
   cursor: pointer;
+  width: 100%;
+  justify-content: center;
+
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
 }
 
 .highlighted {

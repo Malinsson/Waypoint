@@ -17,7 +17,7 @@ function FavoriteButton({ onClick }: FavoriteButtonProps) {
       }}
       className={styles.favoriteButton}
     >
-      <Heart aria-hidden="true" />
+      <Heart aria-hidden="true" color="#000000" />
     </button>
   )
 }

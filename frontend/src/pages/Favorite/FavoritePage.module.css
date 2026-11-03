@@ -36,6 +36,7 @@
   width: 100%;
   max-width: var(--max-content-width);
   gap: 1rem;
+  margin: 2rem 0;
 }
 
 .list {

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { getFavoriteList, removeFavoriteFromList, renameFavoriteList } from '../../api/favorites';
 import { Button } from '../../components/atoms/Button';
 import styles from './FavoriteDetailPage.module.css'
+import { Pencil, Trash } from 'lucide-react';
+import PopupBase from '../../components/PopupBase/PopupBase';
 
 
 function FavoriteDetailPage() {
@@ -11,6 +13,8 @@ function FavoriteDetailPage() {
     const [favoriteList, setFavoriteList] = useState<FavoriteList | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [showRenamePopup, setShowRenamePopup] = useState(false);
 
     useEffect(() => {
       if (!id) {
@@ -60,15 +64,44 @@ function FavoriteDetailPage() {
 
   return (
     <section className="mainSection">
-      <h1>Favorite Detail Page</h1>
-      <p>This is the detail page for a specific favorite list.</p>
         {loading && <p>Loading favorite list details...</p>}
         {error && <p className="error" role="alert">{error}</p>}
 
+        {showDeleteConfirmation && (
+          <PopupBase
+            onCancel={() => setShowDeleteConfirmation(false)}
+            isOpen={showDeleteConfirmation}
+          >
+            <h2>Delete Favorite List</h2>
+            <p>Are you sure you want to delete this favorite list?</p>
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={() => setShowDeleteConfirmation(false)}>Cancel</Button>
+              <Button type="button" onClick={() => {}}>Delete</Button>
+            </div>
+          </PopupBase>
+        )}
+
+        {showRenamePopup && (
+          <PopupBase
+            onCancel={() => setShowRenamePopup(false)}
+            isOpen={showRenamePopup}
+          >
+            <h2>Rename Favorite List</h2>
+            <p>Enter a new name for the favorite list:</p>
+            <input type="text" placeholder="New name" className="decorativeBorder" />
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
+              <Button type="submit" onClick={() => {}}>Rename</Button>
+            </div>
+          </PopupBase>
+        )}
+
         {favoriteList && (
-          <div className={`decorativeBorder ${styles.favoriteDetail}`}>
-            <h2>{favoriteList.name}</h2>
-            <Button type="button" onClick={() => {handleRenameList(favoriteList._id)}}>Rename list</Button>
+          <div className={styles.favoriteDetail}>
+            <div className={styles.head}>
+              <h1>{favoriteList.name}</h1>
+              <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
+            </div>
             <h3>Locations in this list:</h3>
             {favoriteList.locations.length === 0 ? (
               <p>No saved locations in this list.</p>
@@ -78,7 +111,7 @@ function FavoriteDetailPage() {
                     <li className={styles.locationItem} key={location._id}>
                         <strong>{location.name}</strong>
                         {location.description && <span>{location.description}</span>}
-                        <Button type="button" onClick={() => handleRemoveLocation(location._id)}>Remove from list</Button>
+                        <Button type="button" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
                     </li>
                 ))}
                 </ul>

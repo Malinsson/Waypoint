@@ -2,6 +2,7 @@ import { useState, type DragEvent } from 'react'
 import type { Destination } from '../../types/api.ts'
 import { Button } from '../atoms/Button.tsx'
 import styles from './DestinationList.module.css'
+import { Trash } from 'lucide-react'
 
 type DestinationListProps = {
   destinations: Destination[]
@@ -122,7 +123,7 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
               disabled={disabled || destinations.length < 2 || isReturn}
               aria-label={`Remove ${destination.name}`}
             >
-              Remove
+              <Trash size={16} />
             </Button>
             <div className="decorativeDivider decorativeDivider--bottom"></div>
           </li>
