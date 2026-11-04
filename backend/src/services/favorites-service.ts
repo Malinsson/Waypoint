@@ -98,6 +98,7 @@ export async function renameFavoriteList(userId: string, listId: string, name: s
   }
   list.name = name;
   await list.save();
+  await list.populate("locations");
   return list;
 }
 

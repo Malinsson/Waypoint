@@ -15,6 +15,7 @@ function FavoriteDetailPage() {
     const [error, setError] = useState<string | null>(null)
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [showRenamePopup, setShowRenamePopup] = useState(false);
+    const [renameName, setRenameName] = useState('');
 
     useEffect(() => {
       if (!id) {
@@ -34,8 +35,7 @@ function FavoriteDetailPage() {
         .finally(() => setLoading(false))
     }, [id])
 
-    function handleRenameList(listId: string) {
-        const newName = prompt('Enter a new name for the favorite list:')
+    function handleRenameList(listId: string, newName: string) {
         if (!newName) return
         renameFavoriteList(listId, newName)
           .then((response) => {
@@ -87,12 +87,14 @@ function FavoriteDetailPage() {
             isOpen={showRenamePopup}
           >
             <h2>Rename Favorite List</h2>
-            <p>Enter a new name for the favorite list:</p>
-            <input type="text" placeholder="New name" className="decorativeBorder" />
-            <div className={styles.actions}>
-              <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
-              <Button type="submit" onClick={() => {}}>Rename</Button>
-            </div>
+            <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameList(favoriteList?._id || '', renameName); setShowRenamePopup(false); }}>
+            <label htmlFor="newName">Enter a new name for the favorite list:</label>
+            <input type="text" id="newName" placeholder="New name" className="decorativeBorder" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+              <div className={styles.actions}>
+                <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
+                <Button type="submit">Rename</Button>
+              </div>
+            </form>
           </PopupBase>
         )}
 
@@ -100,7 +102,7 @@ function FavoriteDetailPage() {
           <div className={styles.favoriteDetail}>
             <div className={styles.head}>
               <h1>{favoriteList.name}</h1>
-              <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
+              <Button type="button" onClick={() => { setRenameName(favoriteList.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
             </div>
             <h3>Locations in this list:</h3>
             {favoriteList.locations.length === 0 ? (
