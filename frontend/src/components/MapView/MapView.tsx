@@ -20,7 +20,7 @@ export type MapMarker = {
   location: LonLat
   // Short text drawn inside the marker, e.g. "1"
   label: string
-  kind?: 'destination' | 'accommodation'
+  kind?: 'destination' | 'breakpoint' | 'accommodation'
 }
 
 type MapViewProps = {
@@ -30,13 +30,16 @@ type MapViewProps = {
   markers?: MapMarker[]
   // The route line in [lon, lat] points, or null for no route
   route?: LonLat[] | null
+  onMarkerClick?: (markerId: string) => void
 }
 
 function markerStyle(label: string, kind: MapMarker['kind']): Style {
   return new Style({
     image: new Circle({
       radius: 12,
-      fill: new Fill({ color: kind === 'accommodation' ? '#2e7d32' : '#1976d2' }),
+      fill: new Fill({
+        color: kind === 'accommodation' ? '#2e7d32' : kind === 'breakpoint' ? '#ef6c00' : '#1976d2',
+      }),
       stroke: new Stroke({ color: '#fff', width: 2 }),
     }),
     text: new Text({
@@ -58,7 +61,7 @@ const MARKER_MAX_ZOOM = 15
 // The OpenLayers map is created once. Markers and the route live in their
 // own vector sources, which are refilled whenever those props change, so
 // the map itself (and the user's zoom/pan) is not rebuilt each time.
-function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
+function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<OlMap | null>(null)
   const markerSourceRef = useRef<VectorSource | null>(null)
@@ -103,6 +106,8 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
     source.addFeatures(
       markers.map((marker) => {
         const feature = new Feature(new Point(fromLonLat(marker.location)))
+        feature.setId(marker.id)
+        feature.set('markerId', marker.id)
         feature.setStyle(markerStyle(marker.label, marker.kind))
         return feature
       }),
@@ -116,6 +121,22 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
       })
     }
   }, [markers])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !onMarkerClick) return
+
+    const handleClick = (event: { pixel: number[] }) => {
+      map.forEachFeatureAtPixel(event.pixel, (feature) => {
+        const markerId = feature.get('markerId')
+        if (typeof markerId === 'string') onMarkerClick(markerId)
+        return true
+      })
+    }
+
+    map.on('click', handleClick)
+    return () => map.un('click', handleClick)
+  }, [onMarkerClick])
 
   useEffect(() => {
     const source = routeSourceRef.current

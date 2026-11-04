@@ -11,10 +11,41 @@
   margin-top: 0;
 }
 
+.stepHeader {
+  margin-bottom: 1rem;
+}
+
+.stepLabel {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
 .planActions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
   margin: 1rem 0;
+}
+
+.selectedAccommodation {
+  outline: 3px solid var(--sandy-brown);
+  outline-offset: 2px;
+}
+
+.accommodationList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  
+}
+
+.accommodationListItem {
+  width: 100%;
 }
 
 .banner {

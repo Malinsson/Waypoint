@@ -7,7 +7,7 @@ import DestinationList from '../../components/DestinationList/DestinationList.ts
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { AccommodationType, Destination, GeocodeResult, PlanResponse, Breakpoint } from '../../types/api.ts'
+import type { AccommodationType, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
 import LocateMe from '../../components/LocateMe/LocateMe.tsx'
@@ -37,6 +37,8 @@ function PlanPage() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
+  const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(0)
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
@@ -63,6 +65,7 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     setDuplicateDestinationError(null)
+    setStep(1)
   }
 
   function isDuplicateDestination(existing: Destination, candidate: GeocodeResult) {
@@ -121,7 +124,8 @@ function PlanPage() {
       await warmupPromise.current
       const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds)
       setPlan(nextPlan)
-      
+      setActiveBreakpointIndex(0)
+      setStep(2)
 
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
@@ -173,29 +177,84 @@ function PlanPage() {
     })
   }
 
+  function continueFromBreakpoint() {
+    if (!plan) return
+    if (activeBreakpointIndex < plan.breakPoints.length - 1) {
+      setActiveBreakpointIndex((index) => index + 1)
+    } else {
+      setStep(4)
+    }
+  }
+
+  function toggleAccommodationType(type: AccommodationType) {
+    setPlan(null)
+    setAccommodationTypes((current) => {
+      if (current.includes(type)) {
+        return current.length === 1 ? current : current.filter((value) => value !== type)
+      }
+      return (['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[])
+        .filter((value) => value === type || current.includes(value))
+    })
+  }
+
   // Memoized so the map only redraws markers when the list really changes
   const markers = useMemo<MapMarker[]>(
     () => {
+      const activeBreakpoint = plan?.breakPoints[activeBreakpointIndex]
+      if (step === 3 && activeBreakpoint) {
+        const accommodationMarkers = (activeBreakpoint.skipped ? [] : activeBreakpoint.accommodation).map((place, index) => ({
+          id: `accommodation-${activeBreakpointIndex}-${place.id}`,
+          location: place.location,
+          label: String(index + 1),
+          kind: 'accommodation' as const,
+        }))
+        return [
+          {
+            id: `breakpoint-${activeBreakpointIndex}`,
+            location: activeBreakpoint.location,
+            label: `S${activeBreakpointIndex + 1}`,
+            kind: 'breakpoint' as const,
+          },
+          ...accommodationMarkers,
+        ]
+      }
+
       const destinationMarkers = (plan?.destinations ?? destinations).map((destination, index) => ({
         id: destination.id,
         location: destination.location,
         label: String(index + 1),
         kind: 'destination' as const,
       }))
-      const accommodationMarkers = (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
-        breakPoint.accommodation
-          .filter((place) => place.id === breakPoint.selectedAccommodationId && !breakPoint.skipped)
-          .map((place) => ({
-          id: `accommodation-${breakPointIndex}-${place.id}`,
-          location: place.location,
-          label: place.type[0]!.toUpperCase(),
-          kind: 'accommodation' as const,
-          })),
-      )
-      return [...destinationMarkers, ...accommodationMarkers]
+      const breakpointMarkers = (plan?.breakPoints ?? []).map((breakPoint, index) => ({
+        id: `breakpoint-${index}`,
+        location: breakPoint.location,
+        label: `S${index + 1}`,
+        kind: 'breakpoint' as const,
+      }))
+      const selectedAccommodationMarkers = step === 4
+        ? (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
+          breakPoint.accommodation
+            .filter((place) => place.id === breakPoint.selectedAccommodationId && !breakPoint.skipped)
+            .map((place) => ({
+              id: `accommodation-${breakPointIndex}-${place.id}`,
+              location: place.location,
+              label: String(breakPointIndex + 1),
+              kind: 'accommodation' as const,
+            })),
+        )
+        : []
+      return [...destinationMarkers, ...breakpointMarkers, ...selectedAccommodationMarkers]
     },
-    [destinations, plan?.destinations, plan?.breakPoints],
+    [destinations, plan?.destinations, plan?.breakPoints, activeBreakpointIndex, step],
   )
+
+  const activeBreakpoint = plan?.breakPoints[activeBreakpointIndex]
+  const selectAccommodationMarker = (markerId: string) => {
+    const placeId = markerId.replace(`accommodation-${activeBreakpointIndex}-`, '')
+    if (activeBreakpoint?.accommodation.some((place) => place.id === placeId)) {
+      chooseAccommodation(activeBreakpointIndex, placeId)
+    }
+  }
 
 
   const canAddMore = destinations.length < MAX_DESTINATIONS
@@ -216,6 +275,13 @@ function PlanPage() {
         <aside className={styles.planPanel}>
           <h1>Plan a trip</h1>
 
+          <div className={styles.stepHeader}>
+            <p className={styles.stepLabel}>Step {step} of 4</p>
+            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Review your trip'}</h1>
+          </div>
+
+          {step === 1 && (
+            <>
           <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
           {duplicateDestinationError && (
             <p className="error" role="alert">
@@ -237,7 +303,19 @@ function PlanPage() {
             }}
             disabled={planning}
           />
+          <div className={styles.planActions}>
+            <Button type="button" variant="tertiary" onClick={() => setShowConfirmationPopup(true)} disabled={planning || destinations.length === 0}>
+              Start over
+            </Button>
+            <Button type="button" onClick={() => setStep(2)} disabled={destinations.length < MIN_DESTINATIONS || planning}>
+              Continue
+            </Button>
+          </div>
+            </>
+          )}
 
+          {step === 2 && (
+          <>
           <fieldset>
             <legend>Accommodation</legend>
             {(['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[]).map((type) => (
@@ -245,13 +323,7 @@ function PlanPage() {
                 <input
                   type="checkbox"
                   checked={accommodationTypes.includes(type)}
-                  onChange={() => setAccommodationTypes((current) => {
-                    if (current.includes(type)) {
-                      return current.length === 1 ? current : current.filter((value) => value !== type)
-                    }
-                    return (['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[])
-                      .filter((value) => value === type || current.includes(value))
-                  })}
+                  onChange={() => toggleAccommodationType(type)}
                   disabled={planning}
                 />
                 {type[0].toUpperCase() + type.slice(1)}
@@ -269,7 +341,10 @@ function PlanPage() {
             max={MAX_MAX_DRIVING_SECONDS}
             step={DRIVING_STEP_SECONDS}
             value={maxDrivingSeconds}
-            onChange={(event) => setMaxDrivingSeconds(Number(event.target.value))}
+            onChange={(event) => {
+              setMaxDrivingSeconds(Number(event.target.value))
+              setPlan(null)
+            }}
             disabled={planning}
           />
           <p className="hint">
@@ -278,15 +353,13 @@ function PlanPage() {
 
 
           <div className={styles.planActions}>
+            <Button type="button" variant="secondary" onClick={() => setStep(1)} disabled={planning}>Back</Button>
             <Button
               type="button"
               onClick={handlePlan}
               disabled={planning || destinations.length < MIN_DESTINATIONS}
             >
               {planning ? 'Planning…' : 'Plan trip'}
-            </Button>
-            <Button type="button" variant="tertiary" onClick={() => setShowConfirmationPopup(true)} disabled={planning || destinations.length === 0}>
-              Start over
             </Button>
           </div>
 
@@ -305,8 +378,22 @@ function PlanPage() {
             </div>
           )}
 
+          {plan && (
+            <section aria-label="Planned route">
+              <p className="hint">
+                Route planned. The map shows your route and suggested breakpoints.
+              </p>
+              <div className={styles.planActions}>
+                <Button type="button" onClick={() => setStep(plan.breakPoints.length > 0 ? 3 : 4)}>
+                  {plan.breakPoints.length > 0 ? 'Choose accommodations' : 'Continue to overview'}
+                </Button>
+              </div>
+            </section>
+          )}
+          </>
+          )}
 
-          {plan && <TripSummary plan={plan} />}
+          {plan && (step === 2 || step === 4) && <TripSummary plan={plan} />}
 
           {plan && plan.warnings.length > 0 && (
             <section aria-label="Planning notices">
@@ -316,53 +403,83 @@ function PlanPage() {
             </section>
           )}
 
-          {plan && plan.breakPoints.length > 0 && (
+          {plan && step === 3 && activeBreakpoint && (
             <section aria-label="Accommodation suggestions">
-              <h2>Places to stay</h2>
+              <h2>Stop {activeBreakpointIndex + 1} of {plan.breakPoints.length}</h2>
               <p className="hint">Distances are straight-line distances from the stop. These are suggestions, not bookings.</p>
-              {plan.breakPoints.map((breakPoint: Breakpoint, index) => (
-                <article key={`${breakPoint.legIndex}-${index}`}>
-                  <h3>Stop {index + 1}</h3>
-                  {breakPoint.skipped ? (
+              <article>
+                  {activeBreakpoint.skipped ? (
                     <p className="hint">Stop skipped.</p>
-                  ) : breakPoint.accommodation.length === 0 ? (
+                  ) : activeBreakpoint.accommodation.length === 0 ? (
                     <p className="hint">No accommodation found nearby</p>
                   ) : (
-                    <ul>
-                      {breakPoint.accommodation.map((place) => (
+                    <ul className={styles.accommodationList}>
+                      {activeBreakpoint.accommodation.map((place, placeIndex) => (
                         <li key={place.id}>
-                          <button
+                          <Button
                             type="button"
-                            onClick={() => chooseAccommodation(index, place.id)}
-                            aria-pressed={place.id === breakPoint.selectedAccommodationId}
+                            className={place.id === activeBreakpoint.selectedAccommodationId ? `${styles.selectedAccommodation} ${styles.accommodationListItem}` : styles.accommodationListItem}
+                            onClick={() => chooseAccommodation(activeBreakpointIndex, place.id)}
+                            aria-pressed={place.id === activeBreakpoint.selectedAccommodationId}
                           >
-                            <strong>{place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
-                          </button>
+                            <strong>{placeIndex + 1}. {place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
                           {place.address && <><br /><span className="hint">{place.address}</span></>}
+                          </Button>
                         </li>
                       ))}
                     </ul>
                   )}
-                  {!breakPoint.skipped && (
-                    <button type="button" onClick={() => skipBreakPoint(index)}>
+                  {!activeBreakpoint.skipped && (
+                    <Button type="button" variant="tertiary" onClick={() => skipBreakPoint(activeBreakpointIndex)}>
                       Skip this stop
-                    </button>
+                    </Button>
                   )}
-                  {breakPoint.accommodationRadiusMeters === 25_000 && (
+                  {activeBreakpoint.accommodationRadiusMeters === 25_000 && (
                     <p className="hint">Nothing within 10 km. Showing places within 25 km.</p>
                   )}
-                </article>
-              ))}
+                  <div className={styles.planActions}>
+                    <Button type="button" variant="secondary" onClick={() => setStep(2)}>
+                      Back to preferences
+                    </Button>
+                    <Button type="button" onClick={continueFromBreakpoint}>
+                      {activeBreakpointIndex < plan.breakPoints.length - 1 ? 'Next stop' : 'Overview'}
+                    </Button>
+                  </div>
+              </article>
             </section>
           )}
 
-          {plan && (
+          {plan && step === 4 && (
+            <>
+            <section aria-label="Selected accommodation stops">
+              <h2>Accommodation stops</h2>
+              <p className="hint">Your selected places to stay along the route.</p>
+              <ol>
+                {plan.breakPoints.map((breakPoint, index) => {
+                  const selectedPlace = breakPoint.accommodation.find(
+                    (place) => place.id === breakPoint.selectedAccommodationId,
+                  )
+                  return (
+                    <li key={`${breakPoint.legIndex}-${index}`}>
+                      <strong>Stop {index + 1}:</strong>{' '}
+                      {breakPoint.skipped
+                        ? 'Skipped'
+                        : selectedPlace
+                          ? `${selectedPlace.name} (${selectedPlace.type})`
+                          : breakPoint.accommodation.length === 0
+                            ? 'No accommodation found nearby'
+                            : 'No accommodation selected'}
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
             <section aria-label="Save trip">
               {user ? (
                 <>
-                  <button type="button" onClick={handleSave} disabled={saving}>
+                  <Button type="button" onClick={handleSave} disabled={saving}>
                     {saving ? 'Saving…' : 'Save trip'}
-                  </button>
+                  </Button>
                   {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
                   {saveError && <p className="banner error" role="alert">{saveError}</p>}
                 </>
@@ -371,7 +488,9 @@ function PlanPage() {
                   <Link to="/login">Log in</Link> to save this trip.
                 </p>
               )}
+              <Button type="button" variant="secondary" onClick={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}>Back</Button>
             </section>
+            </>
           )}
         </aside>
 
@@ -380,6 +499,7 @@ function PlanPage() {
           zoom={5}
           markers={markers}
           route={plan ? plan.route.geometry.coordinates : null}
+          onMarkerClick={selectAccommodationMarker}
         />
       </div>
     </section>
