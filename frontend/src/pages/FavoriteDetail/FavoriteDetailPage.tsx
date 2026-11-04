@@ -1,12 +1,12 @@
+import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom'
 import type { FavoriteList } from '../../types/api';
-import { useEffect, useState } from 'react';
 import { getFavoriteList, removeFavoriteFromList, renameFavoriteList } from '../../api/favorites';
 import { Button } from '../../components/atoms/Button';
-import styles from './FavoriteDetailPage.module.css'
 import { Pencil, Trash } from 'lucide-react';
 import PopupBase from '../../components/PopupBase/PopupBase';
-
+import MapView, { type MapMarker } from '../../components/MapView/MapView';
+import styles from './FavoriteDetailPage.module.css'
 
 function FavoriteDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -36,34 +36,44 @@ function FavoriteDetailPage() {
     }, [id])
 
     function handleRenameList(listId: string, newName: string) {
-        if (!newName) return
-        renameFavoriteList(listId, newName)
-          .then((response) => {
-            setFavoriteList(response.list)
-          })
-          .catch((error) => {
-            setError(error instanceof Error ? error.message : 'Could not rename this favorite list.')
-          })
+      if (!newName) return
+      renameFavoriteList(listId, newName)
+        .then((response) => {
+          setFavoriteList(response.list)
+        })
+        .catch((error) => {
+          setError(error instanceof Error ? error.message : 'Could not rename this favorite list.')
+        })
       }
 
     function handleRemoveLocation(locationId: string) {
-        if (!favoriteList) return
+      if (!favoriteList) return
 
-        removeFavoriteFromList(favoriteList._id, locationId)
-          .then(() => {
-            setFavoriteList({
-              ...favoriteList,
-              locations: favoriteList.locations.filter((loc) => loc._id !== locationId),
-            })
+      removeFavoriteFromList(favoriteList._id, locationId)
+        .then(() => {
+          setFavoriteList({
+            ...favoriteList,
+            locations: favoriteList.locations.filter((loc) => loc._id !== locationId),
           })
-          .catch((error) => {
-            setError(error instanceof Error ? error.message : 'Could not remove this location from the favorite list.')
-          })
+        })
+        .catch((error) => {
+          setError(error instanceof Error ? error.message : 'Could not remove this location from the favorite list.')
+        })
       }
 
+    const markers = useMemo<MapMarker[]>(
+      () => {
+      if (!favoriteList) return []
+      return favoriteList.locations.map((location) => ({
+        id: location._id,
+        location: [location.longitude, location.latitude],
+        label: location.name,
+        description: location.description,
+      }))
+    }, [favoriteList])
 
   return (
-    <section className="mainSection">
+    <section className={`mainSection ${styles.flexDirections}`}>
         {loading && <p>Loading favorite list details...</p>}
         {error && <p className="error" role="alert">{error}</p>}
 
@@ -108,18 +118,25 @@ function FavoriteDetailPage() {
             {favoriteList.locations.length === 0 ? (
               <p>No saved locations in this list.</p>
             ) : (
-              <ul>
+              <ul className={styles.locationList}>
                 {favoriteList.locations.map((location) => (
                     <li className={styles.locationItem} key={location._id}>
                         <strong>{location.name}</strong>
-                        {location.description && <span>{location.description}</span>}
-                        <Button type="button" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
+                        {location.description && <span> - {location.description}</span>}
+                        <Button type="button" variant="secondary" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
                     </li>
                 ))}
                 </ul>
             )}
-        </div>
+          </div>
         )}
+
+      <MapView
+        markers={markers}
+        zoom={10}
+        center={markers[0]?.location ?? [16.5, 62.5]}
+        />
+
     </section>
   )
 }

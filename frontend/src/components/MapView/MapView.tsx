@@ -53,6 +53,7 @@ const routeStyle = new Style({
 
 // Space between the route and the map edge when zooming to fit it
 const FIT_PADDING = [40, 40, 40, 40]
+const MARKER_MAX_ZOOM = 15
 
 // The OpenLayers map is created once. Markers and the route live in their
 // own vector sources, which are refilled whenever those props change, so
@@ -95,7 +96,8 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
 
   useEffect(() => {
     const source = markerSourceRef.current
-    if (!source) return
+    const map = mapRef.current
+    if (!source || !map) return
 
     source.clear()
     source.addFeatures(
@@ -105,6 +107,14 @@ function MapView({ center, zoom, markers = [], route = null }: MapViewProps) {
         return feature
       }),
     )
+
+    const markerExtent = source.getExtent()
+    if (markers.length > 0 && markerExtent) {
+      map.getView().fit(markerExtent, {
+        padding: FIT_PADDING,
+        maxZoom: MARKER_MAX_ZOOM,
+      })
+    }
   }, [markers])
 
   useEffect(() => {

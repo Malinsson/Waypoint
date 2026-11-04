@@ -1,3 +1,8 @@
+.flexDirections {
+    flex-direction: column;
+    gap: 1rem;
+}
+
 .favoriteDetail {
     display: flex;
     flex-direction: column;
@@ -23,4 +28,29 @@
     gap: 1rem;
     align-self: flex-end;
     padding: 0.5rem 0;
+}
+
+.locationList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.locationItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.locationItem button {
+    margin-left: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    .flexDirections {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+
 }
