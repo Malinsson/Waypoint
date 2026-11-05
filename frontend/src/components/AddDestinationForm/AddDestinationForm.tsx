@@ -1,27 +1,21 @@
 import styles from './AddDestinationForm.module.css'
-import { useId, useState, type FormEvent, type KeyboardEvent } from 'react'
-import { geocodeAddress } from '../../api/trips.ts'
+import { useId, useState, type FormEvent, type KeyboardEvent, useEffect } from 'react'
 import { useAutocomplete } from '../../hooks/use-autocomplete.ts'
 import type { GeocodeResult, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
 import SuggestionDropdown from '../SuggestionDropdown/SuggestionDropdown.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import { Search } from 'lucide-react'
-import { Button } from '../atoms/Button.tsx'
 
 type AddDestinationFormProps = {
   onAdd: (result: GeocodeResult) => void
   disabled: boolean
 }
 
-// Search for an address. While typing, suggestions appear in a dropdown;
-// pressing Enter without choosing one falls back to the full search, where
-// the user confirms which match they meant.
+// Search for an address. While typing, suggestions appear in a dropdown.
 function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
-  const [candidates, setCandidates] = useState<GeocodeResult[]>([])
-  const [searching, setSearching] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   // The dropdown: whether the user is working with it, and which row the
   // arrow keys point at (-1 for none)
@@ -33,37 +27,28 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
   const listboxId = useId()
   const expanded = open && suggestions.length > 0
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  // Scroll the highlighted row into view when it changes. The dropdown is
+  // absolutely positioned, so it does not scroll with the page.
+  useEffect(() => {
+    if (highlightedIndex < 0 || !expanded) return
+    const element = document.getElementById(optionId(listboxId, highlightedIndex))
+    element?.scrollIntoView({ block: 'nearest' })
+  }, [expanded, highlightedIndex, listboxId])
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setOpen(false)
     const trimmed = query.trim()
-    setCandidates([])
-    setMessage(null)
+    setHighlightedIndex(0)
     // Same minimum as the backend, so we do not send a request that must fail
     if (trimmed.length < 2) {
       setMessage('Type at least 2 characters')
       return
-    }
-
-    setSearching(true)
-    try {
-      const { results } = await geocodeAddress(trimmed)
-      if (results.length === 0) {
-        setMessage('We could not find that address')
-      } else {
-        setCandidates(results)
-      }
-    } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
-    } finally {
-      setSearching(false)
     }
   }
 
   function choose(result: GeocodeResult) {
     onAdd(result)
     setQuery('')
-    setCandidates([])
   }
 
   // A suggestion already has coordinates, so it is added without a second
@@ -92,6 +77,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
       const last = suggestions.length - 1
       // Stop at the first and last row instead of wrapping around
       setHighlightedIndex((index) => (down ? Math.min(index + 1, last) : Math.max(index - 1, 0)))
+
     } else if (event.key === 'Enter' && expanded && highlightedIndex >= 0) {
       // Choose the highlighted row instead of submitting the form.
       // Without a highlighted row, Enter submits and runs the full search.
@@ -145,11 +131,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
               isLoggedIn={user !== null}
             />
           </div>
-          <Button 
-          type="submit" 
-          disabled={disabled || searching}>
-            {searching ? 'Searching…' : 'Search'}
-          </Button>
+
         </div>
       </form>
 
@@ -159,21 +141,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
         </p>
       )}
 
-      {candidates.length > 0 && (
-        <>
-          <p>Which one did you mean?</p>
-          <ul className="candidates">
-            {candidates.map((candidate) => (
-              // label + location is unique enough; the geocoder has no ids
-              <li key={`${candidate.label}-${candidate.location.join(',')}`}>
-                <button type="button" onClick={() => choose(candidate)}>
-                  {candidate.label}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+
     </div>
   )
 }

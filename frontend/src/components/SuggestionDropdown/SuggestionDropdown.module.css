@@ -27,8 +27,7 @@
   padding: 0.5rem;
   cursor: pointer;
   width: 100%;
-  justify-content: center;
-
+  justify-content: flex-start;
 }
 
 .content {
@@ -37,7 +36,11 @@
   min-width: 0;
   gap: 0.5rem;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
+}
+
+.option > button {
+  margin-left: auto;
 }
 
 .highlighted {
