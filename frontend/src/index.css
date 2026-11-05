@@ -27,8 +27,8 @@
   --max-content-width: 1440px;
   --max-text-width: 800px;
 
-  --padding-mobile: 0.5rem 1rem;
-  --padding-desktop: 1rem 2rem;
+  --padding-mobile: 1rem;
+  --padding-desktop: 2rem;
 
   --mobile-nav-height: 5rem;
 
@@ -98,6 +98,7 @@ nav {
 
 .inputField {
   padding: 0.5rem;
+  height: 2.5rem;
   width: 100%;
 }
 

@@ -1,0 +1,16 @@
+fieldset {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+fieldset legend {
+    font-family: var(--font-detail);
+    font-size: var(--font-size-md);
+}
+
+.checkbox {
+    width: 1rem;
+    height: 1rem;
+    align-self: center;
+}

@@ -1,10 +1,10 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate, NavLink, useLocation } from 'react-router-dom'
-import FormField from '../../components/FormField/FormField.tsx'
-import { useAuth } from '../../context/auth-context.ts'
-import { hasErrors, validateLogin, type FieldErrors } from '../../utils/auth-validation.ts'
+import FormField from '../frontend/src/components/FormField/FormField.tsx'
+import { useAuth } from '../frontend/src/context/auth-context.ts'
+import { hasErrors, validateLogin, type FieldErrors } from '../frontend/src/utils/auth-validation.ts'
 import styles from './LoginPage.module.css'
-import { Button } from '../../components/atoms/Button.tsx'
+import { Button } from '../frontend/src/components/atoms/Button.tsx'
 
 function LoginPage() {
   const { user, loading, login } = useAuth()

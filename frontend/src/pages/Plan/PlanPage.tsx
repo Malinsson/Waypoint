@@ -1,24 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { getHealth } from '../../api/health.ts'
 import { planTrip, saveTrip } from '../../api/trips.ts'
-import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
-import DestinationList from '../../components/DestinationList/DestinationList.tsx'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import type { AccommodationType, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
-import { Button } from '../../components/atoms/Button.tsx'
-import LocateMe from '../../components/LocateMe/LocateMe.tsx'
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx'
+import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.tsx'
+import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
+import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
+import ReviewStep from '../../components/PlanPageSteps/ReviewStep.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
 const DEFAULT_MAX_DRIVING_SECONDS = 21_600
-const MIN_MAX_DRIVING_SECONDS = 3_600
-const MAX_MAX_DRIVING_SECONDS = 57_600
-const DRIVING_STEP_SECONDS = 3_600
 // Roughly the middle of Sweden, so the whole country fits at zoom 5
 const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
 
@@ -273,7 +269,6 @@ function PlanPage() {
 
       <div className={styles.planLayout}>
         <aside className={styles.planPanel}>
-          <h1>Plan a trip</h1>
 
           <div className={styles.stepHeader}>
             <p className={styles.stepLabel}>Step {step} of 4</p>
@@ -281,116 +276,43 @@ function PlanPage() {
           </div>
 
           {step === 1 && (
-            <>
-          <AddDestinationForm key={resetCount} onAdd={addDestination} disabled={!canAddMore || planning} />
-          {duplicateDestinationError && (
-            <p className="error" role="alert">
-              {duplicateDestinationError}
-            </p>
-          )}
-          {!canAddMore && <p className="hint">You can add at most {MAX_DESTINATIONS} destinations.</p>}
-          
-          {destinations.length === 0 && <LocateMe onLocate={(location) => addDestination({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
-
-          <DestinationList
-            destinations={plan?.destinations ?? destinations}
-            onRemove={removeDestination}
-            onReorder={reorderDestinations}
-            roundTrip={roundTrip}
-            onRoundTripChange={(enabled) => {
-              setRoundTrip(enabled)
-              setPlan(null)
-            }}
-            disabled={planning}
-          />
-          <div className={styles.planActions}>
-            <Button type="button" variant="tertiary" onClick={() => setShowConfirmationPopup(true)} disabled={planning || destinations.length === 0}>
-              Start over
-            </Button>
-            <Button type="button" onClick={() => setStep(2)} disabled={destinations.length < MIN_DESTINATIONS || planning}>
-              Continue
-            </Button>
-          </div>
-            </>
+            <DestinationsStep
+              destinations={destinations}
+              canAddMore={canAddMore}
+              planning={planning}
+              resetCount={resetCount}
+              duplicateDestinationError={duplicateDestinationError}
+              roundTrip={roundTrip}
+              onAdd={addDestination}
+              onRemove={removeDestination}
+              onReorder={reorderDestinations}
+              onRoundTripChange={(enabled) => {
+                setRoundTrip(enabled)
+                setPlan(null)
+              }}
+              onStartOver={() => setShowConfirmationPopup(true)}
+              onContinue={() => setStep(2)}
+            />
           )}
 
           {step === 2 && (
-          <>
-          <fieldset>
-            <legend>Accommodation</legend>
-            {(['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[]).map((type) => (
-              <label key={type} style={{ display: 'block' }}>
-                <input
-                  type="checkbox"
-                  checked={accommodationTypes.includes(type)}
-                  onChange={() => toggleAccommodationType(type)}
-                  disabled={planning}
-                />
-                {type[0].toUpperCase() + type.slice(1)}
-              </label>
-            ))}
-          </fieldset>
-
-          <label htmlFor="max-driving-time">
-            Maximum driving time: {maxDrivingSeconds / 3_600} hours
-          </label>
-          <input
-            id="max-driving-time"
-            type="range"
-            min={MIN_MAX_DRIVING_SECONDS}
-            max={MAX_MAX_DRIVING_SECONDS}
-            step={DRIVING_STEP_SECONDS}
-            value={maxDrivingSeconds}
-            onChange={(event) => {
-              setMaxDrivingSeconds(Number(event.target.value))
-              setPlan(null)
-            }}
-            disabled={planning}
-          />
-          <p className="hint">
-            {user ? 'This preference is saved for your account.' : 'Guests start with 6 hours each time.'}
-          </p>
-
-
-          <div className={styles.planActions}>
-            <Button type="button" variant="secondary" onClick={() => setStep(1)} disabled={planning}>Back</Button>
-            <Button
-              type="button"
-              onClick={handlePlan}
-              disabled={planning || destinations.length < MIN_DESTINATIONS}
-            >
-              {planning ? 'Planning…' : 'Plan trip'}
-            </Button>
-          </div>
-
-          {planning && (
-            <p className="hint" role="status">
-              Planning your trip…
-            </p>
-          )}
-
-          {planError && (
-            <div className="banner error" role="alert">
-              <p>{planError}</p>
-              <button type="button" onClick={handlePlan}>
-                Try again
-              </button>
-            </div>
-          )}
-
-          {plan && (
-            <section aria-label="Planned route">
-              <p className="hint">
-                Route planned. The map shows your route and suggested breakpoints.
-              </p>
-              <div className={styles.planActions}>
-                <Button type="button" onClick={() => setStep(plan.breakPoints.length > 0 ? 3 : 4)}>
-                  {plan.breakPoints.length > 0 ? 'Choose accommodations' : 'Continue to overview'}
-                </Button>
-              </div>
-            </section>
-          )}
-          </>
+            <PreferencesStep
+              accommodationTypes={accommodationTypes}
+              maxDrivingSeconds={maxDrivingSeconds}
+              planning={planning}
+              plan={plan}
+              planError={planError}
+              isLoggedIn={user !== null}
+              onToggleAccommodationType={toggleAccommodationType}
+              onMaxDrivingSecondsChange={(seconds) => {
+                setMaxDrivingSeconds(seconds)
+                setPlan(null)
+              }}
+              onBack={() => setStep(1)}
+              onPlan={() => void handlePlan()}
+              onTryAgain={() => void handlePlan()}
+              onContinue={() => setStep(plan?.breakPoints.length ? 3 : 4)}
+            />
           )}
 
           {plan && (step === 2 || step === 4) && <TripSummary plan={plan} />}
@@ -404,93 +326,27 @@ function PlanPage() {
           )}
 
           {plan && step === 3 && activeBreakpoint && (
-            <section aria-label="Accommodation suggestions">
-              <h2>Stop {activeBreakpointIndex + 1} of {plan.breakPoints.length}</h2>
-              <p className="hint">Distances are straight-line distances from the stop. These are suggestions, not bookings.</p>
-              <article>
-                  {activeBreakpoint.skipped ? (
-                    <p className="hint">Stop skipped.</p>
-                  ) : activeBreakpoint.accommodation.length === 0 ? (
-                    <p className="hint">No accommodation found nearby</p>
-                  ) : (
-                    <ul className={styles.accommodationList}>
-                      {activeBreakpoint.accommodation.map((place, placeIndex) => (
-                        <li key={place.id}>
-                          <Button
-                            type="button"
-                            className={place.id === activeBreakpoint.selectedAccommodationId ? `${styles.selectedAccommodation} ${styles.accommodationListItem}` : styles.accommodationListItem}
-                            onClick={() => chooseAccommodation(activeBreakpointIndex, place.id)}
-                            aria-pressed={place.id === activeBreakpoint.selectedAccommodationId}
-                          >
-                            <strong>{placeIndex + 1}. {place.name}</strong> ({place.type}) — about {(place.distanceMeters / 1000).toFixed(1)} km
-                          {place.address && <><br /><span className="hint">{place.address}</span></>}
-                          </Button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {!activeBreakpoint.skipped && (
-                    <Button type="button" variant="tertiary" onClick={() => skipBreakPoint(activeBreakpointIndex)}>
-                      Skip this stop
-                    </Button>
-                  )}
-                  {activeBreakpoint.accommodationRadiusMeters === 25_000 && (
-                    <p className="hint">Nothing within 10 km. Showing places within 25 km.</p>
-                  )}
-                  <div className={styles.planActions}>
-                    <Button type="button" variant="secondary" onClick={() => setStep(2)}>
-                      Back to preferences
-                    </Button>
-                    <Button type="button" onClick={continueFromBreakpoint}>
-                      {activeBreakpointIndex < plan.breakPoints.length - 1 ? 'Next stop' : 'Overview'}
-                    </Button>
-                  </div>
-              </article>
-            </section>
+            <AccommodationStep
+              plan={plan}
+              activeBreakpoint={activeBreakpoint}
+              activeBreakpointIndex={activeBreakpointIndex}
+              onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
+              onSkip={() => skipBreakPoint(activeBreakpointIndex)}
+              onBack={() => setStep(2)}
+              onNext={continueFromBreakpoint}
+            />
           )}
 
           {plan && step === 4 && (
-            <>
-            <section aria-label="Selected accommodation stops">
-              <h2>Accommodation stops</h2>
-              <p className="hint">Your selected places to stay along the route.</p>
-              <ol>
-                {plan.breakPoints.map((breakPoint, index) => {
-                  const selectedPlace = breakPoint.accommodation.find(
-                    (place) => place.id === breakPoint.selectedAccommodationId,
-                  )
-                  return (
-                    <li key={`${breakPoint.legIndex}-${index}`}>
-                      <strong>Stop {index + 1}:</strong>{' '}
-                      {breakPoint.skipped
-                        ? 'Skipped'
-                        : selectedPlace
-                          ? `${selectedPlace.name} (${selectedPlace.type})`
-                          : breakPoint.accommodation.length === 0
-                            ? 'No accommodation found nearby'
-                            : 'No accommodation selected'}
-                    </li>
-                  )
-                })}
-              </ol>
-            </section>
-            <section aria-label="Save trip">
-              {user ? (
-                <>
-                  <Button type="button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Saving…' : 'Save trip'}
-                  </Button>
-                  {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
-                  {saveError && <p className="banner error" role="alert">{saveError}</p>}
-                </>
-              ) : (
-                <p className="hint">
-                  <Link to="/login">Log in</Link> to save this trip.
-                </p>
-              )}
-              <Button type="button" variant="secondary" onClick={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}>Back</Button>
-            </section>
-            </>
+            <ReviewStep
+              plan={plan}
+              isLoggedIn={user !== null}
+              saving={saving}
+              savedMessage={savedMessage}
+              saveError={saveError}
+              onSave={() => void handleSave()}
+              onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
+            />
           )}
         </aside>
 
