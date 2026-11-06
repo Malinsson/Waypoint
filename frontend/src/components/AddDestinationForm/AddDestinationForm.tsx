@@ -112,6 +112,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
               value={query}
               onChange={(event) => handleChange(event.target.value)}
               onKeyDown={handleKeyDown}
+              onClick={() => setOpen(true)}
               onBlur={() => setOpen(false)}
               placeholder="City or address"
               disabled={disabled}

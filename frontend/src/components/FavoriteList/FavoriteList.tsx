@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import type { FavoriteList as FavoriteListType } from '../../types/api.ts'
 import styles from './FavoriteList.module.css'
 import PopupBase from '../PopupBase/PopupBase.tsx'
+import { Button } from '../atoms/Button.tsx'
 
 type FavoriteListProps = {
   lists?: FavoriteListType[]
@@ -13,6 +14,7 @@ type FavoriteListProps = {
   onSelect?: (list: FavoriteListType) => void
   onCreateNew?: () => void
   onCreate?: (name: string) => void
+  onCancelCreate?: () => void
   onClose: () => void
 }
 
@@ -26,6 +28,7 @@ function FavoriteList({
   onSelect,
   onCreateNew,
   onCreate,
+  onCancelCreate,
   onClose,
 }: FavoriteListProps) {
   const [name, setName] = useState('')
@@ -58,12 +61,13 @@ function FavoriteList({
               maxLength={80}
               autoFocus
               disabled={saving}
+              className="inputField"
             />
             <div className={styles.actions}>
-              <button type="button" onClick={onClose} disabled={saving}>Cancel</button>
-              <button type="submit" disabled={saving || !name.trim()}>
+              <Button type="button" variant="secondary" onClick={onCancelCreate} disabled={saving}>Cancel</Button>
+              <Button type="submit" disabled={saving || !name.trim()}>
                 {saving ? 'Saving…' : 'Save'}
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
@@ -71,8 +75,16 @@ function FavoriteList({
             {loading && <p>Loading lists…</p>}
             {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
             <div className={styles.favoriteListContainer}>
+              <Button
+                type="button"
+                className={styles.favoriteListItem}
+                onClick={onCreateNew}
+                disabled={saving}
+              >
+                Create new list
+              </Button>
               {lists.map((list) => (
-                <button
+                <Button
                   key={list._id}
                   type="button"
                   className={styles.favoriteListItem}
@@ -80,16 +92,8 @@ function FavoriteList({
                   disabled={saving}
                 >
                   {list.name}
-                </button>
+                </Button>
               ))}
-              <button
-                type="button"
-                className={styles.favoriteListItem}
-                onClick={onCreateNew}
-                disabled={saving}
-              >
-                Create new list
-              </button>
             </div>
           </>
         )}

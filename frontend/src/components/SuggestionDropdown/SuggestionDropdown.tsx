@@ -176,6 +176,7 @@ function SuggestionDropdown({
           isOpen={Boolean(selectedSuggestion)}
           error={favoriteError}
           onCreate={createListAndSave}
+          onCancelCreate={() => setShowCreateList(false)}
           onClose={closeFavoritePopup}
         />
       )}
