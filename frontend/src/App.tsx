@@ -12,6 +12,7 @@ import Footer from './components/Footer/Footer.tsx'
 import MobileNavigation from './components/MobileNavigation/MobileNavigation.tsx'
 import TripDetailPage from './pages/TripDetail/TripDetail.tsx'
 import FavoriteDetailPage from './pages/FavoriteDetail/FavoriteDetailPage.tsx'
+import PrivacyPopup from './components/PrivacyPopup/PrivacyPopup.tsx'
 
 function App() {
 
@@ -21,6 +22,8 @@ function App() {
     <>
       <Header />
       <main>
+        <PrivacyPopup 
+        />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />
