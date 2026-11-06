@@ -17,15 +17,68 @@ const MAX_DESTINATIONS = 10
 const DEFAULT_MAX_DRIVING_SECONDS = 21_600
 // Roughly the middle of Sweden, so the whole country fits at zoom 5
 const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
+const LAST_PLAN_STORAGE_KEY = 'lastPlan'
+
+type PersistedPlan = {
+  destinations: Destination[]
+  manuallyReordered: boolean
+  roundTrip: boolean
+  accommodationTypes: AccommodationType[]
+  maxDrivingSeconds: number
+  plan: PlanResponse | null
+  step: 1 | 2 | 3 | 4
+  activeBreakpointIndex: number
+}
+
+function readPersistedPlan(): PersistedPlan | null {
+  const storedPlan = localStorage.getItem(LAST_PLAN_STORAGE_KEY)
+  if (!storedPlan) return null
+
+  try {
+    const parsed: unknown = JSON.parse(storedPlan)
+    if (!parsed || typeof parsed !== 'object') return null
+
+    const value = parsed as Record<string, unknown>
+    const step = value.step
+    if (
+      !Array.isArray(value.destinations) ||
+      !Array.isArray(value.accommodationTypes) ||
+      typeof value.manuallyReordered !== 'boolean' ||
+      typeof value.roundTrip !== 'boolean' ||
+      typeof value.maxDrivingSeconds !== 'number' ||
+      (step !== 1 && step !== 2 && step !== 3 && step !== 4) ||
+      typeof value.activeBreakpointIndex !== 'number' ||
+      (value.plan !== null && typeof value.plan !== 'object')
+    ) {
+      localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
+      return null
+    }
+
+    return {
+      destinations: value.destinations as Destination[],
+      manuallyReordered: value.manuallyReordered,
+      roundTrip: value.roundTrip,
+      accommodationTypes: value.accommodationTypes as AccommodationType[],
+      maxDrivingSeconds: value.maxDrivingSeconds,
+      plan: value.plan as PlanResponse | null,
+      step,
+      activeBreakpointIndex: value.activeBreakpointIndex,
+    }
+  } catch {
+    localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
+    return null
+  }
+}
 
 function PlanPage() {
   const { user } = useAuth()
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [manuallyReordered, setManuallyReordered] = useState(false)
-  const [roundTrip, setRoundTrip] = useState(false)
-  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(['hotel'])
-  const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(DEFAULT_MAX_DRIVING_SECONDS)
-  const [plan, setPlan] = useState<PlanResponse | null>(null)
+  const [storedPlan] = useState<PersistedPlan | null>(readPersistedPlan)
+  const [destinations, setDestinations] = useState<Destination[]>(storedPlan?.destinations ?? [])
+  const [manuallyReordered, setManuallyReordered] = useState(storedPlan?.manuallyReordered ?? false)
+  const [roundTrip, setRoundTrip] = useState(storedPlan?.roundTrip ?? false)
+  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(storedPlan?.accommodationTypes ?? ['hotel'])
+  const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(storedPlan?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
+  const [plan, setPlan] = useState<PlanResponse | null>(storedPlan?.plan ?? null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -33,16 +86,18 @@ function PlanPage() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(0)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
+  const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
 
   useEffect(() => {
-    setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
-  }, [user])
+    if (!storedPlan) {
+      setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
+    }
+  }, [storedPlan, user])
 
   // Render's free services sleep when idle. A quiet request when the page
   // opens wakes the backend, so it is ready when the user starts typing.
@@ -50,6 +105,21 @@ function PlanPage() {
   useEffect(() => {
     warmupPromise.current = getHealth().catch(() => undefined)
   }, [])
+
+  useEffect(() => {
+    if (destinations.length > 0) {
+      localStorage.setItem(LAST_PLAN_STORAGE_KEY, JSON.stringify({
+        destinations,
+        manuallyReordered,
+        roundTrip,
+        accommodationTypes,
+        maxDrivingSeconds,
+        plan,
+        step,
+        activeBreakpointIndex,
+      }))
+    }
+  }, [plan, destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds, step, activeBreakpointIndex])
 
   // Any change to the list makes the old route wrong, so it is cleared and
   // the user plans again
@@ -102,6 +172,7 @@ function PlanPage() {
   function startOver() {
     updateDestinations([])
     setRoundTrip(false)
+    localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
     setResetCount((count) => count + 1)
     setShowConfirmationPopup(false)
   }
