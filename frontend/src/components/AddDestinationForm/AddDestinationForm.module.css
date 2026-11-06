@@ -1,5 +1,4 @@
 .addDestination {
-  margin-bottom: 1rem;
   width: 100%;
 }
 
@@ -7,6 +6,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 /* Positioned, so the spinner and the dropdown can be placed relative to the input */

@@ -137,19 +137,20 @@ function SuggestionDropdown({
             onClick={() => onSelect(suggestion)}
             onMouseEnter={() => onHighlight(index)}
           >
-            <span className={styles.icon} aria-hidden="true">
-              {KIND_ICONS[suggestion.kind]}
-            </span>
-            
-            <span className={styles.text}>
-              <span className={styles.label}>{suggestion.label}</span>
-              {suggestion.description && <span className={styles.description}>{suggestion.description}</span>}
-            </span>
+            <div className={styles.content}>
+              <span className={styles.icon} aria-hidden="true">
+                {KIND_ICONS[suggestion.kind]}
+              </span>
 
-            {isLoggedIn && (
-              <FavoriteButton onClick={() => void openFavoriteLists(suggestion)} />
-            )}
+              <span className={styles.text}>
+                <span className={styles.label}>{suggestion.label}</span>
+                {suggestion.description && <span className={styles.description}>{suggestion.description}</span>}
+              </span>
+            </div>
 
+              {isLoggedIn && (
+                <FavoriteButton onClick={() => void openFavoriteLists(suggestion)} />
+              )}
           </li>
         ))}
       </ul>
@@ -159,6 +160,7 @@ function SuggestionDropdown({
           lists={favoriteLists}
           loading={loadingLists}
           saving={savingFavorite}
+          isOpen={Boolean(selectedSuggestion)}
           error={favoriteError}
           onSelect={(list) => void saveToList(list)}
           onCreateNew={() => setShowCreateList(true)}
@@ -171,8 +173,10 @@ function SuggestionDropdown({
           mode="create"
           loading={false}
           saving={savingFavorite}
+          isOpen={Boolean(selectedSuggestion)}
           error={favoriteError}
           onCreate={createListAndSave}
+          onCancelCreate={() => setShowCreateList(false)}
           onClose={closeFavoritePopup}
         />
       )}

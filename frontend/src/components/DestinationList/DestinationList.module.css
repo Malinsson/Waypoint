@@ -8,11 +8,47 @@
 
 .destinationList li {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
   position: relative;
   padding-bottom: 0.5rem;
+}
+
+.destinationList li[draggable="true"] {
+  cursor: grab;
+}
+
+.destinationList li[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.dragging {
+  opacity: 0.45;
+}
+
+.dropTarget {
+  border-top: 3px solid var(--burnt-peach);
+  padding-top: 0.35rem;
+}
+
+.dragHandle {
+  flex: 0 0 auto;
+  color: var(--charcoal-blue);
+  font-size: 1.25rem;
+  line-height: 1;
+  user-select: none;
+}
+
+.moveButtons {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.moveButtons button {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
 }
 
 .hint {

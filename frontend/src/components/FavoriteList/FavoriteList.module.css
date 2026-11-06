@@ -1,20 +1,10 @@
 .favoriteListPopup {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  z-index: 20;
-  width: min(20rem, calc(100% - 1rem));
-  padding: 1rem;
-  background: #fff;
-  border: var(--border-dark);
-  border-radius: 0.5rem;
-  color: black;
-  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 20%);
+  color: var(--color-text);
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
@@ -38,10 +28,6 @@
 
 .favoriteListItem {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-  background: #fff;
   color: inherit;
   text-align: left;
   cursor: pointer;

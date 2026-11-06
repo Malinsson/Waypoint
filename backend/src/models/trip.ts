@@ -10,11 +10,24 @@ interface TripStop {
     rating?: Rating;
 }
 
+interface AccommodationSnapshot {
+    id: string;
+    name: string;
+    type: string;
+    longitude: number;
+    latitude: number;
+    distanceMeters: number;
+    address?: string;
+}
+
 interface Breakpoint {
     longitude: number;
     latitude: number;
     locationId?: Types.ObjectId;
     rating?: Rating;
+    accommodation?: AccommodationSnapshot[];
+    selectedAccommodationId?: string;
+    skipped?: boolean;
 }
 
 export interface Trip {
@@ -84,7 +97,18 @@ const tripSchema = new Schema<Trip>({
             type: Schema.Types.ObjectId, 
             ref: "Location" 
         },
-        rating: ratingSchema
+        rating: ratingSchema,
+        accommodation: [{
+            id: { type: String, required: true },
+            name: { type: String, required: true },
+            type: { type: String, required: true },
+            longitude: { type: Number, required: true, min: -180, max: 180 },
+            latitude: { type: Number, required: true, min: -90, max: 90 },
+            distanceMeters: { type: Number, required: true, min: 0 },
+            address: { type: String, trim: true },
+        }],
+        selectedAccommodationId: { type: String, trim: true },
+        skipped: { type: Boolean, default: false }
     }],
     route: { 
         type: Schema.Types.Mixed,

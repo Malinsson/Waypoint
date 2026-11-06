@@ -4,6 +4,17 @@
   gap: 0.25rem;
 }
 
+.formField input {
+  padding: 0.5rem;
+  transition: none;
+}
+
+.formField input:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+
 .formField .error {
   margin: 0;
   font-size: 0.9rem;

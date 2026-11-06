@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../context/auth-context.ts'
 import Logo from '../Logo/Logo.tsx'
 import { LandPlot, Heart, House, Route } from 'lucide-react';
+import { Button } from '../atoms/Button.tsx';
 
 type NavLink = {
   to: string
@@ -30,9 +31,9 @@ function Header() {
           (user ? (
             <>
               <span>{user.displayName}</span>
-              <button type="button" onClick={logout}>
+              <Button type="button" variant="secondary" onClick={logout}>
                 Log out
-              </button>
+              </Button>
             </>
           ) : (
             <>
@@ -59,9 +60,9 @@ function Header() {
           (user ? (
             <>
               <span>{user.displayName}</span>
-              <button type="button" onClick={logout}>
+              <Button type="button" variant="secondary" onClick={logout}>
                 Log out
-              </button>
+              </Button>
             </>
           ) : (
             <>

@@ -2,6 +2,7 @@ import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../utils/app-error.js";
 import { UpstreamError, type UpstreamErrorKind } from "../utils/upstream-error.js";
+import mongoose from "mongoose";
 
 const UPSTREAM_RESPONSES: Record<UpstreamErrorKind, { status: number; code: string; message: string }> = {
   NO_ROUTE: {
@@ -45,6 +46,21 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
     return;
   }
 
+  if (
+    typeof err === "object"
+    && err !== null
+    && "type" in err
+    && err.type === "entity.too.large"
+  ) {
+    res.status(413).json({
+      error: {
+        code: "REQUEST_BODY_TOO_LARGE",
+        message: "The request body is too large. Reduce the route or accommodation data and try again.",
+      },
+    });
+    return;
+  }
+
   if (err instanceof ZodError) {
     // e.g. "password: Password must be at least 8 characters"
     const message = err.issues
@@ -66,6 +82,22 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, next) => {
     console.error(err);
     const { status, code, message } = UPSTREAM_RESPONSES[err.kind];
     res.status(status).json({ error: { code, message } });
+    return;
+  }
+
+  if (err instanceof mongoose.Error.ValidationError) {
+    const message = Object.values(err.errors).map((error) => error.message).join("; ");
+    res.status(400).json({ error: { code: "DATABASE_VALIDATION_ERROR", message } });
+    return;
+  }
+
+  if (err instanceof mongoose.Error.CastError) {
+    res.status(400).json({ error: { code: "DATABASE_CAST_ERROR", message: "A saved trip value has an invalid format" } });
+    return;
+  }
+
+  if (typeof err === "object" && err !== null && "code" in err && err.code === 11000) {
+    res.status(409).json({ error: { code: "DUPLICATE_RESOURCE", message: "This trip conflicts with an existing saved resource" } });
     return;
   }
 

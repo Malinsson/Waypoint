@@ -8,6 +8,7 @@ export type User = {
   id: string
   email: string
   displayName: string
+  maxDrivingSeconds: number
 }
 
 // Returned by both register and login
@@ -118,10 +119,26 @@ export type Breakpoint = {
     legIndex: number;
     location: LonLat;
     cumulativeSeconds: number;
+    accommodationRadiusMeters: number;
+    accommodation: Accommodation[];
+    selectedAccommodationId?: string;
+    skipped?: boolean;
 };
+
+export type AccommodationType = 'hotel' | 'hostel' | 'camping' | 'parking'
+
+export type Accommodation = {
+  id: string
+  name: string
+  type: AccommodationType
+  location: LonLat
+  distanceMeters: number
+  address?: string
+}
 
 export type PlanResponse = {
   destinations: PlannedDestination[]
+  roundTrip: boolean
   orderOptimized: boolean
   route: {
     distanceMeters: number
@@ -129,7 +146,6 @@ export type PlanResponse = {
     geometry: { type: 'LineString'; coordinates: LonLat[] }
     legs: RouteLeg[]
   }
-  // Not shown yet; break points are added in a later step
   breakPoints: Breakpoint[]
   warnings: PlanWarning[]
 }
@@ -194,6 +210,14 @@ export type TripBreakpoint = {
   latitude: number
   locationId?: TripLocation
   rating?: TripRating
+  accommodation?: TripAccommodation[]
+  selectedAccommodationId?: string
+  skipped?: boolean
+}
+
+export type TripAccommodation = Omit<Accommodation, 'location'> & {
+  longitude: number
+  latitude: number
 }
 
 export type TripDetailResponse = {

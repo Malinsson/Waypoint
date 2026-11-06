@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { Navigate, NavLink, useLocation } from 'react-router-dom'
 import FormField from '../../components/FormField/FormField.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import { hasErrors, validateLogin, type FieldErrors } from '../../utils/auth-validation.ts'
 import styles from './LoginPage.module.css'
+import { Button } from '../../components/atoms/Button.tsx'
 
 function LoginPage() {
   const { user, loading, login } = useAuth()
@@ -70,12 +71,12 @@ function LoginPage() {
             {formError}
           </p>
         )}
-        <button type="submit" disabled={submitting}>
+        <Button type="submit" disabled={submitting} className={styles.submitButton}>
           {submitting ? 'Logging in…' : 'Log in'}
-        </button>
+        </Button>
       </form>
       <p>
-        No account yet? <Link to="/register">Register</Link>
+        No account yet? <NavLink className={styles.link} to="/register">Register</NavLink>
       </p>
     </section>
   )

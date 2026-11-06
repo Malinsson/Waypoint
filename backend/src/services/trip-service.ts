@@ -13,6 +13,16 @@ export type TripDestinationInput = {
 export type BreakpointInput = {
   longitude: number;
   latitude: number;
+  accommodation?: {
+    id: string;
+    name: string;
+    type: string;
+    location: [number, number];
+    distanceMeters: number;
+    address?: string | undefined;
+  }[];
+  selectedAccommodationId?: string | undefined;
+  skipped?: boolean | undefined;
 };
 
 export type SaveTripInput = {
@@ -64,7 +74,7 @@ async function upsertLocation(input: TripDestinationInput) {
         ...(input.wikidataId ? { wikidataId: input.wikidataId } : {}),
       },
     },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   );
 }
 
@@ -76,13 +86,39 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
   }
 
   const locations = await Promise.all(input.destinations.map(upsertLocation));
+  for (const breakpoint of input.breakpoints) {
+    if (
+      breakpoint.selectedAccommodationId
+      && !breakpoint.accommodation?.some(({ id }) => id === breakpoint.selectedAccommodationId)
+    ) {
+      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
+    }
+  }
   const name = input.name ?? `${input.destinations[0]?.name ?? "Origin"} to ${input.destinations.at(-1)?.name ?? "Destination"}`;
 
   return Trip.create({
     userId: ownerId,
     name,
     destinations: locations.map((location) => ({ locationId: location._id })),
-    breakpoints: input.breakpoints,
+    breakpoints: input.breakpoints.map((breakpoint) => ({
+      longitude: breakpoint.longitude,
+      latitude: breakpoint.latitude,
+      ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
+      ...(breakpoint.skipped ? { skipped: true } : {}),
+      ...(breakpoint.accommodation
+        ? {
+            accommodation: breakpoint.accommodation.map((place) => ({
+              id: place.id,
+              name: place.name,
+              type: place.type,
+              longitude: place.location[0],
+              latitude: place.location[1],
+              distanceMeters: place.distanceMeters,
+              ...(place.address === undefined ? {} : { address: place.address }),
+            })),
+          }
+        : {}),
+    })),
     route: input.route,
     maxDrivingHours: input.maxDrivingHours,
     accommodationPreference: input.accommodationPreference,
