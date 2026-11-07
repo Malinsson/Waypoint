@@ -373,7 +373,6 @@ function PlanPage() {
               planning={planning}
               plan={plan}
               planError={planError}
-              isLoggedIn={user !== null}
               onToggleAccommodationType={toggleAccommodationType}
               onMaxDrivingSecondsChange={(seconds) => {
                 setMaxDrivingSeconds(seconds)

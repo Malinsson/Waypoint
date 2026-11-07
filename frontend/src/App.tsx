@@ -22,8 +22,7 @@ function App() {
     <>
       <Header />
       <main>
-        <PrivacyPopup 
-        />
+        <PrivacyPopup />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />

@@ -27,6 +27,7 @@ function AccommodationStep({
       <h2>Stop {activeBreakpointIndex + 1} of {plan.breakPoints.length}</h2>
       <p className="hint">Distances are straight-line distances from the stop. These are suggestions, not bookings.</p>
       <article>
+        <div className={styles.planContent}>
         {activeBreakpoint.skipped ? (
           <p className="hint">Stop skipped.</p>
         ) : activeBreakpoint.accommodation.length === 0 ? (
@@ -54,6 +55,8 @@ function AccommodationStep({
         {activeBreakpoint.accommodationRadiusMeters === 25_000 && (
           <p className="hint">Nothing within 10 km. Showing places within 25 km.</p>
         )}
+        </div>
+
         <div className={styles.planActions}>
           <Button type="button" variant="secondary" onClick={onBack}>Back to preferences</Button>
           <Button type="button" onClick={onNext}>

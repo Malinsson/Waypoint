@@ -1,16 +1,147 @@
-fieldset {
+.accommodationFieldset {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 }
 
-fieldset legend {
+.accommodationFieldset legend {
     font-family: var(--font-detail);
     font-size: var(--font-size-md);
 }
 
+.accommodationFieldset label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+datalist {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+}
+
+option {
+  padding: 0;
+}
+
+
+/* Custom styles for the checkbox input */
 .checkbox {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+    flex: 0 0 1.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+    background-color: var(--background-color);
+    border-radius: 15px 225px 255px 15px 15px 255px 225px 15px;
+    border-style: solid;
+    border-color: var(--border-color);
+    border-width: 2px;
+    border-bottom-left-radius: 15px 255px;
+    border-bottom-right-radius: 225px 15px;
+    border-top-left-radius: 255px 15px;
+    border-top-right-radius: 15px 225px;
+    box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+    transition: background-color 120ms ease-in-out;
+}
+
+.checkbox:checked {
+    background-color: var(--verdigris);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8l3 3 7-7' fill='none' stroke='%23fff8e7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 75%;
+}
+
+.checkbox:focus-visible {
+    outline: max(2px, 0.15em) solid var(--sandy-brown);
+    outline-offset: max(2px, 0.15em);
+}
+
+
+/* Custom styles for the range input */
+input[type=range] {
+    -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
+    appearance: none;
+    width: 100%; /* Specific width is required for Firefox. */
+    background: transparent; /* Otherwise white in Chrome */
+}
+
+input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 2rem;
     width: 1rem;
-    height: 1rem;
-    align-self: center;
+    background: var(--verdigris);
+    cursor: pointer;
+    margin-top: -0.75rem; 
+    border-radius: 15px 225px 255px 15px 15px 255px 225px 15px;
+    border-style: solid;
+    border-color: var(--border-color);
+    border-width: 2px;
+    border-bottom-left-radius: 15px 255px;
+    border-bottom-right-radius: 225px 15px;
+    border-top-left-radius: 255px 15px;
+    border-top-right-radius: 15px 225px;
+    box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+}
+
+input[type=range]:focus {
+    outline: none; /* Removes the blue border. */
+}
+
+input[type=range]::-ms-track {
+    width: 100%;
+    cursor: pointer;
+    /* Hides the slider so custom styles can be added */
+    background: transparent; 
+    border-color: transparent;
+    color: transparent;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 0.5rem;
+    cursor: pointer;
+    background: var(--cornsilk);
+    box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+}
+
+input[type=range]:focus::-webkit-slider-runnable-track {
+    outline: 2px solid var(--burnt-peach);
+    outline-offset: 0.75rem;
+}
+
+input[type=range]::-moz-range-thumb {
+    height: 2rem;
+    width: 1rem;
+    background: var(--verdigris);
+    cursor: pointer;
+    border-radius: 15px 225px 255px 15px 15px 255px 225px 15px;
+    border-style: solid;
+    border-color: var(--border-color);
+    border-width: 2px;
+    border-bottom-left-radius: 15px 255px;
+    border-bottom-right-radius: 225px 15px;
+    border-top-left-radius: 255px 15px;
+    border-top-right-radius: 15px 225px;
+    box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+}
+
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 0.5rem;
+    cursor: pointer;
+    background: var(--cornsilk);
+    box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+
+}
+
+input[type=range]:focus::-moz-range-track {
+    outline: 2px solid var(--burnt-peach);
+    outline-offset: 0.9rem;
 }

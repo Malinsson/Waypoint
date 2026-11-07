@@ -10,7 +10,6 @@ type PreferencesStepProps = {
   planning: boolean
   plan: PlanResponse | null
   planError: string | null
-  isLoggedIn: boolean
   onToggleAccommodationType: (type: AccommodationType) => void
   onMaxDrivingSecondsChange: (seconds: number) => void
   onBack: () => void
@@ -25,7 +24,6 @@ function PreferencesStep({
   planning,
   plan,
   planError,
-  isLoggedIn,
   onToggleAccommodationType,
   onMaxDrivingSecondsChange,
   onBack,
@@ -35,38 +33,49 @@ function PreferencesStep({
 }: PreferencesStepProps) {
   return (
     <>
-      <fieldset aria-label="Accommodation preferences" className="decorativeBorder">
-        <legend>Accommodation</legend>
-        {(['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[]).map((type) => (
-          <label key={type} style={{ display: 'block' }}>
-            <input
-              type="checkbox"
-              checked={accommodationTypes.includes(type)}
-              onChange={() => onToggleAccommodationType(type)}
-              disabled={planning}
-              className={styles.checkbox}
-            />
-            {type[0].toUpperCase() + type.slice(1)}
-          </label>
-        ))}
-      </fieldset>
+      <div className={shared.planContent}>
+        <fieldset aria-label="Accommodation preferences" className={`decorativeBorder ${styles.accommodationFieldset}`}>
+          <legend>Accommodation</legend>
+          {(['hotel', 'hostel', 'camping', 'parking'] as AccommodationType[]).map((type) => (
+            <label key={type}>
+              <input
+                type="checkbox"
+                checked={accommodationTypes.includes(type)}
+                onChange={() => onToggleAccommodationType(type)}
+                disabled={planning}
+                className={styles.checkbox}
+              />
+              {type[0].toUpperCase() + type.slice(1)}
+            </label>
+          ))}
+        </fieldset>
 
-      <label htmlFor="max-driving-time">
-        Maximum driving time: {maxDrivingSeconds / 3_600} hours
-      </label>
-      <input
-        id="max-driving-time"
-        type="range"
-        min={3_600}
-        max={57_600}
-        step={3_600}
-        value={maxDrivingSeconds}
-        onChange={(event) => onMaxDrivingSecondsChange(Number(event.target.value))}
-        disabled={planning}
-      />
-      <p className="hint">
-        {isLoggedIn ? 'This preference is saved for your account.' : 'Guests start with 6 hours each time.'}
-      </p>
+
+        <label htmlFor="max-driving-time">
+          Maximum driving time: {maxDrivingSeconds / 3_600} hours
+        </label>
+        <div className={styles.rangeContainer}>
+          <input
+            id="max-driving-time"
+            type="range"
+            min={3_600}
+            max={57_600}
+            step={3_600}
+            list="range-markers"
+            value={maxDrivingSeconds}
+            onChange={(event) => onMaxDrivingSecondsChange(Number(event.target.value))}
+            disabled={planning}
+            className={styles.rangeInput}
+          />
+          <datalist id="range-markers">
+            <option value={3_600} label="1h" />
+            <option value={28_800} label="8h" />
+            <option value={57_600} label="16h" />
+          </datalist>
+        </div>
+        <p className="hint">Choose the maximum amount of time you want to drive between stops. The planner will try to find suitable accommodations along the route.</p>
+
+      </div>
 
       <div className={shared.planActions}>
         <Button type="button" variant="secondary" onClick={onBack} disabled={planning}>Back</Button>
