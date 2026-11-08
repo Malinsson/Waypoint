@@ -10,7 +10,7 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPo
 import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.tsx'
 import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
-import ReviewStep from '../../components/PlanPageSteps/ReviewStep.tsx'
+import OverviewStep from '../../components/PlanPageSteps/OverviewStep.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -244,6 +244,18 @@ function PlanPage() {
     })
   }
 
+  function undoSkipBreakPoint(breakPointIndex: number) {
+    if (!plan) return
+    setPlan({
+      ...plan,
+      breakPoints: plan.breakPoints.map((breakPoint, index) =>
+        index === breakPointIndex
+          ? { ...breakPoint, skipped: false }
+          : breakPoint,
+      ),
+    })
+  }
+
   function continueFromBreakpoint() {
     if (!plan) return
     if (activeBreakpointIndex < plan.breakPoints.length - 1) {
@@ -382,6 +394,7 @@ function PlanPage() {
               onPlan={() => void handlePlan()}
               onTryAgain={() => void handlePlan()}
               onContinue={() => setStep(plan?.breakPoints.length ? 3 : 4)}
+              onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
 
@@ -402,13 +415,15 @@ function PlanPage() {
               activeBreakpointIndex={activeBreakpointIndex}
               onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
               onSkip={() => skipBreakPoint(activeBreakpointIndex)}
+              onUndoSkip={() => undoSkipBreakPoint(activeBreakpointIndex)}
               onBack={() => setStep(2)}
               onNext={continueFromBreakpoint}
+              onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
 
           {plan && step === 4 && (
-            <ReviewStep
+            <OverviewStep
               plan={plan}
               isLoggedIn={user !== null}
               saving={saving}
@@ -416,6 +431,7 @@ function PlanPage() {
               saveError={saveError}
               onSave={() => void handleSave()}
               onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
+              onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
         </aside>

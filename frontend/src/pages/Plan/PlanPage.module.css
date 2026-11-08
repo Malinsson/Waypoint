@@ -50,6 +50,11 @@
   outline-offset: 2px;
 }
 
+.unselectedAccommodation {
+  background-color: var(--background-color);
+  color: inherit;
+}
+
 .accommodationList {
   display: flex;
   flex-direction: column;

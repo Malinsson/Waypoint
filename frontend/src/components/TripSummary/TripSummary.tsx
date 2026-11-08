@@ -17,6 +17,7 @@ function TripSummary({ plan }: TripSummaryProps) {
           {formatDistance(route.distanceMeters)} · {formatDuration(route.durationSeconds)} driving
         </strong>
       </p>
+      <h2>Legs:</h2>
       <ul className={styles.legList}>
         {route.legs.map((leg) => {
           // fromIndex/toIndex are positions in plan.destinations

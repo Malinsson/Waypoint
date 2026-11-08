@@ -16,6 +16,7 @@ type PreferencesStepProps = {
   onPlan: () => void
   onTryAgain: () => void
   onContinue: () => void
+  onStartOver: () => void
 }
 
 function PreferencesStep({
@@ -30,6 +31,7 @@ function PreferencesStep({
   onPlan,
   onTryAgain,
   onContinue,
+  onStartOver,
 }: PreferencesStepProps) {
   return (
     <>
@@ -77,14 +79,11 @@ function PreferencesStep({
 
       </div>
 
-      <div className={shared.planActions}>
-        <Button type="button" variant="secondary" onClick={onBack} disabled={planning}>Back</Button>
-        <Button type="button" onClick={onPlan} disabled={planning}>
-          {planning ? 'Planning…' : 'Plan trip'}
-        </Button>
-      </div>
-
       {planning && <p className="hint" role="status">Planning your trip…</p>}
+
+      
+
+
 
       {planError && (
         <div className="banner error" role="alert">
@@ -93,15 +92,23 @@ function PreferencesStep({
         </div>
       )}
 
-      {plan && (
+      {plan !== null ? (
         <section aria-label="Planned route">
           <p className="hint">Route planned. The map shows your route and suggested breakpoints.</p>
           <div className={shared.planActions}>
-            <Button type="button" onClick={onContinue}>
-              {plan.breakPoints.length > 0 ? 'Choose accommodations' : 'Continue to overview'}
-            </Button>
+            <Button type="button" variant="tertiary" onClick={onStartOver}>Start over</Button>
+            <Button type="button" variant="secondary" onClick={onBack} disabled={planning}>Back</Button>
+            <Button type="button" onClick={onContinue}>Continue</Button>
           </div>
         </section>
+      ) : (
+        <div className={shared.planActions}>
+          <Button type="button" variant="tertiary" onClick={onStartOver}>Start over</Button>
+          <Button type="button" variant="secondary" onClick={onBack} disabled={planning}>Back</Button>
+          <Button type="button" onClick={onPlan} disabled={planning}>
+            {planning ? 'Planning…' : 'Plan trip'}
+          </Button>
+      </div>
       )}
     </>
   )
