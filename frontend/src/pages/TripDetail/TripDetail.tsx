@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
-import { getTrip } from '../../api/trips.ts';
+import { getTrip, deleteTrip, completeTrip } from '../../api/trips.ts';
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import type { TripDetailResponse } from '../../types/api.ts'
 import { formatDistance, formatDuration } from '../../utils/format.ts'
@@ -15,6 +15,7 @@ function TripsDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+
   useEffect(() => {
     if (!id) {
       setError('Trip ID is missing')
@@ -59,13 +60,26 @@ function TripsDetailPage() {
 
 
   function handleDeleteTrip() {
-    // Call the API to delete the trip here
-    // After successful deletion, you can redirect or update the state accordingly
+    if (!trip) return;
+    deleteTrip(trip._id)
+      .then(() => {
+        return window.location.href = '/trips'; // Redirect to the trips list page after deletion
+      })
+      .catch((error) => {
+        setError(error instanceof Error ? error.message : 'Could not delete this trip.')
+      });
   }
 
   function handleCompleteTrip() {
-    // Call the API to mark the trip as completed here
-    // After successful completion, you can update the state accordingly
+    if (!trip) return;
+    completeTrip(trip._id, new Date())
+      .then(() => getTrip(trip._id))
+      .then((response) => {
+        setTrip(response.trip);
+      })
+      .catch((error) => {
+        setError(error instanceof Error ? error.message : 'Could not mark this trip as completed.')
+      });
   }
 
   return (
@@ -88,6 +102,7 @@ function TripsDetailPage() {
       {trip && (
         <>
           <h1>{trip.name}</h1>
+          {trip.completedAt && <p className={styles.completed}>This trip was completed on {new Date(trip.completedAt).toLocaleString()}</p>}
           <div className={styles.row}>
             <p className={styles.details}>Created: {new Date(trip.createdAt).toLocaleString()}</p>
             <p className={styles.details}>Updated: {new Date(trip.updatedAt).toLocaleString()}</p>
@@ -139,13 +154,18 @@ function TripsDetailPage() {
             <Button type="button">
               <NavLink to={`/trips/${trip._id}/edit`}>Edit trip</NavLink>
             </Button>
-            <Button type="button" onClick={handleCompleteTrip}>Mark as completed</Button>
+            {trip.completedAt ? (
+              <Button type="button" disabled>Trip completed</Button>
+            ) : (
+              <Button type="button" onClick={handleCompleteTrip}>Mark as completed</Button>
+            )}
             <Button type="button" variant="tertiary" onClick={() => setShowDeleteConfirmation(true)}>Delete trip</Button>
           </div>
         </>
       )}
     </section>
   )
+
 }
 
 export default TripsDetailPage;

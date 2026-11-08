@@ -34,6 +34,10 @@ export type SaveTripInput = {
   accommodationPreference: { types: string[] };
 };
 
+export type CompleteTripInput = {
+  completedAt: Date;
+};
+
 function objectId(id: string, message: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(id)) {
     throw new AppError(400, "INVALID_ID", message);
@@ -157,4 +161,11 @@ export async function deleteTrip(userId: string, id: string): Promise<void> {
     userId: objectId(userId, "User id is not valid"),
   });
   if (result.deletedCount === 0) notFound();
+}
+
+export async function completeTrip(userId: string, id: string, completedAt: Date) {
+  const trip = await getOwnedTrip(userId, id);
+  trip.completedAt = completedAt;
+  await trip.save();
+  return trip;
 }

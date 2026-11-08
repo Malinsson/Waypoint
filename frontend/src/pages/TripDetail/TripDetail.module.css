@@ -2,6 +2,12 @@
     margin: 1rem 0;
 }
 
+.completed {
+    color: var(--sandy-brown);
+    font-weight: bold;
+    margin-bottom: 0;
+}
+
 .details {
     font-size: var(--font-size-sm);
 }

@@ -78,10 +78,10 @@ function FavoriteDetailPage() {
     const markers = useMemo<MapMarker[]>(
       () => {
       if (!favoriteList) return []
-      return favoriteList.locations.map((location) => ({
+      return favoriteList.locations.map((location, index) => ({
         id: location._id,
         location: [location.longitude, location.latitude],
-        label: '',
+        label: `${index + 1}`,
         description: location.description,
       }))
     }, [favoriteList])
@@ -134,10 +134,10 @@ function FavoriteDetailPage() {
                   <p>No saved locations in this list.</p>
                 ) : (
                   <ul className={styles.locationList}>
-                    {favoriteList.locations.map((location) => (
+                    {favoriteList.locations.map((location, index) => (
                         <li className={styles.locationItem} key={location._id}>
                           <div>
-                            <strong>{location.name}</strong>
+                            <strong>{index + 1}. {location.name}</strong>
                             {location.description && <span> - {location.description}</span>}
                           </div>
                           <Button type="button" variant="secondary" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>

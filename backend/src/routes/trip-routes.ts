@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { plan, saveTrip, listTrips, getTrip, updateTrip, deleteTrip } from "../controllers/trip-controller.js";
+import { plan, saveTrip, listTrips, getTrip, updateTrip, deleteTrip, completeTrip } from "../controllers/trip-controller.js";
 import { optionalAuth, requireAuth } from "../middleware/auth.js";
 
 export const tripRouter = Router();
@@ -11,3 +11,4 @@ tripRouter.get("/", requireAuth, listTrips);
 tripRouter.get("/:id", requireAuth, getTrip);
 tripRouter.patch("/:id", requireAuth, updateTrip);
 tripRouter.delete("/:id", requireAuth, deleteTrip);
+tripRouter.post("/:id/complete", requireAuth, completeTrip);

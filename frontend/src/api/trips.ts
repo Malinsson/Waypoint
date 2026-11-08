@@ -79,6 +79,11 @@ export function updateTrip(id: string, name: string): Promise<SaveTripResponse> 
   return apiPatch<SaveTripResponse>(`/api/trips/${id}`, { name })
 }
 
+
+export function completeTrip(id: string, completedAt: Date): Promise<SaveTripResponse> {
+  return apiPost<SaveTripResponse>(`/api/trips/${id}/complete`, { completedAt })
+}
+
 export function deleteTrip(id: string): Promise<void> {
   return apiDelete<void>(`/api/trips/${id}`)
 }

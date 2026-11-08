@@ -8,6 +8,7 @@ import {
   listTrips as listTripsService,
   saveTrip as saveTripService,
   updateTrip as updateTripService,
+  completeTrip as completeTripService,
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
@@ -96,8 +97,6 @@ export async function plan(req: Request, res: Response) {
 }
 
 
-
-
 export const tripInputSchema = z.object({
   name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters").optional(),
   destinations: z
@@ -149,6 +148,13 @@ export async function updateTrip(req: Request, res: Response) {
     name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters"),
   }).parse(req.body);
   res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), name) });
+}
+
+export async function completeTrip(req: Request, res: Response) {
+  const { completedAt } = z.object({
+    completedAt: z.coerce.date(),
+  }).parse(req.body);
+  res.json({ trip: await completeTripService(requireUserId(req), routeParam(req), completedAt) });
 }
 
 export async function deleteTrip(req: Request, res: Response) {
