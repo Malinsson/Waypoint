@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom'
 import type { FavoriteList } from '../../types/api';
-import { getFavoriteList, removeFavoriteFromList, renameFavoriteList } from '../../api/favorites';
+import { getFavoriteList, removeFavoriteFromList, renameFavoriteList, deleteFavoriteList } from '../../api/favorites';
 import { Button } from '../../components/atoms/Button';
 import { Pencil, Trash } from 'lucide-react';
 import PopupBase from '../../components/PopupBase/PopupBase';
@@ -61,13 +61,27 @@ function FavoriteDetailPage() {
         })
       }
 
+    function handleDeleteList() {
+      if (!favoriteList) return
+
+      deleteFavoriteList(favoriteList._id)
+        .then(() => {
+          setFavoriteList(null)
+          setShowDeleteConfirmation(false)
+          return window.location.href = '/favorites'
+        })
+        .catch((error) => {
+          setError(error instanceof Error ? error.message : 'Could not delete this favorite list.')
+        })
+
+      }
     const markers = useMemo<MapMarker[]>(
       () => {
       if (!favoriteList) return []
       return favoriteList.locations.map((location) => ({
         id: location._id,
         location: [location.longitude, location.latitude],
-        label: location.name,
+        label: '',
         description: location.description,
       }))
     }, [favoriteList])
@@ -86,7 +100,7 @@ function FavoriteDetailPage() {
             <p>Are you sure you want to delete this favorite list?</p>
             <div className={styles.actions}>
               <Button type="button" variant="secondary" onClick={() => setShowDeleteConfirmation(false)}>Cancel</Button>
-              <Button type="button" onClick={() => {}}>Delete</Button>
+              <Button type="button" onClick={handleDeleteList}>Delete</Button>
             </div>
           </PopupBase>
         )}
@@ -108,28 +122,38 @@ function FavoriteDetailPage() {
           </PopupBase>
         )}
 
-        {favoriteList && (
-          <div className={styles.favoriteDetail}>
-            <div className={styles.head}>
-              <h1>{favoriteList.name}</h1>
-              <Button type="button" onClick={() => { setRenameName(favoriteList.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+          {favoriteList && (
+            <div className={styles.favoriteDetail}>
+              <div className={styles.favoriteDetailContainer}>
+                <div className={styles.head}>
+                  <h1>{favoriteList.name}</h1>
+                  <Button type="button" onClick={() => { setRenameName(favoriteList.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+                </div>
+                <h3>Locations in this list:</h3>
+                {favoriteList.locations.length === 0 ? (
+                  <p>No saved locations in this list.</p>
+                ) : (
+                  <ul className={styles.locationList}>
+                    {favoriteList.locations.map((location) => (
+                        <li className={styles.locationItem} key={location._id}>
+                          <div>
+                            <strong>{location.name}</strong>
+                            {location.description && <span> - {location.description}</span>}
+                          </div>
+                          <Button type="button" variant="secondary" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
+                        </li>
+                    ))}
+                    </ul>
+                )}
+              </div>
+
+              <div className={styles.actions}>
+                <Button type="button" variant="secondary" onClick={() => setShowDeleteConfirmation(true)}>Delete this list</Button>
+              </div>
+              
             </div>
-            <h3>Locations in this list:</h3>
-            {favoriteList.locations.length === 0 ? (
-              <p>No saved locations in this list.</p>
-            ) : (
-              <ul className={styles.locationList}>
-                {favoriteList.locations.map((location) => (
-                    <li className={styles.locationItem} key={location._id}>
-                        <strong>{location.name}</strong>
-                        {location.description && <span> - {location.description}</span>}
-                        <Button type="button" variant="secondary" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
-                    </li>
-                ))}
-                </ul>
-            )}
-          </div>
-        )}
+          )}
+
 
       <MapView
         markers={markers}
