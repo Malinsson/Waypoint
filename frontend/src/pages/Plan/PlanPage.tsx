@@ -355,7 +355,7 @@ function PlanPage() {
 
           <div className={styles.stepHeader}>
             <p className={styles.stepLabel}>Step {step} of 4</p>
-            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Review your trip'}</h1>
+            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
           </div>
 
           {step === 1 && (

@@ -42,7 +42,7 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
       </section>
       <section aria-label="Save trip" >
         <div className={styles.planActions}>
-          <Button type="button" variant="tertiary" onClick={onStartOver}>Start over</Button>
+          <Button type="button" variant="tertiary" onClick={onStartOver}>Plan new trip</Button>
           <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
         {isLoggedIn ? (
           <>

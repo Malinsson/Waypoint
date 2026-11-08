@@ -16,6 +16,14 @@
   padding-bottom: 0.5rem;
 }
 
+.destinationContent {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .destinationList li[draggable="true"] {
   cursor: grab;
 }
@@ -35,14 +43,16 @@
 
 .dragHandle {
   flex: 0 0 auto;
-  color: var(--charcoal-blue);
+  color: var(--cornsilk);
   font-size: 1.25rem;
   line-height: 1;
   user-select: none;
+  display: none;
 }
 
 .moveButtons {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
 }
 
@@ -54,4 +64,13 @@
 .hint {
   font-size: 0.9rem;
   opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .dragHandle {
+    display: inline-block;
+  }
+  .moveButtons {
+    display: none;
+  }
 }

@@ -90,32 +90,35 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
             onDrop={handleDrop}
             onDragEnd={clearDrag}
           >
-            <span className={styles.dragHandle} aria-hidden="true">⠿</span>
-            <span className="destination-name">
-              <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
-            </span>
-            {!isReturn && (
-              <span className={styles.moveButtons}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => move(destination.id, -1)}
-                  disabled={disabled || index === 0}
-                  aria-label={`Move ${destination.name} up`}
-                >
-                  ↑
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => move(destination.id, 1)}
-                  disabled={disabled || index === destinations.length - 1}
-                  aria-label={`Move ${destination.name} down`}
-                >
-                  ↓
-                </Button>
+            <div className={styles.destinationContent}>
+              <span className={styles.dragHandle} aria-hidden="true">⠿</span>
+              {!isReturn && (
+                <span className={styles.moveButtons}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => move(destination.id, -1)}
+                    disabled={disabled || index === 0}
+                    aria-label={`Move ${destination.name} up`}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => move(destination.id, 1)}
+                    disabled={disabled || index === destinations.length - 1}
+                    aria-label={`Move ${destination.name} down`}
+                  >
+                    ↓
+                  </Button>
+                </span>
+              )}
+
+              <span className="destination-name">
+                <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
               </span>
-            )}
+            </div>
             <Button
               type="button"
               variant="tertiary"
