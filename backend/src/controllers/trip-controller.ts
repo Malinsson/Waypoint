@@ -10,6 +10,9 @@ import {
   renameTrip as renameTripService,
   updateTrip as updateTripService,
   completeTrip as completeTripService,
+  rateTrip as rateTripService,
+  clearTripRating as clearTripRatingService,
+  type RatingTarget,
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
@@ -154,6 +157,43 @@ export async function updateTrip(req: Request, res: Response) {
     name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters"),
   }).parse(req.body);
   res.json({ trip: await renameTripService(requireUserId(req), routeParam(req), name) });
+}
+
+// Which thing is rated. `index` is the position in the trip's destinations or
+// breakpoints, and is meaningless for the trip as a whole.
+const ratingTargetFields = {
+  target: z.enum(["trip", "destination", "breakpoint"]),
+  index: z.coerce.number().int().min(0).optional(),
+};
+
+function toRatingTarget(input: { target: "trip" | "destination" | "breakpoint"; index?: number | undefined }, ctx: z.RefinementCtx): RatingTarget {
+  if (input.target === "trip") return { kind: "trip" };
+  if (input.index === undefined) {
+    ctx.addIssue({ code: "custom", path: ["index"], message: "Index is required for destinations and stops" });
+    return z.NEVER;
+  }
+  return { kind: input.target, index: input.index };
+}
+
+export const ratingBodySchema = z.object({
+  ...ratingTargetFields,
+  stars: z.number("Stars must be a number").int("Stars must be a whole number").min(1, "Stars must be 1-5").max(5, "Stars must be 1-5"),
+  comment: z.string().trim().max(1000, "Comment must be at most 1000 characters").optional(),
+}).transform((input, ctx) => ({
+  target: toRatingTarget(input, ctx),
+  rating: { stars: input.stars, comment: input.comment },
+}));
+
+export const ratingQuerySchema = z.object(ratingTargetFields).transform((input, ctx) => toRatingTarget(input, ctx));
+
+export async function rateTrip(req: Request, res: Response) {
+  const { target, rating } = ratingBodySchema.parse(req.body);
+  res.json({ trip: await rateTripService(requireUserId(req), routeParam(req), target, rating) });
+}
+
+export async function clearTripRating(req: Request, res: Response) {
+  const target = ratingQuerySchema.parse(req.query);
+  res.json({ trip: await clearTripRatingService(requireUserId(req), routeParam(req), target) });
 }
 
 export async function completeTrip(req: Request, res: Response) {

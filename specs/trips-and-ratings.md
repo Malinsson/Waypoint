@@ -114,7 +114,15 @@ All paths are under `/api`. All require authentication. JSON in and out. Errors 
 - `GET /trips` returns per trip: `id`, `name`, `createdAt`, `updatedAt`, first and last destination name, total distance and duration, rating count. Sorted by `updatedAt` descending. `limit` (default 20, max 50) and `cursor` (`_id`/`updatedAt` based).
 - `GET /trips/:id` returns the trip with `Location` populated (converted to `location: [lon, lat]`) and `ratings: Rating[]`.
 
-### Ratings (could)
+### Ratings (implemented: embedded in the trip)
+
+Decision: ratings are stored inside the `Trip` document (`destinations[].rating`, `breakpoints[].rating`, `totalRating`), not in a separate collection. Section 4.2 and the `/ratings/:locationId` endpoints below stay a Could. Field names in the code are `maxDrivingHours` (1-16) and `accommodationPreference`; these win over `drivingLimitHours` (1-12) and `accommodationPreferences` in section 4.1.
+
+- `PUT /trips/:id/rating`, body `{ target: "trip" | "destination" | "breakpoint", index?, stars (integer 1-5), comment? (max 1000) }`. `index` is the position in the trip's `destinations` or `breakpoints` and is required for those two targets. Replaces any existing rating, returns 200 and the trip.
+- `DELETE /trips/:id/rating?target=...&index=...` clears a rating, returns 200 and the trip.
+- Errors: 409 `TRIP_NOT_COMPLETED` if the trip is not completed, 404 `PLACE_NOT_FOUND` if the index does not exist, 404 `TRIP_NOT_FOUND` for another user's trip.
+
+### Ratings (could, separate collection)
 
 | Method | Path | Purpose | Success |
 |---|---|---|---|

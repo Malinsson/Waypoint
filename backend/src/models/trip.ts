@@ -54,7 +54,7 @@ const ratingSchema = new Schema<Rating>(
       max: 5,
       validate: { validator: Number.isInteger, message: "stars must be an integer" },
     },
-    comment: { type: String, trim: true, maxlength: 200 },
+    comment: { type: String, trim: true, maxlength: 1000 },
   },
   { _id: false },
 );
