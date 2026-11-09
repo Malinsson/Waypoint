@@ -1,0 +1,24 @@
+.stars {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+.star {
+    background: none;
+    border: none;
+    padding: 0.125rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: var(--border-color);
+}
+
+.star:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.filled {
+    fill: var(--sandy-brown);
+    color: var(--sandy-brown);
+}

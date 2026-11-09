@@ -191,6 +191,12 @@ export type TripRating = {
   comment?: string
 }
 
+// What a rating belongs to. Mirrors RatingTarget in backend/src/services/trip-service.ts
+// (the backend uses `kind`; here the same values are sent as `target`), keep in sync.
+export type RatingTarget =
+  | { target: 'trip' }
+  | { target: 'destination' | 'breakpoint'; index: number }
+
 export type TripLocation = {
   _id: string
   name: string

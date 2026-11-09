@@ -3,6 +3,7 @@ import type {
   GeocodeResponse,
   ListTripsResponse,
   PlanResponse,
+  RatingTarget,
   SaveTripResponse,
   TripDetailResponse,
 } from '../types/api.ts'
@@ -110,6 +111,31 @@ export function renameTrip(id: string, name: string): Promise<SaveTripResponse> 
 
 export function completeTrip(id: string): Promise<SaveTripResponse> {
   return apiPost<SaveTripResponse>(`/api/trips/${id}/complete`, {})
+}
+
+// The index is only sent for destinations and stops; the trip as a whole has none
+function ratingQuery(target: RatingTarget): string {
+  const params = new URLSearchParams({ target: target.target })
+  if ('index' in target) params.set('index', String(target.index))
+  return params.toString()
+}
+
+// Only works on a completed trip: the backend answers 409 otherwise
+export function rateTrip(
+  id: string,
+  target: RatingTarget,
+  stars: number,
+  comment?: string,
+): Promise<SaveTripResponse> {
+  return apiPut<SaveTripResponse>(`/api/trips/${id}/rating`, {
+    ...target,
+    stars,
+    ...(comment ? { comment } : {}),
+  })
+}
+
+export function clearTripRating(id: string, target: RatingTarget): Promise<SaveTripResponse> {
+  return apiDelete<SaveTripResponse>(`/api/trips/${id}/rating?${ratingQuery(target)}`)
 }
 
 export function deleteTrip(id: string): Promise<void> {

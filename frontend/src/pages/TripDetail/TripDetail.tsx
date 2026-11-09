@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
-import { getTrip, deleteTrip, completeTrip, renameTrip } from '../../api/trips.ts';
+import { getTrip, deleteTrip, completeTrip, renameTrip, rateTrip, clearTripRating } from '../../api/trips.ts';
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
-import type { TripDetailResponse } from '../../types/api.ts'
+import RatingPopup from '../../components/RatingPopup/RatingPopup.tsx'
+import StarRating from '../../components/StarRating/StarRating.tsx'
+import type { RatingTarget, TripDetailResponse } from '../../types/api.ts'
 import { formatDistance, formatDuration } from '../../utils/format.ts'
 import styles from './TripDetail.module.css'
 import { Button } from '../../components/atoms/Button.tsx';
@@ -19,6 +21,14 @@ function TripsDetailPage() {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRenamePopup, setShowRenamePopup] = useState(false);
   const [renameName, setRenameName] = useState('');
+  const [showCompletedPopup, setShowCompletedPopup] = useState(false);
+  const [showRatingPopup, setShowRatingPopup] = useState(false);
+  const [savingRating, setSavingRating] = useState(false);
+  const destinationsHeadingRef = useRef<HTMLHeadingElement>(null);
+
+  // Stable identities: PopupBase re-focuses its first element whenever onCancel changes
+  const closeCompletedPopup = useCallback(() => setShowCompletedPopup(false), []);
+  const closeRatingPopup = useCallback(() => setShowRatingPopup(false), []);
 
   useEffect(() => {
     if (!id) {
@@ -80,10 +90,39 @@ function TripsDetailPage() {
       .then(() => getTrip(trip._id))
       .then((response) => {
         setTrip(response.trip);
+        setShowCompletedPopup(true);
       })
       .catch((error) => {
         setError(error instanceof Error ? error.message : 'Could not mark this trip as completed.')
       });
+  }
+
+  // Saves or clears one rating, then reloads the trip because the backend
+  // returns it without the populated locations. `stars` undefined clears it.
+  async function handleRate(target: RatingTarget, stars: number | undefined, comment?: string): Promise<boolean> {
+    if (!trip) return false;
+    setSavingRating(true);
+    try {
+      if (stars === undefined) {
+        await clearTripRating(trip._id, target);
+      } else {
+        await rateTrip(trip._id, target, stars, comment);
+      }
+      setTrip((await getTrip(trip._id)).trip);
+      setError(null);
+      return true;
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Could not save this rating.');
+      return false;
+    } finally {
+      setSavingRating(false);
+    }
+  }
+
+  function handleRateDestinations() {
+    setShowCompletedPopup(false);
+    destinationsHeadingRef.current?.scrollIntoView({ behavior: 'smooth' });
+    destinationsHeadingRef.current?.focus();
   }
 
   function handleRenameTrip(tripId: string, newName: string) {
@@ -130,16 +169,58 @@ function TripsDetailPage() {
         </PopupBase>
         )}
 
+      {showCompletedPopup && (
+        <PopupBase onCancel={closeCompletedPopup} isOpen={showCompletedPopup}>
+          <h2>Trip completed!</h2>
+          <p>What a journey! We hope you had a wonderful trip and made memories worth keeping.</p>
+          <p>Would you like to rate the places you visited? You can also do it later from this page.</p>
+          <div className={styles.actions}>
+            <Button type="button" variant="secondary" onClick={closeCompletedPopup}>Maybe later</Button>
+            <Button type="button" onClick={handleRateDestinations}>Rate destinations</Button>
+          </div>
+        </PopupBase>
+      )}
+
+      {showRatingPopup && trip && (
+        <RatingPopup
+          tripName={trip.name}
+          initialStars={trip.totalRating?.stars}
+          initialComment={trip.totalRating?.comment}
+          saving={savingRating}
+          onCancel={closeRatingPopup}
+          onSave={(stars, comment) => {
+            void handleRate({ target: 'trip' }, stars, comment).then((saved) => {
+              if (saved) setShowRatingPopup(false);
+            });
+          }}
+          onRemove={() => {
+            void handleRate({ target: 'trip' }, undefined).then((saved) => {
+              if (saved) setShowRatingPopup(false);
+            });
+          }}
+        />
+      )}
+
       {loading && <p>Loading trip details...</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {trip && (
         <>
           <div className={styles.row}>
             <h1>{trip.name}</h1>
-            <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+            {!trip.completedAt && (
+              <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+            )}
           </div>
 
-          {trip.completedAt && <p className={styles.completed}>This trip was completed on {new Date(trip.completedAt).toLocaleString()}</p>}
+          {trip.totalRating && (
+            <>
+              <h2>Your rating</h2>
+              <p>{'★'.repeat(trip.totalRating.stars)}{'☆'.repeat(5 - trip.totalRating.stars)} {trip.totalRating.stars}/5</p>
+              {trip.totalRating.comment && <p>{trip.totalRating.comment}</p>}
+            </>
+          )}
+
+
           <div className={styles.row}>
             <p className={styles.details}>Created: {new Date(trip.createdAt).toLocaleString()}</p>
             <p className={styles.details}>Updated: {new Date(trip.updatedAt).toLocaleString()}</p>
@@ -154,13 +235,24 @@ function TripsDetailPage() {
               <p>{formatDistance(trip.route.distanceMeters)} · {formatDuration(trip.route.durationSeconds)} driving</p>
               <p>Maximum driving time: {trip.maxDrivingHours} hours</p>
 
-              <h3>Destinations</h3>
+
+              <h3 ref={destinationsHeadingRef} tabIndex={-1}>Destinations</h3>
               <ol>
-                {trip.destinations.map((destination) => (
+                {trip.destinations.map((destination, index) => (
                   <li key={destination.locationId._id}>
                     {destination.locationId.name} {destination.locationId.description && `- ${destination.locationId.description}`}
                     {destination.description && ` - ${destination.description ?? ""}`}
-                    {destination.rating && ` — Rated ${destination.rating.stars}/5`}
+                    {/* Ratings are only possible once the trip is completed */}
+                    {trip.completedAt && (
+                      <div>
+                        <StarRating
+                          label={destination.locationId.name}
+                          value={destination.rating?.stars}
+                          disabled={savingRating}
+                          onChange={(stars) => void handleRate({ target: 'destination', index }, stars)}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -189,7 +281,10 @@ function TripsDetailPage() {
 
           <div className={styles.actions}>
             {trip.completedAt ? (
-              <Button type="button" disabled>Trip completed</Button>
+              <>
+                <Button type="button" disabled>Trip completed</Button>
+                <Button type="button" onClick={() => setShowRatingPopup(true)}>{trip.totalRating ? 'Edit rating' : 'Rate trip'}</Button>
+              </>
             ) : (
             <>
               <Button type="button">
