@@ -12,9 +12,10 @@ type OverviewStepProps = {
   onSave: () => void
   onBack: () => void
   onStartOver: () => void
+  saveButtonLabel?: string
 }
 
-function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave, onBack, onStartOver }: OverviewStepProps) {
+function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave, onBack, onStartOver, saveButtonLabel = 'Save trip' }: OverviewStepProps) {
   return (
     <>
       <section aria-label="Selected accommodation stops" className={styles.planContent}>
@@ -47,7 +48,7 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
         {isLoggedIn ? (
           <>
             <Button type="button" onClick={onSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save trip'}
+              {saving ? 'Saving…' : saveButtonLabel}
             </Button>
           </>
         ) : (

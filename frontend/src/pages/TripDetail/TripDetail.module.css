@@ -2,6 +2,10 @@
     margin: 1rem 0;
 }
 
+.row h1 {
+    margin: 0;
+}
+
 .completed {
     color: var(--sandy-brown);
     font-weight: bold;
@@ -30,6 +34,13 @@
 
 .tripInfo p {
     margin: 0;
+}
+
+.renameForm {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
 }
 
 .actions {

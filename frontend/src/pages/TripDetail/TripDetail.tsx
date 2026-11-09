@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { NavLink, useParams } from 'react-router-dom'
-import { getTrip, deleteTrip, completeTrip } from '../../api/trips.ts';
+import { getTrip, deleteTrip, completeTrip, renameTrip } from '../../api/trips.ts';
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import type { TripDetailResponse } from '../../types/api.ts'
 import { formatDistance, formatDuration } from '../../utils/format.ts'
 import styles from './TripDetail.module.css'
 import { Button } from '../../components/atoms/Button.tsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx';
+import PopupBase from '../../components/PopupBase/PopupBase.tsx';
+import { Pencil } from 'lucide-react';
 
 
 function TripsDetailPage() {
@@ -15,6 +17,8 @@ function TripsDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [showRenamePopup, setShowRenamePopup] = useState(false);
+  const [renameName, setRenameName] = useState('');
 
   useEffect(() => {
     if (!id) {
@@ -82,6 +86,18 @@ function TripsDetailPage() {
       });
   }
 
+  function handleRenameTrip(tripId: string, newName: string) {
+    if (!newName) return;
+    renameTrip(tripId, newName)
+      .then(() => getTrip(tripId))
+      .then((response) => {
+        setTrip(response.trip);
+      })
+      .catch((error) => {
+        setError(error instanceof Error ? error.message : 'Could not rename this trip.')
+      });
+    }
+
   return (
     <section className="mainSection">
 
@@ -97,11 +113,32 @@ function TripsDetailPage() {
         />
       )}
 
+      {showRenamePopup && (
+        <PopupBase
+          onCancel={() => setShowRenamePopup(false)}
+          isOpen={showRenamePopup}
+        >
+          <h2>Rename Trip</h2>
+          <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameTrip(trip?._id || '', renameName); setShowRenamePopup(false); }}>
+          <label htmlFor="newName">Enter a new name for the trip:</label>
+          <input type="text" id="newName" placeholder="New name" className="decorativeBorder inputField" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+            <div className={styles.actions}>
+              <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
+              <Button type="submit">Rename</Button>
+            </div>
+          </form>
+        </PopupBase>
+        )}
+
       {loading && <p>Loading trip details...</p>}
       {error && <p className="error" role="alert">{error}</p>}
       {trip && (
         <>
-          <h1>{trip.name}</h1>
+          <div className={styles.row}>
+            <h1>{trip.name}</h1>
+            <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+          </div>
+
           {trip.completedAt && <p className={styles.completed}>This trip was completed on {new Date(trip.completedAt).toLocaleString()}</p>}
           <div className={styles.row}>
             <p className={styles.details}>Created: {new Date(trip.createdAt).toLocaleString()}</p>
@@ -151,13 +188,15 @@ function TripsDetailPage() {
           </div>
 
           <div className={styles.actions}>
-            <Button type="button">
-              <NavLink to={`/trips/${trip._id}/edit`}>Edit trip</NavLink>
-            </Button>
             {trip.completedAt ? (
               <Button type="button" disabled>Trip completed</Button>
             ) : (
+            <>
+              <Button type="button">
+                <NavLink to={`/trips/${trip._id}/edit`}>Edit trip</NavLink>
+              </Button>
               <Button type="button" onClick={handleCompleteTrip}>Mark as completed</Button>
+            </>
             )}
             <Button type="button" variant="tertiary" onClick={() => setShowDeleteConfirmation(true)}>Delete trip</Button>
           </div>

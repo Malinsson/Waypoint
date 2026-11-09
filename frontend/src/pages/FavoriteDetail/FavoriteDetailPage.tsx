@@ -113,7 +113,7 @@ function FavoriteDetailPage() {
             <h2>Rename Favorite List</h2>
             <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameList(favoriteList?._id || '', renameName); setShowRenamePopup(false); }}>
             <label htmlFor="newName">Enter a new name for the favorite list:</label>
-            <input type="text" id="newName" placeholder="New name" className="decorativeBorder" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
+            <input type="text" id="newName" placeholder="New name" className="decorativeBorder inputField" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
               <div className={styles.actions}>
                 <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
                 <Button type="submit">Rename</Button>

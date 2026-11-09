@@ -6,7 +6,7 @@ import type {
   SaveTripResponse,
   TripDetailResponse,
 } from '../types/api.ts'
-import { apiPost, apiGet, apiPatch, apiDelete } from './client.ts'
+import { apiPost, apiGet, apiPatch, apiPut, apiDelete } from './client.ts'
 
 export function geocodeAddress(query: string): Promise<GeocodeResponse> {
   return apiPost<GeocodeResponse>('/api/geocode', { query })
@@ -67,6 +67,34 @@ export function saveTrip(
   })
 }
 
+export function updateSavedTrip(
+  id: string,
+  plan: PlanResponse,
+  maxDrivingSeconds: number,
+  accommodationTypes: string[],
+  name?: string,
+): Promise<SaveTripResponse> {
+  return apiPut<SaveTripResponse>(`/api/trips/${id}`, {
+    ...(name ? { name } : {}),
+    destinations: plan.destinations.map((destination) => ({
+      name: destination.name,
+      location: destination.location,
+      ...(destination.description ? { description: destination.description } : {}),
+    })),
+    route: plan.route,
+    breakpoints: plan.breakPoints.map((breakPoint) => ({
+      longitude: breakPoint.location[0],
+      latitude: breakPoint.location[1],
+      accommodation: breakPoint.accommodation ?? [],
+      ...(breakPoint.selectedAccommodationId ? { selectedAccommodationId: breakPoint.selectedAccommodationId } : {}),
+      ...(breakPoint.skipped ? { skipped: true } : {}),
+    })),
+    roundTrip: plan.roundTrip,
+    maxDrivingHours: maxDrivingSeconds / 3_600,
+    accommodationPreference: { types: accommodationTypes },
+  })
+}
+
 export function listTrips(): Promise<ListTripsResponse> {
   return apiGet<ListTripsResponse>('/api/trips')
 }
@@ -75,7 +103,7 @@ export function getTrip(id: string): Promise<TripDetailResponse> {
   return apiGet<TripDetailResponse>(`/api/trips/${id}`)
 }
 
-export function updateTrip(id: string, name: string): Promise<SaveTripResponse> {
+export function renameTrip(id: string, name: string): Promise<SaveTripResponse> {
   return apiPatch<SaveTripResponse>(`/api/trips/${id}`, { name })
 }
 

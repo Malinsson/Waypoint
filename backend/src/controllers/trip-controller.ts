@@ -7,6 +7,7 @@ import {
   getTrip as getTripService,
   listTrips as listTripsService,
   saveTrip as saveTripService,
+  renameTrip as renameTripService,
   updateTrip as updateTripService,
   completeTrip as completeTripService,
 } from "../services/trip-service.js";
@@ -103,8 +104,8 @@ export const tripInputSchema = z.object({
     .array(destinationSchema.omit({ id: true }), "Destinations are required")
     .min(2, "Add at least 2 destinations")
     .max(10, "You can add at most 10 destinations"),
-  roundTrip: z.boolean().default(false),
   route: z.unknown().refine((route) => route !== undefined, "Route is required"),
+  roundTrip: z.boolean().default(false),
   breakpoints: z.array(z.object({
     longitude: z.number().min(-180).max(180),
     latitude: z.number().min(-90).max(90),
@@ -135,6 +136,11 @@ export async function saveTrip(req: Request, res: Response) {
   res.status(201).json({ trip: await saveTripService(requireUserId(req), input) });
 }
 
+export async function replaceTrip(req: Request, res: Response) {
+  const input = tripInputSchema.parse(req.body);
+  res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), input) });
+}
+
 export async function listTrips(req: Request, res: Response) {
   res.json({ trips: await listTripsService(requireUserId(req)) });
 }
@@ -147,7 +153,7 @@ export async function updateTrip(req: Request, res: Response) {
   const { name } = z.object({
     name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters"),
   }).parse(req.body);
-  res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), name) });
+  res.json({ trip: await renameTripService(requireUserId(req), routeParam(req), name) });
 }
 
 export async function completeTrip(req: Request, res: Response) {

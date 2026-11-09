@@ -177,6 +177,7 @@ export type Trip = {
   destinations: TripDestination[]
   breakpoints: TripBreakpoint[]
   route: PlanResponse['route']
+  roundTrip: boolean
   maxDrivingHours: number
   accommodationPreference: { types: string[] }
   totalRating?: TripRating

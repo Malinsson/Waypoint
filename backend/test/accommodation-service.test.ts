@@ -1,3 +1,4 @@
+// @ts-expect-error Node.js type definitions are not included in this project.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {

@@ -36,6 +36,7 @@ export interface Trip {
     destinations: TripStop[];
     breakpoints: Breakpoint[];
     route: unknown; // GeoJSON LineString, stored as-is from the routing service
+    roundTrip: boolean;
     maxDrivingHours: number;
     accommodationPreference: { types: string[] };
     totalRating?: Rating;
@@ -114,6 +115,7 @@ const tripSchema = new Schema<Trip>({
         type: Schema.Types.Mixed,
         required: true
     },
+    roundTrip: { type: Boolean, default: false },
     maxDrivingHours: {
         type: Number, 
         required: true,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { getHealth } from '../../api/health.ts'
-import { planTrip, saveTrip } from '../../api/trips.ts'
+import { getTrip, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
@@ -71,6 +72,9 @@ function readPersistedPlan(): PersistedPlan | null {
 }
 
 function PlanPage() {
+  const { id: editTripId } = useParams<{ id: string }>()
+  const editMode = Boolean(editTripId)
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [storedPlan] = useState<PersistedPlan | null>(readPersistedPlan)
   const [destinations, setDestinations] = useState<Destination[]>(storedPlan?.destinations ?? [])
@@ -84,6 +88,9 @@ function PlanPage() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const [tripName, setTripName] = useState<string | undefined>(undefined)
+  const [editLoading, setEditLoading] = useState(editMode)
+  const [editLoadError, setEditLoadError] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
@@ -94,7 +101,29 @@ function PlanPage() {
   const [resetCount, setResetCount] = useState(0)
 
   useEffect(() => {
-    if (!storedPlan) {
+    if (!editTripId) return
+
+    getTrip(editTripId)
+      .then(({ trip }) => {
+        setTripName(trip.name)
+        setDestinations(trip.destinations.map((destination) => ({
+          id: crypto.randomUUID(),
+          name: destination.locationId.name,
+          location: [destination.locationId.longitude, destination.locationId.latitude],
+          description: destination.locationId.description,
+        })))
+        setRoundTrip(trip.roundTrip ?? false)
+        setAccommodationTypes(trip.accommodationPreference.types as AccommodationType[])
+        setMaxDrivingSeconds(trip.maxDrivingHours * 3_600)
+        setStep(1)
+        setPlanError(null)
+      })
+      .catch((err) => setEditLoadError(err instanceof Error ? err.message : 'Could not load this trip.'))
+      .finally(() => setEditLoading(false))
+  }, [editTripId])
+
+  useEffect(() => {
+    if (!storedPlan && !editMode) {
       setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
     }
   }, [storedPlan, user])
@@ -107,7 +136,7 @@ function PlanPage() {
   }, [])
 
   useEffect(() => {
-    if (destinations.length > 0) {
+    if (!editMode && destinations.length > 0) {
       localStorage.setItem(LAST_PLAN_STORAGE_KEY, JSON.stringify({
         destinations,
         manuallyReordered,
@@ -210,8 +239,13 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
-      await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
-      setSavedMessage('Trip saved.')
+      if (editTripId) {
+        await updateSavedTrip(editTripId, plan, maxDrivingSeconds, accommodationTypes, tripName)
+        navigate(`/trips/${editTripId}`)
+      } else {
+        await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
+        setSavedMessage('Trip saved.')
+      }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save your trip. Please try again.')
     } finally {
@@ -340,8 +374,10 @@ function PlanPage() {
 
   return (
     <section className="mainSection">
+      {editLoading && <p role="status">Loading trip…</p>}
+      {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
-      {showConfirmationPopup && (
+      {!editLoading && (!editMode || !editLoadError) && showConfirmationPopup && (
         <ConfirmationPopup 
         message="Are you sure you want to start over? All your current destinations will be lost." 
         onConfirm={startOver} 
@@ -350,7 +386,7 @@ function PlanPage() {
         />
       )}
 
-      <div className={styles.planLayout}>
+      {!editLoading && (!editMode || !editLoadError) && <div className={styles.planLayout}>
         <aside className={styles.planPanel}>
 
           <div className={styles.stepHeader}>
@@ -432,6 +468,7 @@ function PlanPage() {
               onSave={() => void handleSave()}
               onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
               onStartOver={() => setShowConfirmationPopup(true)}
+              saveButtonLabel={editMode ? 'Save changes' : undefined}
             />
           )}
         </aside>
@@ -443,7 +480,7 @@ function PlanPage() {
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
         />
-      </div>
+      </div>}
     </section>
   )
 }

@@ -104,11 +104,13 @@ All paths are under `/api`. All require authentication. JSON in and out. Errors 
 | `GET` | `/trips` | List own trips (summary) | 200 |
 | `GET` | `/trips/:id` | Get one own trip, with ratings | 200 |
 | `PATCH` | `/trips/:id` | Rename (only `name` in v1) | 200 + trip |
+| `PUT` | `/trips/:id` | Replace the saved plan after editing and recalculating it | 200 + trip |
 | `DELETE` | `/trips/:id` | Delete trip and its ratings | 204 |
 | `PUT` | `/trips/:id/rating` | Create or replace own rating | 201 (created) or 200 (replaced) |
 | `POST` | `/trips/:id/complete` | Mark trip as completed | 200 |
 
 - `POST /trips` body: `name?`, `destinations` (each `{ name, address?, location: [lon, lat], wikidataId?, rating? }`), `route`, `breakpoints`, `drivingLimitHours`, `accommodationPreferences`, `totalRating`, `completedAt`. The server upserts the Locations (4.0), stores their ids, and sets `userId` and timestamps. Ignore any client-supplied `_id`, `userId`, `locationId` or timestamps.
+- `PUT /trips/:id` accepts the same plan snapshot fields as `POST /trips`, verifies ownership, and replaces the destinations, route, breakpoints, driving limit, round-trip flag, and accommodation preferences. It preserves the trip id, owner, timestamps, ratings, and completion state.
 - `GET /trips` returns per trip: `id`, `name`, `createdAt`, `updatedAt`, first and last destination name, total distance and duration, rating count. Sorted by `updatedAt` descending. `limit` (default 20, max 50) and `cursor` (`_id`/`updatedAt` based).
 - `GET /trips/:id` returns the trip with `Location` populated (converted to `location: [lon, lat]`) and `ratings: Rating[]`.
 
