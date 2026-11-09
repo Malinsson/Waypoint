@@ -151,10 +151,7 @@ export async function updateTrip(req: Request, res: Response) {
 }
 
 export async function completeTrip(req: Request, res: Response) {
-  const { completedAt } = z.object({
-    completedAt: z.coerce.date(),
-  }).parse(req.body);
-  res.json({ trip: await completeTripService(requireUserId(req), routeParam(req), completedAt) });
+  res.json({ trip: await completeTripService(requireUserId(req), routeParam(req)) });
 }
 
 export async function deleteTrip(req: Request, res: Response) {

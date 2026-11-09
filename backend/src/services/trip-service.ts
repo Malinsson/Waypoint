@@ -34,9 +34,6 @@ export type SaveTripInput = {
   accommodationPreference: { types: string[] };
 };
 
-export type CompleteTripInput = {
-  completedAt: Date;
-};
 
 function objectId(id: string, message: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(id)) {
@@ -163,9 +160,14 @@ export async function deleteTrip(userId: string, id: string): Promise<void> {
   if (result.deletedCount === 0) notFound();
 }
 
-export async function completeTrip(userId: string, id: string, completedAt: Date) {
+export async function completeTrip(userId: string, id: string) {
   const trip = await getOwnedTrip(userId, id);
-  trip.completedAt = completedAt;
+
+  if (trip.completedAt) {
+    throw new AppError(409, "TRIP_ALREADY_COMPLETED", "This trip has already been marked as completed");
+  }
+
+  trip.completedAt = new Date();
   await trip.save();
   return trip;
 }

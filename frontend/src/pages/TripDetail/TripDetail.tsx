@@ -72,7 +72,7 @@ function TripsDetailPage() {
 
   function handleCompleteTrip() {
     if (!trip) return;
-    completeTrip(trip._id, new Date())
+    completeTrip(trip._id)
       .then(() => getTrip(trip._id))
       .then((response) => {
         setTrip(response.trip);

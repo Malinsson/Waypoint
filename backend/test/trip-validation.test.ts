@@ -69,7 +69,10 @@ test("saved trip schema rejects duplicate destination coordinates", () => {
 });
 
 test("duplicate helper tolerates tiny coordinate drift from the same place", () => {
-  const duplicates = [{ location: [18.0686, 59.3293] }, { location: [18.0686001, 59.3293001] }];
+  const duplicates: { location: [number, number] }[] = [
+    { location: [18.0686, 59.3293] },
+    { location: [18.0686001, 59.3293001] },
+  ];
   assert.equal(hasDuplicateDestinations(duplicates), true);
 });
 

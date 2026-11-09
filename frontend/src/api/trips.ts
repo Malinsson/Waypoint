@@ -80,8 +80,8 @@ export function updateTrip(id: string, name: string): Promise<SaveTripResponse> 
 }
 
 
-export function completeTrip(id: string, completedAt: Date): Promise<SaveTripResponse> {
-  return apiPost<SaveTripResponse>(`/api/trips/${id}/complete`, { completedAt })
+export function completeTrip(id: string): Promise<SaveTripResponse> {
+  return apiPost<SaveTripResponse>(`/api/trips/${id}/complete`, {})
 }
 
 export function deleteTrip(id: string): Promise<void> {
