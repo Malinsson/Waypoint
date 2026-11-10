@@ -31,7 +31,10 @@ function Header() {
           (user ? (
             <>
               <span>{user.displayName}</span>
-              <Button type="button" variant="secondary" onClick={logout}>
+              <Button 
+              type="button" 
+              className={styles.logoutButton} 
+              onClick={logout}>
                 Log out
               </Button>
             </>
@@ -60,7 +63,11 @@ function Header() {
           (user ? (
             <>
               <span>{user.displayName}</span>
-              <Button type="button" variant="secondary" onClick={logout}>
+              <Button 
+              type="button" 
+              onClick={logout}
+              className={styles.logoutButton}
+              >
                 Log out
               </Button>
             </>

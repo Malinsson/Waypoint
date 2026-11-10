@@ -4,7 +4,6 @@
     margin: 0;
     cursor: pointer;
     align-items: center;
-    background-color: initial;
     display: inline-block;
     flex-direction: row;
     flex-shrink: 0;
@@ -27,12 +26,12 @@
     align-self: center;
     background-repeat: repeat no-repeat;
     background-size: 4px 3px;
-    color: var(--cornsilk);
+    color: var(--text-color);
 
 }
 
 .primary {
-  background-color: var(--verdigris);
+  background-color: var(--muted-verdigris);
 }
 
 .secondary {
@@ -54,5 +53,13 @@
 @media (min-width: 768px) {
   .buttonBase {
     font-size: var(--font-size-md);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+
+
+  .primary {
+    background-color: var(--verdigris);
   }
 }

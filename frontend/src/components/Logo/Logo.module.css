@@ -8,6 +8,14 @@
     height: 2.5rem;
 }
 
+.iconLight {
+    display: none;
+}
+
+.iconDark {
+    display: block;
+}
+
 @media (min-width: 768px) {
     .icon {
         height: 3rem;
@@ -15,3 +23,12 @@
 
 }
 
+@media (prefers-color-scheme: dark) {
+    .iconLight {
+        display: block;
+    }
+
+    .iconDark {
+        display: none;
+    }
+}
