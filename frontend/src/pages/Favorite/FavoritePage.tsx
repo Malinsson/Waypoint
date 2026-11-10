@@ -3,7 +3,7 @@ import { addFavoriteToList, createFavoriteList, fetchFavoriteLists } from '../..
 import type { FavoriteList, FavoriteLocationInput, GeocodeResult } from '../../types/api.ts'
 import styles from './FavoritePage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
-import { ChevronRight, Plus } from 'lucide-react'
+import { ChevronRight, Heart, Plus } from 'lucide-react'
 import PopupBase from '../../components/PopupBase/PopupBase.tsx'
 import { NavLink } from 'react-router-dom'
 import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
@@ -110,13 +110,10 @@ function FavoritePage() {
 
   return (
     <section aria-label="Favorite lists" className={`mainSection ${styles.favoritePage}`}>
-      <h1>Favorites</h1>
 
       {loading && <Loader />}
       {error && <p className="error" role="alert">{error}</p>}
-      <div className={styles.searchForm}>
-        <AddDestinationForm onAdd={selectLocation} disabled={loading} />
-      </div>
+
       {selectedLocation && !showCreateListForLocation && (
         <FavoriteListPopup
           lists={lists}
@@ -169,17 +166,27 @@ function FavoritePage() {
         </PopupBase>
       )}
 
-
       {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
+
+      <h1>Favorites</h1>
+
+      <div className={styles.searchForm}>
+        <AddDestinationForm onAdd={selectLocation} disabled={loading} />
+        <Button onClick={() => setShowCreateNewList(true)} disabled={loading}>New list <Plus /></Button>
+      </div>
+
       <div className={styles.lists}>
+
         {lists.map((list) => (
           <NavLink 
           key={list._id} 
           className={`decorativeBorder ${styles.list}`}
           to={`/favorites/${list._id}`}
           >
-            <h2>{list.name}</h2>
-
+            <div className={styles.listHeader}>
+              <h2>{list.name}</h2>
+              <p>{list.locations.length} <Heart /></p>
+            </div>
             <div className={`decorativeDivider ${styles.listDivider}`} />
 
             {list.locations.length === 0 ? (
@@ -202,13 +209,6 @@ function FavoritePage() {
           </NavLink>
         ))}
 
-        <div className={`decorativeBorder ${styles.list} ${styles.createNewList}`} onClick={() => setShowCreateNewList(true)}>
-          <div className={styles.newListText}>
-            <h2>Create a new list</h2>
-            <p>Click here or use the form above to create a new favorite list.</p>
-          </div>
-          <Plus className={styles.newListIcon} />
-        </div>
       </div>
     </section>
   )
