@@ -221,6 +221,14 @@ function PlanPage() {
       await warmupPromise.current
       const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds)
       setPlan(nextPlan)
+      // Show the list in the order that was actually planned (spec: ordering
+      // rules). The return stop of a round trip is not a list item, and
+      // updateDestinations is not used because it would clear the new plan.
+      setDestinations(
+        nextPlan.destinations
+          .filter((destination) => !destination.id.endsWith('-return'))
+          .map(({ id, name, location, description }) => ({ id, name, location, description })),
+      )
       setActiveBreakpointIndex(0)
       setStep(2)
 
@@ -436,8 +444,6 @@ function PlanPage() {
             />
           )}
 
-          {plan && (step === 2 || step === 4) && <TripSummary plan={plan} />}
-
           {plan && plan.warnings.length > 0 && (
             <section aria-label="Planning notices">
               {plan.warnings.map((warning) => (
@@ -459,6 +465,8 @@ function PlanPage() {
               onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
+
+          {plan && (step === 4) && <TripSummary plan={plan} />}
 
           {plan && step === 4 && (
             <OverviewStep

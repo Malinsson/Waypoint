@@ -5,6 +5,21 @@
     transform: none;
 }
 
+.editingBanner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    gap: 1rem;
+    position: relative;
+}
+
+.closeButton {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
 .accommodationFieldset legend {
     font-family: var(--font-detail);
     font-size: var(--font-size-md);
@@ -28,6 +43,9 @@ option {
   padding: 0;
 }
 
+.summary {
+    margin-top: 0;
+}
 
 /* Custom styles for the checkbox input */
 .checkbox {

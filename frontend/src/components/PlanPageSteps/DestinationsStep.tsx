@@ -34,6 +34,7 @@ function DestinationsStep({
   onStartOver,
   onContinue,
 }: DestinationsStepProps) {
+
   return (
     <>
       <div className={styles.planContent}>
@@ -46,6 +47,7 @@ function DestinationsStep({
         {!canAddMore && <p className="hint">You can add at most 10 destinations.</p>}
 
         {destinations.length === 0 && <LocateMe onLocate={(location) => onAdd({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
+
 
         <DestinationList
           destinations={destinations}
