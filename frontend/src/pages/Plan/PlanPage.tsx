@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getHealth } from '../../api/health.ts'
-import { getTrip, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
+import { getTrip, optimizeRoute, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
@@ -419,6 +419,7 @@ function PlanPage() {
             <PreferencesStep
               accommodationTypes={accommodationTypes}
               maxDrivingSeconds={maxDrivingSeconds}
+              willOptimize={optimizeRoute(destinations, manuallyReordered)}
               planning={planning}
               plan={plan}
               planError={planError}

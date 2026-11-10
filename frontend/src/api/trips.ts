@@ -13,8 +13,47 @@ export function geocodeAddress(query: string): Promise<GeocodeResponse> {
   return apiPost<GeocodeResponse>('/api/geocode', { query })
 }
 
+// Optimization needs a middle stop to reorder. The upstream optimizer gets
+// very slow (and times out) when stops are far apart, so it is only requested
+// when every pair of stops is within this straight-line distance.
+export const MIN_DESTINATIONS_TO_OPTIMIZE = 4
+export const MAX_OPTIMIZE_SPREAD_KM = 500
+
+const EARTH_RADIUS_KM = 6_371
+
+// Haversine formula: straight-line distance over the earth's surface.
+// Locations are GeoJSON order [longitude, latitude].
+function distanceKm(
+  [lonA, latA]: [number, number],
+  [lonB, latB]: [number, number],
+): number {
+  const toRadians = (degrees: number) => (degrees * Math.PI) / 180
+  const deltaLat = toRadians(latB - latA)
+  const deltaLon = toRadians(lonB - lonA)
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(toRadians(latA)) * Math.cos(toRadians(latB)) * Math.sin(deltaLon / 2) ** 2
+  return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a))
+}
+
+// The largest distance between any two stops. A round trip adds no new
+// location (the return leg goes back to the first stop), so it is not counted.
+export function maxSpreadKm(destinations: Destination[]): number {
+  let max = 0
+  for (let i = 0; i < destinations.length; i++) {
+    for (let j = i + 1; j < destinations.length; j++) {
+      max = Math.max(max, distanceKm(destinations[i].location, destinations[j].location))
+    }
+  }
+  return max
+}
+
 export function optimizeRoute(destinations: Destination[], manuallyReordered = false): boolean {
-  return destinations.length >= 4 && !manuallyReordered
+  return (
+    destinations.length >= MIN_DESTINATIONS_TO_OPTIMIZE &&
+    !manuallyReordered &&
+    maxSpreadKm(destinations) <= MAX_OPTIMIZE_SPREAD_KM
+  )
 }
 
 export function planTrip(

@@ -7,6 +7,7 @@ import styles from './PreferencesStep.module.css'
 type PreferencesStepProps = {
   accommodationTypes: AccommodationType[]
   maxDrivingSeconds: number
+  willOptimize: boolean
   planning: boolean
   plan: PlanResponse | null
   planError: string | null
@@ -22,6 +23,7 @@ type PreferencesStepProps = {
 function PreferencesStep({
   accommodationTypes,
   maxDrivingSeconds,
+  willOptimize,
   planning,
   plan,
   planError,
@@ -79,9 +81,13 @@ function PreferencesStep({
 
       </div>
 
-      {planning && <p className="hint" role="status">Planning your trip…</p>}
+      <p className="hint">
+        {willOptimize
+          ? 'Your stops will be reordered to give the shortest route. The first and last stop stay in place.'
+          : 'Your stops will keep the order you entered them in.'}
+      </p>
 
-      
+      {planning && <p className="hint" role="status">Planning your trip…</p>}
 
 
 
