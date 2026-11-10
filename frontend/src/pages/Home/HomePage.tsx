@@ -1,35 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { getHealth } from '../../api/health.ts'
-import type { HealthResponse } from '../../types/api.ts'
 import styles from './HomePage.module.css'
 
-// One state value instead of separate loading/data/error flags,
-// so impossible combinations (e.g. loading and error at once) cannot happen
-type HealthState =
-  | { kind: 'loading' }
-  | { kind: 'ok'; health: HealthResponse }
-  | { kind: 'error'; message: string }
 
 function HomePage() {
-  const [state, setState] = useState<HealthState>({ kind: 'loading' })
 
+  // Silent call to the health endpoint to wake up the backend server if it's asleep
   useEffect(() => {
-    // Set to true on cleanup so a response arriving after the component
-    // unmounts (or after StrictMode's extra dev run) does not update state
-    let ignore = false
-
-    getHealth()
-      .then((health) => {
-        if (!ignore) setState({ kind: 'ok', health })
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : 'Unknown error'
-        if (!ignore) setState({ kind: 'error', message })
-      })
-
-    return () => {
-      ignore = true
-    }
+    getHealth().catch(() => undefined)
   }, [])
 
   return (
