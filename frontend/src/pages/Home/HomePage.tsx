@@ -53,15 +53,6 @@ function HomePage() {
           Start planning your next adventure today!
         </p>
 
-
-        <h2>Server status</h2>
-        {state.kind === 'loading' && <p>Checking server…</p>}
-        {state.kind === 'ok' && (
-          <p>
-            API: {state.health.status}, Database: {state.health.database}
-          </p>
-        )}
-        {state.kind === 'error' && <p className={styles.error}>{state.message}</p>}
         
       </section>
     </>

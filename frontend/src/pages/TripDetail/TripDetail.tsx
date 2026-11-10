@@ -11,6 +11,7 @@ import { Button } from '../../components/atoms/Button.tsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx';
 import PopupBase from '../../components/PopupBase/PopupBase.tsx';
 import { Pencil } from 'lucide-react';
+import Loader from '../../components/atoms/Loader.tsx';
 
 
 function TripsDetailPage() {
@@ -121,8 +122,7 @@ function TripsDetailPage() {
 
   function handleRateDestinations() {
     setShowCompletedPopup(false);
-    destinationsHeadingRef.current?.scrollIntoView({ behavior: 'smooth' });
-    destinationsHeadingRef.current?.focus();
+    setShowRatingPopup(true);
   }
 
   function handleRenameTrip(tripId: string, newName: string) {
@@ -173,10 +173,10 @@ function TripsDetailPage() {
         <PopupBase onCancel={closeCompletedPopup} isOpen={showCompletedPopup}>
           <h2>Trip completed!</h2>
           <p>What a journey! We hope you had a wonderful trip and made memories worth keeping.</p>
-          <p>Would you like to rate the places you visited? You can also do it later from this page.</p>
+          <p>Would you like to rate your trip? You can also do it later from this page.</p>
           <div className={styles.actions}>
             <Button type="button" variant="secondary" onClick={closeCompletedPopup}>Maybe later</Button>
-            <Button type="button" onClick={handleRateDestinations}>Rate destinations</Button>
+            <Button type="button" onClick={handleRateDestinations}>Rate trip</Button>
           </div>
         </PopupBase>
       )}
@@ -201,7 +201,7 @@ function TripsDetailPage() {
         />
       )}
 
-      {loading && <p>Loading trip details...</p>}
+      {loading && <Loader />}
       {error && <p className="error" role="alert">{error}</p>}
       {trip && (
         <>
@@ -215,7 +215,17 @@ function TripsDetailPage() {
           {trip.totalRating && (
             <>
               <h2>Your rating</h2>
-              <p>{'★'.repeat(trip.totalRating.stars)}{'☆'.repeat(5 - trip.totalRating.stars)} {trip.totalRating.stars}/5</p>
+
+              <div className={styles.row}>
+                <StarRating
+                  label="Trip Rating"
+                  value={trip.totalRating.stars}
+                  disabled={savingRating}
+                  onChange={(stars) => void handleRate({ target: 'trip' }, stars)}
+                />
+                <span>{trip.totalRating.stars}/5</span>
+              </div>
+
               {trip.totalRating.comment && <p>{trip.totalRating.comment}</p>}
             </>
           )}

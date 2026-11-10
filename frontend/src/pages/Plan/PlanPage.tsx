@@ -12,6 +12,7 @@ import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.ts
 import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
 import OverviewStep from '../../components/PlanPageSteps/OverviewStep.tsx'
+import Loader from '../../components/atoms/Loader.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -374,7 +375,7 @@ function PlanPage() {
 
   return (
     <section className="mainSection">
-      {editLoading && <p role="status">Loading trip…</p>}
+      {editLoading && <Loader />}
       {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
       {!editLoading && (!editMode || !editLoadError) && showConfirmationPopup && (

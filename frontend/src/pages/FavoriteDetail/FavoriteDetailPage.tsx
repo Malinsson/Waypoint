@@ -6,6 +6,7 @@ import { Button } from '../../components/atoms/Button';
 import { Pencil, Trash } from 'lucide-react';
 import PopupBase from '../../components/PopupBase/PopupBase';
 import MapView, { type MapMarker } from '../../components/MapView/MapView';
+import Loader from '../../components/atoms/Loader';
 import styles from './FavoriteDetailPage.module.css'
 
 function FavoriteDetailPage() {
@@ -88,7 +89,7 @@ function FavoriteDetailPage() {
 
   return (
     <section className={`mainSection ${styles.flexDirections}`}>
-        {loading && <p>Loading favorite list details...</p>}
+        {loading && <Loader />}
         {error && <p className="error" role="alert">{error}</p>}
 
         {showDeleteConfirmation && (

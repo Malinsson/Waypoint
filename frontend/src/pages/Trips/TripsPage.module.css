@@ -20,6 +20,13 @@
     font-size: var(--font-size-sm);
 }
 
+.row {
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .chevron {
     height: 0.75rem;
 }

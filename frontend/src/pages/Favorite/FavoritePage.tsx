@@ -8,6 +8,7 @@ import PopupBase from '../../components/PopupBase/PopupBase.tsx'
 import { NavLink } from 'react-router-dom'
 import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
 import FavoriteListPopup from '../../components/FavoriteList/FavoriteList.tsx'
+import Loader from '../../components/atoms/Loader.tsx'
 
 function FavoritePage() {
   const [lists, setLists] = useState<FavoriteList[]>([])
@@ -111,7 +112,7 @@ function FavoritePage() {
     <section aria-label="Favorite lists" className={`mainSection ${styles.favoritePage}`}>
       <h1>Favorites</h1>
 
-      {loading && <p>Loading favorites…</p>}
+      {loading && <Loader />}
       {error && <p className="error" role="alert">{error}</p>}
       <div className={styles.searchForm}>
         <AddDestinationForm onAdd={selectLocation} disabled={loading} />

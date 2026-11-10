@@ -153,8 +153,11 @@ export type PlanResponse = {
 export type SavedTrip = {
   _id: string
   name: string
+  destinations: TripDestination[]
   createdAt: string
   updatedAt: string
+  completedAt?: string
+  totalRating?: TripRating
 }
 
 export type SaveTripResponse = {
