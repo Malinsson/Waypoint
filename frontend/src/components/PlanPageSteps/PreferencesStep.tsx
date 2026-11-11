@@ -4,6 +4,7 @@ import shared from '../../pages/Plan/PlanPage.module.css'
 import styles from './PreferencesStep.module.css'
 import { useState } from 'react'
 import TripSummary from '../TripSummary/TripSummary.tsx'
+import { SquareExclamationPoint } from 'lucide-react'
 
 
 type PreferencesStepProps = {
@@ -13,6 +14,9 @@ type PreferencesStepProps = {
   planning: boolean
   plan: PlanResponse | null
   planError: string | null
+  // Names of destinations with no road connection. null = a different error,
+  // empty = no road connection but we could not tell which stop.
+  unreachableNames: string[] | null
   onToggleAccommodationType: (type: AccommodationType) => void
   onMaxDrivingSecondsChange: (seconds: number) => void
   onBack: () => void
@@ -29,6 +33,7 @@ function PreferencesStep({
   planning,
   plan,
   planError,
+  unreachableNames,
   onToggleAccommodationType,
   onMaxDrivingSecondsChange,
   onBack,
@@ -124,10 +129,25 @@ function PreferencesStep({
 
       {planning && <p className="hint" role="status">Planning your trip…</p>}
 
-      {planError && (
+      {planError && unreachableNames !== null && (
+        // Trying again with the same list cannot work, so the only action
+        // offered is going back to fix the destinations
+        <div className="banner error" role="alert">
+          <SquareExclamationPoint  />
+          <p>{planError}</p>
+          <p>
+            {unreachableNames.length > 0
+              ? `Go back and remove or replace ${unreachableNames.join(', ')}. It is highlighted in your list.`
+              : 'Go back and remove or replace the destination that is not connected by road.'}
+          </p>
+          <Button type="button" variant="secondary" onClick={onBack}>Back to destinations</Button>
+        </div>
+      )}
+
+      {planError && unreachableNames === null && (
         <div className="banner error" role="alert">
           <p>{planError}</p>
-          <button type="button" onClick={() => { setEditing(false); onTryAgain() }}>Try again</button>
+          <Button type="button" variant="tertiary" onClick={() => { setEditing(false); onTryAgain() }}>Try again</Button>
         </div>
       )}
 
@@ -145,9 +165,11 @@ function PreferencesStep({
           <div className={shared.planActions}>
             <Button type="button" variant="tertiary" onClick={onStartOver}>Start over</Button>
             <Button type="button" variant="secondary" onClick={onBack} disabled={planning}>Back</Button>
+
             <Button type="button" onClick={() => { setEditing(false); onPlan() }} disabled={planning}>
               {planning ? 'Planning…' : 'Plan trip'}
             </Button>
+
           </div>
       )}
     </>

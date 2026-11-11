@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { ApiError } from '../../api/client.ts'
 import { getHealth } from '../../api/health.ts'
 import { getTrip, optimizeRoute, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
@@ -86,6 +87,10 @@ function PlanPage() {
   const [plan, setPlan] = useState<PlanResponse | null>(storedPlan?.plan ?? null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
+  // Set when the route failed because of specific destinations. An empty list
+  // means "no road connection, but we could not tell which stop"; null means
+  // some other error.
+  const [unreachableIds, setUnreachableIds] = useState<string[] | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
@@ -158,6 +163,7 @@ function PlanPage() {
     setManuallyReordered(false)
     setPlan(null)
     setPlanError(null)
+    setUnreachableIds(null)
     setSaveError(null)
     setSavedMessage(null)
     setDuplicateDestinationError(null)
@@ -213,6 +219,7 @@ function PlanPage() {
 
     setPlanning(true)
     setPlanError(null)
+    setUnreachableIds(null)
     setSaveError(null)
     setSavedMessage(null)
     try {
@@ -235,6 +242,10 @@ function PlanPage() {
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
       setPlanError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      if (err instanceof ApiError && err.code === 'ROUTE_NOT_FOUND') {
+        const ids = err.details?.destinationIds
+        setUnreachableIds(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [])
+      }
     } finally {
       setPlanning(false)
     }
@@ -411,6 +422,7 @@ function PlanPage() {
               resetCount={resetCount}
               duplicateDestinationError={duplicateDestinationError}
               roundTrip={roundTrip}
+              unreachableIds={unreachableIds ?? []}
               onAdd={addDestination}
               onRemove={removeDestination}
               onReorder={reorderDestinations}
@@ -431,6 +443,9 @@ function PlanPage() {
               planning={planning}
               plan={plan}
               planError={planError}
+              unreachableNames={unreachableIds === null
+                ? null
+                : destinations.filter((destination) => unreachableIds.includes(destination.id)).map((destination) => destination.name)}
               onToggleAccommodationType={toggleAccommodationType}
               onMaxDrivingSecondsChange={(seconds) => {
                 setMaxDrivingSeconds(seconds)

@@ -47,6 +47,10 @@ option {
     margin-top: 0;
 }
 
+.banner button {
+    color: black;
+}
+
 /* Custom styles for the checkbox input */
 .checkbox {
     -webkit-appearance: none;

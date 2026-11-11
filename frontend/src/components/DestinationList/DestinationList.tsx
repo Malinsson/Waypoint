@@ -9,11 +9,13 @@ type DestinationListProps = {
   onRemove: (id: string) => void
   onReorder: (ids: string[]) => void
   roundTrip: boolean
+  // Destinations the route could not reach, highlighted so the user knows what to fix
+  unreachableIds?: string[]
   onRoundTripChange: (enabled: boolean) => void
   disabled: boolean
 }
 
-function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRoundTripChange, disabled }: DestinationListProps) {
+function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreachableIds = [], onRoundTripChange, disabled }: DestinationListProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
 
@@ -79,11 +81,12 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
           const isReturn = isReturnDestination(destination)
           const isDragging = draggedId === destination.id
           const isDropTarget = dropIndex === index && !isDragging
+          const isUnreachable = unreachableIds.includes(destination.id)
 
           return (
           <li
             key={destination.id}
-            className={`${isDragging ? styles.dragging : ''} ${isDropTarget ? styles.dropTarget : ''}`}
+            className={`${isDragging ? styles.dragging : ''} ${isDropTarget ? styles.dropTarget : ''} ${isUnreachable ? styles.unreachable : ''}`}
             draggable={!disabled && !isReturn}
             onDragStart={(event) => handleDragStart(event, destination.id)}
             onDragOver={(event) => handleDragOver(event, index)}
@@ -117,6 +120,7 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
 
               <span className="destination-name">
                 <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
+                {isUnreachable && <span className={styles.unreachableLabel}> (no road connection)</span>}
               </span>
             </div>
             <Button

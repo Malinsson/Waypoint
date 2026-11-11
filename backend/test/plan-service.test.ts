@@ -3,6 +3,7 @@ import { test, type TestContext } from "node:test";
 import assert from "node:assert/strict";
 
 import { planTrip, type PlanInput } from "../src/services/plan-service.js";
+import { AppError } from "../src/utils/app-error.js";
 import { UpstreamError } from "../src/utils/upstream-error.js";
 
 // These tests replace global fetch, so no request reaches Geoapify or the
@@ -132,6 +133,87 @@ test("a failed routing request fails the whole plan", async (t) => {
   mockServices(t, { routing: () => json({ error: "down" }, 500) });
 
   await assert.rejects(planTrip(planInput([STOCKHOLM, MALMO])), UpstreamError);
+});
+
+// A routing mock where any request that includes one of the `unreachable`
+// points answers 400, like Geoapify does when there is no road connection
+function routingWithUnreachable(unreachable: LonLat[], legSeconds = 3_600) {
+  return (url: URL) => {
+    const waypoints = (url.searchParams.get("waypoints") ?? "").split("|");
+    const hasUnreachable = unreachable.some(([lon, lat]) => waypoints.includes(`${lat},${lon}`));
+    if (hasUnreachable) return json({ error: "no route" }, 400);
+    const points = waypoints.map((pair) => {
+      const [lat, lon] = pair.split(",").map(Number);
+      return [lon!, lat!] as LonLat;
+    });
+    return json(routingBody(points, points.slice(1).map(() => legSeconds)));
+  };
+}
+
+test("a stop with no road connection is named in the ROUTE_NOT_FOUND details", async (t) => {
+  const island: LonLat = [19.0, 57.5];
+  mockServices(t, { routing: routingWithUnreachable([island]) });
+
+  await assert.rejects(
+    planTrip(planInput([STOCKHOLM, island, MALMO])),
+    (error: AppError) => {
+      assert.equal(error.code, "ROUTE_NOT_FOUND");
+      assert.equal(error.status, 422);
+      assert.deepEqual(error.details, { destinationIds: ["d1"] });
+      return true;
+    },
+  );
+});
+
+test("an unreachable first or last stop is named too", async (t) => {
+  const island: LonLat = [19.0, 57.5];
+  mockServices(t, { routing: routingWithUnreachable([island]) });
+
+  await assert.rejects(
+    planTrip(planInput([island, STOCKHOLM, MALMO])),
+    (error: AppError) => {
+      assert.deepEqual(error.details, { destinationIds: ["d0"] });
+      return true;
+    },
+  );
+});
+
+test("when only a pair can be tested, both stops of the failed leg are named", async (t) => {
+  const island: LonLat = [19.0, 57.5];
+  mockServices(t, { routing: routingWithUnreachable([island]) });
+
+  await assert.rejects(
+    planTrip(planInput([STOCKHOLM, island])),
+    (error: AppError) => {
+      assert.deepEqual(error.details, { destinationIds: ["d0", "d1"] });
+      return true;
+    },
+  );
+});
+
+test("an unreachable stop in a round trip is named once", async (t) => {
+  const island: LonLat = [19.0, 57.5];
+  mockServices(t, { routing: routingWithUnreachable([island]) });
+
+  await assert.rejects(
+    planTrip(planInput([island, STOCKHOLM, MALMO], { roundTrip: true })),
+    (error: AppError) => {
+      assert.deepEqual(error.details, { destinationIds: ["d0"] });
+      return true;
+    },
+  );
+});
+
+test("ROUTE_NOT_FOUND falls back to the generic error when the leg checks hit a rate limit", async (t) => {
+  // The full route says 400, every single-leg check says 429
+  mockServices(t, {
+    routing: (url) => json({ error: "x" }, (url.searchParams.get("waypoints") ?? "").split("|").length > 2 ? 400 : 429),
+  });
+
+  await assert.rejects(
+    planTrip(planInput([STOCKHOLM, LINKOPING, MALMO])),
+    (error: UpstreamError) => error instanceof UpstreamError && error.kind === "NO_ROUTE",
+  );
 });
 
 test("an optimized order sets order, inputIndex and orderOptimized", async (t) => {

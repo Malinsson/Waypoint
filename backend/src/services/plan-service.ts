@@ -131,6 +131,51 @@ async function getRouteInBestOrder(
   }
 }
 
+// Geoapify only says "no route" for the whole request, never which stop is
+// the problem. So each leg is routed on its own (extra requests, but only
+// when planning has already failed). Returns the ids of the stops the user
+// should fix, or null if the cause could not be narrowed down.
+async function findUnreachableIds(stops: LocatedDestination[]): Promise<string[] | null> {
+  const legResults = await Promise.allSettled(
+    stops.slice(0, -1).map((stop, index) => getRoute([stop.location, stops[index + 1]!.location])),
+  );
+
+  // A rate limit or timeout says nothing about the stops, so give up
+  const legFailed: boolean[] = [];
+  for (const result of legResults) {
+    if (result.status === "rejected") {
+      const isNoRoute = result.reason instanceof UpstreamError && result.reason.kind === "NO_ROUTE";
+      if (!isNoRoute) return null;
+    }
+    legFailed.push(result.status === "rejected");
+  }
+  if (!legFailed.includes(true)) return null;
+
+  // Leg i connects stop i and stop i + 1. A stop with a working leg is
+  // reachable, so it is never blamed.
+  const hasWorkingLeg = (stopIndex: number) =>
+    legFailed[stopIndex - 1] === false || legFailed[stopIndex] === false;
+
+  // A middle stop whose two legs both fail is the clear culprit
+  const culpritIndexes = new Set<number>();
+  for (let index = 1; index < stops.length - 1; index++) {
+    if (legFailed[index - 1] && legFailed[index]) culpritIndexes.add(index);
+  }
+
+  // A failed leg that no culprit explains (e.g. the first stop, or a pair of
+  // stops) is ambiguous, so point at each end that has no working leg
+  legFailed.forEach((failed, index) => {
+    if (!failed || culpritIndexes.has(index) || culpritIndexes.has(index + 1)) return;
+    for (const stopIndex of [index, index + 1]) {
+      if (!hasWorkingLeg(stopIndex)) culpritIndexes.add(stopIndex);
+    }
+  });
+
+  // The return stop of a round trip is the first destination again
+  const ids = [...culpritIndexes].map((index) => stops[index]!.id.replace(/-return$/, ""));
+  return [...new Set(ids)];
+}
+
 export async function planTrip(input: PlanInput): Promise<PlanResult> {
   const warnings: Warning[] = [];
 
@@ -138,11 +183,24 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
   const routeDestinations = input.options.roundTrip && located[0]
     ? [...located, { ...located[0], id: `${located[0].id}-return` }]
     : located;
-  const route = await getRouteInBestOrder(
-    routeDestinations.map((destination) => destination.location),
-    input.options.optimizeOrder,
-    warnings,
-  );
+  let route: RouteResult;
+  try {
+    route = await getRouteInBestOrder(
+      routeDestinations.map((destination) => destination.location),
+      input.options.optimizeOrder,
+      warnings,
+    );
+  } catch (error) {
+    if (!(error instanceof UpstreamError) || error.kind !== "NO_ROUTE") throw error;
+    const destinationIds = await findUnreachableIds(routeDestinations);
+    if (!destinationIds) throw error;
+    throw new AppError(
+      422,
+      "ROUTE_NOT_FOUND",
+      "We could not find a driving route between your destinations. Check that they are connected by road.",
+      { destinationIds },
+    );
+  }
 
   // waypointOrder[order] = inputIndex. Rebuild the list in the order that
   // was actually driven, remembering where each item was in the request.

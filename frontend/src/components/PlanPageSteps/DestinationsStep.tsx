@@ -12,6 +12,7 @@ type DestinationsStepProps = {
   resetCount: number
   duplicateDestinationError: string | null
   roundTrip: boolean
+  unreachableIds: string[]
   onAdd: (result: GeocodeResult) => void
   onRemove: (id: string) => void
   onReorder: (orderedIds: string[]) => void
@@ -27,6 +28,7 @@ function DestinationsStep({
   resetCount,
   duplicateDestinationError,
   roundTrip,
+  unreachableIds,
   onAdd,
   onRemove,
   onReorder,
@@ -54,6 +56,7 @@ function DestinationsStep({
           onRemove={onRemove}
           onReorder={onReorder}
           roundTrip={roundTrip}
+          unreachableIds={unreachableIds}
           onRoundTripChange={onRoundTripChange}
           disabled={planning}
         />
