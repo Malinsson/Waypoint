@@ -48,17 +48,24 @@ export function maxSpreadKm(destinations: Destination[]): number {
   return max
 }
 
-export function optimizeRoute(destinations: Destination[], manuallyReordered = false): boolean {
-  return (
-    destinations.length >= MIN_DESTINATIONS_TO_OPTIMIZE &&
-    !manuallyReordered &&
-    maxSpreadKm(destinations) <= MAX_OPTIMIZE_SPREAD_KM
-  )
+// Why optimization cannot be used for this list, or null if it can. The
+// reason is shown to the user next to the disabled checkbox.
+export function optimizeBlockedReason(destinations: Destination[], manuallyReordered = false): string | null {
+  if (destinations.length < MIN_DESTINATIONS_TO_OPTIMIZE) {
+    return `Needs at least ${MIN_DESTINATIONS_TO_OPTIMIZE} stops.`
+  }
+  if (manuallyReordered) {
+    return 'You have reordered the stops yourself, so your order is kept.'
+  }
+  if (maxSpreadKm(destinations) > MAX_OPTIMIZE_SPREAD_KM) {
+    return `Your stops are more than ${MAX_OPTIMIZE_SPREAD_KM} km apart, which is too far for this to work.`
+  }
+  return null
 }
 
 export function planTrip(
   destinations: Destination[],
-  manuallyReordered = false,
+  optimizeOrder = false,
   roundTrip = false,
   accommodationTypes: string[] = ['hotel'],
   maxDrivingSeconds = 21_600,
@@ -73,7 +80,7 @@ export function planTrip(
       ...(destination.description ? { description: destination.description } : {}),
     })),
     options: {
-      optimizeOrder: optimizeRoute(destinations, manuallyReordered),
+      optimizeOrder,
       roundTrip,
       accommodationTypes,
       maxDrivingSeconds,

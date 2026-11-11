@@ -13,7 +13,7 @@ The MVP must work with the simplest behavior: visit the destinations in the orde
 - As a guest, I can add destinations by typing an address and confirming the match shown to me.
 - As a guest, I can enter my destinations in any order and let the app work out a better visiting order (Should).
 - As a guest, I can easily move a destination up or down, and the app then respects my order (Should).
-- As a guest, I can switch between "Optimize order" and "Keep my order" (Should).
+- As a guest, I can choose to "Optimize the order of my stops" with a checkbox, and otherwise my order is kept (Should).
 - As a guest, I can see that the app reordered my stops, and go back to the order I entered (Should).
 - As a guest, I can remove a destination.
 - As a guest, I can set how many hours I am willing to drive in one stretch (Should; default 6).
@@ -58,11 +58,11 @@ Autocomplete
 Ordering
 - [ ] [Must] Without optimization, destinations are visited in exactly the order shown in the list. The first is the start and the last is the end.
 - [ ] [Should] Each destination can be moved up or down with buttons. The list and the numbered map markers update immediately. (Drag and drop is a Could.)
-- [ ] [Should] An "Optimize order" toggle is on by default. With it on, the first and last destinations stay fixed and the destinations in between may be reordered by the app.
+- [ ] [Should] An "Optimize the order of my stops" checkbox is **off by default**, because optimization is slow and can fail, so the user opts in. The checkbox is accompanied by a hint that it works best on shorter trips and may take up to a minute or fail on longer ones. With it on, the first and last destinations stay fixed and the destinations in between may be reordered by the app.
 - [ ] [Should] After planning with optimization, the list and markers are shown in the order that was actually used, and a notice says that the order was changed.
 - [ ] [Should] The notice has a "Use my order instead" action that re-plans with optimization off, using the order the user originally entered.
-- [ ] [Should] When the user moves a destination manually, the toggle switches to "Keep my order" automatically, and the next plan uses the list order as it is.
-- [ ] [Should] With fewer than 3 destinations there is nothing to optimize, so the toggle is disabled and the plan uses the given order.
+- [ ] [Should] When the user moves a destination manually, the checkbox is disabled (with the reason shown) and the next plan uses the list order as it is.
+- [ ] [Should] The checkbox is disabled, with the reason shown, when optimization cannot work: fewer than 4 destinations (the frontend minimum; 3 would have nothing to move), a manual reorder, or any two stops more than 500 km apart in a straight line (Geoapify's optimizer times out or fails on those). A disabled checkbox is never sent as `optimizeOrder: true`.
 - [ ] [Should] If optimization fails, the route is still planned in the given order and a warning is shown.
 - [ ] [Should] Break points and accommodation are always computed for the final order, never for the entered order.
 - [ ] [Could] A "Round trip" option adds the start point as the final destination.
@@ -194,7 +194,7 @@ Request:
 
 Each destination has either `location` or `address`. If only `address` is given, Express geocodes it first and fails with 422 `GEOCODING_FAILED` if there is no match.
 
-`optimizeOrder` defaults to `false` in the API (explicit is better for the MVP). The frontend sends `true` by default once the toggle exists.
+`optimizeOrder` defaults to `false` in the API (explicit is better for the MVP). The frontend sends `true` only when the user has ticked the checkbox and optimization is not blocked (see above).
 
 Response 200 (shape; the exact numbers depend on the route):
 ```json
@@ -495,8 +495,8 @@ Layout: the Plan page has a side panel (destinations, options, results) and a la
 - **Partial results:** if the response has `partial: true`, show a small line under the list ("Some suggestions may be missing"), not an error banner.
 - **Fallback message:** if suggestions fail completely, show a small line under the field ("Suggestions are unavailable, press Enter to search"), not an error banner.
 - **Destination list:** numbered, each item with a remove button and up/down buttons. Every item has a stable client-side `id`. Marker numbers on the map match the list. A short hint explains: "The first is your start and the last is your end. Stops in between can be reordered."
-- **Options:** the "Optimize order / Keep my order" toggle, the driving limit input (hours), and the accommodation type (MVP: fixed to hotel). A "Round trip" checkbox is a Could.
-- **Manual move:** moving an item switches the toggle to "Keep my order". The map markers renumber at once, and the route is only recalculated when the user presses "Plan trip" again.
+- **Options:** the "Optimize the order of my stops" checkbox (off by default), the driving limit input (hours), and the accommodation type (MVP: fixed to hotel). A "Round trip" checkbox is a Could.
+- **Manual move:** moving an item disables the optimize checkbox. The map markers renumber at once, and the route is only recalculated when the user presses "Plan trip" again.
 - **Plan button:** disabled with fewer than 2 destinations or while loading.
 - **Reorder notice:** after a response with `orderOptimized: true`, show "We reordered your stops" with a "Use my order instead" button.
 - **Results:** a total summary (distance, driving time), then each leg with distance and time, with break points listed under the leg they belong to, each with its accommodation list.
@@ -640,7 +640,7 @@ Routing and planning
 - What does Geoapify's stop optimization minimize, driving time or distance? Verify with a few real routes before the UI or the report calls the result the "fastest" order. Until it is verified, the UI label says "Optimize order".
 - What are the limits of the stop optimization (maximum number of stops) and how does it count against the daily quota? Check the Geoapify documentation and test with 10 destinations.
 - Is the result deterministic? If two identical requests can return different orders, decide how the UI should behave.
-- Should "Optimize order" be on by default? Current decision: yes. Reconsider if testers find the reordering surprising.
+- Should "Optimize order" be on by default? Decision (changed after the first deployment): no, it is an opt-in checkbox. On Render the optimized request often timed out or failed (`Exceeded max iterations in CostMatrix`), so users saw a slow plan with a warning they never asked for.
 - Is 10 destinations a sensible maximum? It limits quota use and keeps the UI simple.
 - When a suggestion or an attraction is added as a stop, does the destination keep the place id (for favorites)? If so, add an optional `placeId` to the destination schema.
 

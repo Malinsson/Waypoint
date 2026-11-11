@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../api/client.ts'
 import { getHealth } from '../../api/health.ts'
-import { getTrip, optimizeRoute, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
+import { getTrip, optimizeBlockedReason, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
@@ -25,6 +25,7 @@ const LAST_PLAN_STORAGE_KEY = 'lastPlan'
 type PersistedPlan = {
   destinations: Destination[]
   manuallyReordered: boolean
+  optimizeOrder: boolean
   roundTrip: boolean
   accommodationTypes: AccommodationType[]
   maxDrivingSeconds: number
@@ -60,6 +61,8 @@ function readPersistedPlan(): PersistedPlan | null {
     return {
       destinations: value.destinations as Destination[],
       manuallyReordered: value.manuallyReordered,
+      // Plans stored before the checkbox existed have no value: default off
+      optimizeOrder: value.optimizeOrder === true,
       roundTrip: value.roundTrip,
       accommodationTypes: value.accommodationTypes as AccommodationType[],
       maxDrivingSeconds: value.maxDrivingSeconds,
@@ -81,6 +84,8 @@ function PlanPage() {
   const [storedPlan] = useState<PersistedPlan | null>(readPersistedPlan)
   const [destinations, setDestinations] = useState<Destination[]>(storedPlan?.destinations ?? [])
   const [manuallyReordered, setManuallyReordered] = useState(storedPlan?.manuallyReordered ?? false)
+  // Off by default: optimizing is slow and can fail, so the user opts in
+  const [optimizeOrder, setOptimizeOrder] = useState(storedPlan?.optimizeOrder ?? false)
   const [roundTrip, setRoundTrip] = useState(storedPlan?.roundTrip ?? false)
   const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(storedPlan?.accommodationTypes ?? ['hotel'])
   const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(storedPlan?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
@@ -146,6 +151,7 @@ function PlanPage() {
       localStorage.setItem(LAST_PLAN_STORAGE_KEY, JSON.stringify({
         destinations,
         manuallyReordered,
+        optimizeOrder,
         roundTrip,
         accommodationTypes,
         maxDrivingSeconds,
@@ -154,10 +160,15 @@ function PlanPage() {
         activeBreakpointIndex,
       }))
     }
-  }, [plan, destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds, step, activeBreakpointIndex])
+  }, [plan, destinations, manuallyReordered, optimizeOrder, roundTrip, accommodationTypes, maxDrivingSeconds, step, activeBreakpointIndex])
 
   // Any change to the list makes the old route wrong, so it is cleared and
   // the user plans again
+  // A checked box is ignored while optimization is blocked (too few stops,
+  // manual order, too far apart), so a stale choice can never be sent
+  const optimizeBlockedMessage = optimizeBlockedReason(destinations, manuallyReordered)
+  const willOptimize = optimizeOrder && optimizeBlockedMessage === null
+
   function updateDestinations(next: Destination[]) {
     setDestinations(next)
     setManuallyReordered(false)
@@ -226,7 +237,7 @@ function PlanPage() {
       // The page warm-up may still be waking Render's geoservice. Waiting for
       // it prevents the plan request from racing the cold start.
       await warmupPromise.current
-      const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds)
+      const nextPlan = await planTrip(destinations, willOptimize, roundTrip, accommodationTypes, maxDrivingSeconds)
       setPlan(nextPlan)
       // Show the list in the order that was actually planned (spec: ordering
       // rules). The return stop of a round trip is not a list item, and
@@ -439,7 +450,12 @@ function PlanPage() {
             <PreferencesStep
               accommodationTypes={accommodationTypes}
               maxDrivingSeconds={maxDrivingSeconds}
-              willOptimize={optimizeRoute(destinations, manuallyReordered)}
+              optimizeOrder={optimizeOrder}
+              optimizeBlockedReason={optimizeBlockedMessage}
+              onOptimizeOrderChange={(enabled) => {
+                setOptimizeOrder(enabled)
+                setPlan(null)
+              }}
               planning={planning}
               plan={plan}
               planError={planError}

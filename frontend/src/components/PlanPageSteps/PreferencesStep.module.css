@@ -5,6 +5,17 @@
     transform: none;
 }
 
+.optimizeLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.disabledCheckbox {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
 .editingBanner {
     display: flex;
     align-items: center;
