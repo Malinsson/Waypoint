@@ -1,0 +1,17 @@
+.carIcon {
+    width: minmax(10rem, 60%);
+}
+
+.light {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .light {
+        display: block;
+    }
+
+    .dark {
+        display: none;
+    }
+}
