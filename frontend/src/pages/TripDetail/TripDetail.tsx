@@ -246,15 +246,15 @@ function TripsDetailPage() {
               <p>Maximum driving time: {trip.maxDrivingHours} hours</p>
 
 
-              <h3 ref={destinationsHeadingRef} tabIndex={-1}>Destinations</h3>
-              <ol>
+              <h3 ref={destinationsHeadingRef} tabIndex={-1}>Destinations:</h3>
+              <ol className={styles.destinationsList} aria-labelledby={destinationsHeadingRef.current?.id}>
                 {trip.destinations.map((destination, index) => (
                   <li key={destination.locationId._id}>
                     {destination.locationId.name} {destination.locationId.description && `- ${destination.locationId.description}`}
                     {destination.description && ` - ${destination.description ?? ""}`}
                     {/* Ratings are only possible once the trip is completed */}
                     {trip.completedAt && (
-                      <div>
+                      <div className={styles.destinationRating}>
                         <StarRating
                           label={destination.locationId.name}
                           value={destination.rating?.stars}
@@ -269,8 +269,8 @@ function TripsDetailPage() {
 
               {trip.breakpoints.length > 0 && (
                 <>
-                  <h3>Breakpoints</h3>
-                  <ul>
+                  <h3>Breakpoints:</h3>
+                  <ol className={styles.destinationsList}>
                     {trip.breakpoints.map((breakpoint, index) => (
                       <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
                         {breakpoint.skipped
@@ -280,11 +280,11 @@ function TripsDetailPage() {
                             ?? 'Suggested stop'}
                       </li>
                     ))}
-                  </ul>
+                  </ol>
                 </>
               )}
 
-              <h3>Accommodation</h3>
+              <h3>Accommodation selections:</h3>
               <p>{trip.accommodationPreference.types.join(', ')}</p>
             </article>
           </div>

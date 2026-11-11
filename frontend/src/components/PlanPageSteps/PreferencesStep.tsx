@@ -132,7 +132,7 @@ function PreferencesStep({
       {planError && unreachableNames !== null && (
         // Trying again with the same list cannot work, so the only action
         // offered is going back to fix the destinations
-        <div className="banner error" role="alert">
+        <div className={`banner error ${styles.errorBanner} `} role="alert">
           <SquareExclamationPoint  />
           <p>{planError}</p>
           <p>

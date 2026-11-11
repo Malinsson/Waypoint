@@ -47,8 +47,10 @@ option {
     margin-top: 0;
 }
 
-.banner button {
+
+.errorBanner button {
     color: black;
+    justify-self: flex-end;
 }
 
 /* Custom styles for the checkbox input */
@@ -128,9 +130,10 @@ input[type=range]::-ms-track {
 
 input[type=range]::-webkit-slider-runnable-track {
     width: 100%;
-    height: 0.5rem;
+    height: 0.75rem;
     cursor: pointer;
     background: var(--cornsilk);
+    border: 2px solid var(--charcoal-blue);
     box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
 }
 
@@ -157,9 +160,10 @@ input[type=range]::-moz-range-thumb {
 
 input[type=range]::-moz-range-track {
     width: 100%;
-    height: 0.5rem;
+    height: 0.75rem;
     cursor: pointer;
     background: var(--cornsilk);
+    border: 2px solid var(--charcoal-blue);
     box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
 
 }

@@ -1,5 +1,9 @@
 .row {
     margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
 }
 
 .row h1 {
@@ -29,7 +33,20 @@
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    width: clamp(28rem, 35%, 42rem);
+    width: clamp(100%, 35%, 42rem);
+}
+
+.destinationsList {
+    padding-left: 1rem;
+    margin: 0 0.5rem;
+}
+
+.destinationsList li {
+    margin: 0.5rem 0;
+}
+
+.destinationRating {
+    padding: 0.5rem 0;
 }
 
 .tripInfo p {
