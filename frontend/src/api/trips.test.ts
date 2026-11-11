@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Destination } from '../types/api.ts'
-import { maxSpreadKm, optimizeRoute } from './trips.ts'
+import { maxSpreadKm, optimizeBlockedReason } from './trips.ts'
 
 const destinations: Destination[] = [
   { id: '1', name: 'Start', location: [18, 59], description: undefined },
@@ -9,26 +9,26 @@ const destinations: Destination[] = [
   { id: '4', name: 'End', location: [16, 57], description: undefined },
 ]
 
-describe('optimizeRoute', () => {
-  it('optimizes trips with at least four destinations by default', () => {
-    expect(optimizeRoute(destinations)).toBe(true)
+describe('optimizeBlockedReason', () => {
+  it('allows optimizing trips with at least four destinations', () => {
+    expect(optimizeBlockedReason(destinations)).toBeNull()
   })
 
-  it('does not optimize exactly three destinations', () => {
-    expect(optimizeRoute(destinations.slice(0, 3))).toBe(false)
+  it('blocks exactly three destinations', () => {
+    expect(optimizeBlockedReason(destinations.slice(0, 3))).not.toBeNull()
   })
 
-  it('does not optimize fewer than four destinations', () => {
-    expect(optimizeRoute(destinations.slice(0, 2))).toBe(false)
+  it('blocks fewer than four destinations', () => {
+    expect(optimizeBlockedReason(destinations.slice(0, 2))).not.toBeNull()
   })
 
-  it('does not optimize when stops are too far apart', () => {
+  it('blocks when stops are too far apart', () => {
     // Malmo at the end is roughly 1100 km from Kiruna
     const far: Destination[] = [
       ...destinations.slice(0, 3),
       { id: '5', name: 'Kiruna', location: [20.2, 67.85], description: undefined },
     ]
-    expect(optimizeRoute(far)).toBe(false)
+    expect(optimizeBlockedReason(far)).toContain('km apart')
   })
 
   it('measures known distances correctly', () => {
@@ -41,7 +41,7 @@ describe('optimizeRoute', () => {
     expect(km).toBeLessThan(420)
   })
 
-  it('does not optimize a manually reordered trip', () => {
-    expect(optimizeRoute(destinations, true)).toBe(false)
+  it('blocks a manually reordered trip', () => {
+    expect(optimizeBlockedReason(destinations, true)).toContain('reordered')
   })
 })

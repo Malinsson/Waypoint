@@ -10,7 +10,9 @@ import { SquareExclamationPoint } from 'lucide-react'
 type PreferencesStepProps = {
   accommodationTypes: AccommodationType[]
   maxDrivingSeconds: number
-  willOptimize: boolean
+  optimizeOrder: boolean
+  // Why the checkbox is unavailable, or null when it can be used
+  optimizeBlockedReason: string | null
   planning: boolean
   plan: PlanResponse | null
   planError: string | null
@@ -19,6 +21,7 @@ type PreferencesStepProps = {
   unreachableNames: string[] | null
   onToggleAccommodationType: (type: AccommodationType) => void
   onMaxDrivingSecondsChange: (seconds: number) => void
+  onOptimizeOrderChange: (enabled: boolean) => void
   onBack: () => void
   onPlan: () => void
   onTryAgain: () => void
@@ -29,13 +32,15 @@ type PreferencesStepProps = {
 function PreferencesStep({
   accommodationTypes,
   maxDrivingSeconds,
-  willOptimize,
+  optimizeOrder,
+  optimizeBlockedReason,
   planning,
   plan,
   planError,
   unreachableNames,
   onToggleAccommodationType,
   onMaxDrivingSecondsChange,
+  onOptimizeOrderChange,
   onBack,
   onPlan,
   onTryAgain,
@@ -108,11 +113,21 @@ function PreferencesStep({
 
       </div>
 
-      <p className="hint">
-        {willOptimize
-          ? 'Your stops will be reordered to give the shortest route. The first and last stop stay in place.'
-          : 'Your stops will keep the order you entered them in.'}
-      </p>
+      <div className={`${shared.planContent} ${optimizeBlockedReason !== null ? styles.disabledCheckbox : ''}`}>
+        <label className={styles.optimizeLabel}>
+          <input
+            type="checkbox"
+            checked={optimizeOrder && optimizeBlockedReason === null}
+            onChange={(event) => onOptimizeOrderChange(event.target.checked)}
+            disabled={planning || optimizeBlockedReason !== null}
+            className={`${styles.checkbox} `}
+          />
+          Optimize the order of my stops
+        </label>
+        <p className="hint">
+          {optimizeBlockedReason ?? 'Reorders the stops in between to give the shortest route. The first and last stop stay in place. Works best on shorter trips: it can take up to a minute and may fail on longer ones. If it fails, your own order is used.'}
+        </p>
+      </div>
 
         </>
         ) : (
@@ -127,7 +142,13 @@ function PreferencesStep({
           </div>
         )}
 
-      {planning && <p className="hint" role="status">Planning your trip…</p>}
+      {planning && (
+        <p className="hint" role="status">
+          {optimizeOrder && optimizeBlockedReason === null
+            ? 'Planning your trip and optimizing the order. This can take up to a minute…'
+            : 'Planning your trip…'}
+        </p>
+      )}
 
       {planError && unreachableNames !== null && (
         // Trying again with the same list cannot work, so the only action
