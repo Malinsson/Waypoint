@@ -1,7 +1,7 @@
 import styles from './AddDestinationForm.module.css'
 import { useId, useState, type FormEvent, type KeyboardEvent, useEffect } from 'react'
 import { useAutocomplete } from '../../hooks/use-autocomplete.ts'
-import type { GeocodeResult, Suggestion } from '../../types/api.ts'
+import type { GeocodeResult, LonLat, Suggestion } from '../../types/api.ts'
 import { optionId } from '../../utils/combobox.ts'
 import SuggestionDropdown from '../SuggestionDropdown/SuggestionDropdown.tsx'
 import { useAuth } from '../../context/auth-context.ts'
@@ -10,10 +10,12 @@ import { Search } from 'lucide-react'
 type AddDestinationFormProps = {
   onAdd: (result: GeocodeResult) => void
   disabled: boolean
+  // Suggestions near this point are ranked first, e.g. the last destination
+  biasLocation?: LonLat | undefined
 }
 
 // Search for an address. While typing, suggestions appear in a dropdown.
-function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
+function AddDestinationForm({ onAdd, disabled, biasLocation }: AddDestinationFormProps) {
   const { user } = useAuth()
   const [query, setQuery] = useState('')
   const [message, setMessage] = useState<string | null>(null)
@@ -22,7 +24,7 @@ function AddDestinationForm({ onAdd, disabled }: AddDestinationFormProps) {
   const [open, setOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
-  const { suggestions, status, partial } = useAutocomplete(query)
+  const { suggestions, status, partial } = useAutocomplete(query, biasLocation)
   // useId gives an id that is unique on the page and the same on every render
   const listboxId = useId()
   const expanded = open && suggestions.length > 0

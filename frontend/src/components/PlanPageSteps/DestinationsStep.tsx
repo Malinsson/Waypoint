@@ -40,7 +40,12 @@ function DestinationsStep({
   return (
     <>
       <div className={styles.planContent}>
-        <AddDestinationForm key={resetCount} onAdd={onAdd} disabled={!canAddMore || planning} />
+        <AddDestinationForm
+          key={resetCount}
+          onAdd={onAdd}
+          disabled={!canAddMore || planning}
+          biasLocation={destinations.at(-1)?.location}
+        />
         {duplicateDestinationError && (
           <p className="error" role="alert">
             {duplicateDestinationError}
