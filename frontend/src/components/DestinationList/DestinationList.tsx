@@ -9,11 +9,13 @@ type DestinationListProps = {
   onRemove: (id: string) => void
   onReorder: (ids: string[]) => void
   roundTrip: boolean
+  // Destinations the route could not reach, highlighted so the user knows what to fix
+  unreachableIds?: string[]
   onRoundTripChange: (enabled: boolean) => void
   disabled: boolean
 }
 
-function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRoundTripChange, disabled }: DestinationListProps) {
+function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreachableIds = [], onRoundTripChange, disabled }: DestinationListProps) {
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dropIndex, setDropIndex] = useState<number | null>(null)
 
@@ -79,43 +81,48 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, onRound
           const isReturn = isReturnDestination(destination)
           const isDragging = draggedId === destination.id
           const isDropTarget = dropIndex === index && !isDragging
+          const isUnreachable = unreachableIds.includes(destination.id)
 
           return (
           <li
             key={destination.id}
-            className={`${isDragging ? styles.dragging : ''} ${isDropTarget ? styles.dropTarget : ''}`}
+            className={`${isDragging ? styles.dragging : ''} ${isDropTarget ? styles.dropTarget : ''} ${isUnreachable ? styles.unreachable : ''}`}
             draggable={!disabled && !isReturn}
             onDragStart={(event) => handleDragStart(event, destination.id)}
             onDragOver={(event) => handleDragOver(event, index)}
             onDrop={handleDrop}
             onDragEnd={clearDrag}
           >
-            <span className={styles.dragHandle} aria-hidden="true">⠿</span>
-            <span className="destination-name">
-              <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
-            </span>
-            {!isReturn && (
-              <span className={styles.moveButtons}>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => move(destination.id, -1)}
-                  disabled={disabled || index === 0}
-                  aria-label={`Move ${destination.name} up`}
-                >
-                  ↑
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => move(destination.id, 1)}
-                  disabled={disabled || index === destinations.length - 1}
-                  aria-label={`Move ${destination.name} down`}
-                >
-                  ↓
-                </Button>
+            <div className={styles.destinationContent}>
+              <span className={styles.dragHandle} aria-hidden="true">⠿</span>
+              {!isReturn && (
+                <span className={styles.moveButtons}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => move(destination.id, -1)}
+                    disabled={disabled || index === 0}
+                    aria-label={`Move ${destination.name} up`}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => move(destination.id, 1)}
+                    disabled={disabled || index === destinations.length - 1}
+                    aria-label={`Move ${destination.name} down`}
+                  >
+                    ↓
+                  </Button>
+                </span>
+              )}
+
+              <span className="destination-name">
+                <strong>{index + 1}.</strong> {destination.name} {destination.description && <span className="destination-description"> - {destination.description}</span>}
+                {isUnreachable && <span className={styles.unreachableLabel}> (no road connection)</span>}
               </span>
-            )}
+            </div>
             <Button
               type="button"
               variant="tertiary"

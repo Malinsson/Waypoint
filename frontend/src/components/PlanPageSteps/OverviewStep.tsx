@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../atoms/Button.tsx'
 import type { PlanResponse } from '../../types/api.ts'
+import styles from '../../pages/Plan/PlanPage.module.css'
 
-type ReviewStepProps = {
+type OverviewStepProps = {
   plan: PlanResponse
   isLoggedIn: boolean
   saving: boolean
@@ -10,12 +11,14 @@ type ReviewStepProps = {
   saveError: string | null
   onSave: () => void
   onBack: () => void
+  onStartOver: () => void
+  saveButtonLabel?: string
 }
 
-function ReviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave, onBack }: ReviewStepProps) {
+function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave, onBack, onStartOver, saveButtonLabel = 'Save trip' }: OverviewStepProps) {
   return (
     <>
-      <section aria-label="Selected accommodation stops">
+      <section aria-label="Selected accommodation stops" className={styles.planContent}>
         <h2>Accommodation stops</h2>
         <p className="hint">Your selected places to stay along the route.</p>
         <ol>
@@ -38,22 +41,25 @@ function ReviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave,
           })}
         </ol>
       </section>
-      <section aria-label="Save trip">
+      <section aria-label="Save trip" >
+        <div className={styles.planActions}>
+          <Button type="button" variant="tertiary" onClick={onStartOver}>Plan new trip</Button>
+          <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
         {isLoggedIn ? (
           <>
             <Button type="button" onClick={onSave} disabled={saving}>
-              {saving ? 'Saving…' : 'Save trip'}
+              {saving ? 'Saving…' : saveButtonLabel}
             </Button>
-            {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
-            {saveError && <p className="banner error" role="alert">{saveError}</p>}
           </>
         ) : (
           <p className="hint"><Link to="/login">Log in</Link> to save this trip.</p>
         )}
-        <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
+        {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
+        {saveError && <p className="banner error" role="alert">{saveError}</p>}
+        </div>
       </section>
     </>
   )
 }
 
-export default ReviewStep
+export default OverviewStep

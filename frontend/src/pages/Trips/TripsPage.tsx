@@ -5,6 +5,8 @@ import { listTrips } from '../../api/trips.ts'
 import type { SaveTripResponse } from '../../types/api.ts';
 import styles from './TripsPage.module.css';
 import { ChevronRight } from 'lucide-react';
+import StarRating from '../../components/StarRating/StarRating.tsx';
+import Loader from '../../components/atoms/Loader.tsx';
 
 function TripsPage() {
 
@@ -35,8 +37,30 @@ function TripsPage() {
             key={trip._id} 
             className={`decorativeBorder ${styles.tripItem}`}>
                 <NavLink to={`/trips/${trip._id}`}>
+
                   <h2>{trip.name}</h2>
-                  <p>Created at: {new Date(trip.createdAt).toLocaleString()}</p>
+                  {trip.totalRating && (
+                    <div className={styles.row}>
+                      <StarRating
+                      label="Trip Rating"
+                      value={trip.totalRating.stars}
+                      onChange={() => {}}
+                      />
+                      <p>{trip.totalRating.stars}/5</p>
+                    </div>
+                      
+
+                  )}
+                  <p>Destinations in trip: {trip.destinations.length}</p>
+
+                  {trip.completedAt !== undefined ? (
+                    <p className={styles.completed}>
+                      Completed on: {new Date(trip.completedAt).toLocaleString()}
+                    </p>
+                  ) : (
+                    <p>Created at: {new Date(trip.createdAt).toLocaleString()}</p>
+                  )}
+                  
                   <span>
                     View trip
                     <ChevronRight className={styles.chevron} />
@@ -46,7 +70,7 @@ function TripsPage() {
           )))} 
         </ul>
         
-        {loading && <p>Loading trips...</p>}
+        {loading && <Loader />}
         {error && <p className="error" role="alert">{error}</p>}
     </section>
   );        

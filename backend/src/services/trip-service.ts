@@ -29,10 +29,12 @@ export type SaveTripInput = {
   name?: string | undefined;
   destinations: TripDestinationInput[];
   route: unknown;
+  roundTrip: boolean;
   breakpoints: BreakpointInput[];
   maxDrivingHours: number;
   accommodationPreference: { types: string[] };
 };
+
 
 function objectId(id: string, message: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(id)) {
@@ -120,6 +122,7 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
         : {}),
     })),
     route: input.route,
+    roundTrip: input.roundTrip,
     maxDrivingHours: input.maxDrivingHours,
     accommodationPreference: input.accommodationPreference,
   });
@@ -144,9 +147,51 @@ export async function getTrip(userId: string, id: string) {
   return trip ?? notFound();
 }
 
-export async function updateTrip(userId: string, id: string, name: string) {
+export async function renameTrip(userId: string, id: string, name: string) {
   const trip = await getOwnedTrip(userId, id);
   trip.name = name;
+  await trip.save();
+  return trip;
+}
+
+export async function updateTrip(userId: string, id: string, input: SaveTripInput) {
+  const trip = await getOwnedTrip(userId, id);
+  const locations = await Promise.all(input.destinations.map(upsertLocation));
+
+  for (const breakpoint of input.breakpoints) {
+    if (
+      breakpoint.selectedAccommodationId
+      && !breakpoint.accommodation?.some(({ id: accommodationId }) => accommodationId === breakpoint.selectedAccommodationId)
+    ) {
+      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
+    }
+  }
+
+  trip.name = input.name ?? trip.name;
+  trip.destinations = locations.map((location) => ({ locationId: location._id }));
+  trip.route = input.route;
+  trip.roundTrip = input.roundTrip;
+  trip.breakpoints = input.breakpoints.map((breakpoint) => ({
+    longitude: breakpoint.longitude,
+    latitude: breakpoint.latitude,
+    ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
+    ...(breakpoint.skipped ? { skipped: true } : {}),
+    ...(breakpoint.accommodation
+      ? {
+          accommodation: breakpoint.accommodation.map((place) => ({
+            id: place.id,
+            name: place.name,
+            type: place.type,
+            longitude: place.location[0],
+            latitude: place.location[1],
+            distanceMeters: place.distanceMeters,
+            ...(place.address === undefined ? {} : { address: place.address }),
+          })),
+        }
+      : {}),
+  }));
+  trip.maxDrivingHours = input.maxDrivingHours;
+  trip.accommodationPreference = input.accommodationPreference;
   await trip.save();
   return trip;
 }
@@ -157,4 +202,67 @@ export async function deleteTrip(userId: string, id: string): Promise<void> {
     userId: objectId(userId, "User id is not valid"),
   });
   if (result.deletedCount === 0) notFound();
+}
+
+// What is being rated. Ratings are embedded in the trip, so a target is a
+// position in one of its arrays (or the trip as a whole).
+export type RatingTarget =
+  | { kind: "trip" }
+  | { kind: "destination"; index: number }
+  | { kind: "breakpoint"; index: number };
+
+export type RatingInput = { stars: number; comment?: string | undefined };
+
+// Returns the document path of the rating, so set() can write or clear it.
+// Throws if the position does not exist on this trip.
+function ratingPath(
+  trip: { destinations: unknown[]; breakpoints: unknown[] },
+  target: RatingTarget,
+): string {
+  if (target.kind === "trip") return "totalRating";
+
+  const list = target.kind === "destination" ? trip.destinations : trip.breakpoints;
+  if (target.index >= list.length) {
+    throw new AppError(404, "PLACE_NOT_FOUND", "That place is not part of this trip");
+  }
+  return `${target.kind === "destination" ? "destinations" : "breakpoints"}.${target.index}.rating`;
+}
+
+// Only a trip that has been driven can be rated, and the owner filter in
+// getOwnedTrip means nobody can rate another user's trip.
+async function getRatableTrip(userId: string, id: string) {
+  const trip = await getOwnedTrip(userId, id);
+  if (!trip.completedAt) {
+    throw new AppError(409, "TRIP_NOT_COMPLETED", "Mark the trip as completed before rating it");
+  }
+  return trip;
+}
+
+export async function rateTrip(userId: string, id: string, target: RatingTarget, rating: RatingInput) {
+  const trip = await getRatableTrip(userId, id);
+  trip.set(ratingPath(trip, target), {
+    stars: rating.stars,
+    ...(rating.comment ? { comment: rating.comment } : {}),
+  });
+  await trip.save();
+  return trip;
+}
+
+export async function clearTripRating(userId: string, id: string, target: RatingTarget) {
+  const trip = await getRatableTrip(userId, id);
+  trip.set(ratingPath(trip, target), undefined);
+  await trip.save();
+  return trip;
+}
+
+export async function completeTrip(userId: string, id: string) {
+  const trip = await getOwnedTrip(userId, id);
+
+  if (trip.completedAt) {
+    throw new AppError(409, "TRIP_ALREADY_COMPLETED", "This trip has already been marked as completed");
+  }
+
+  trip.completedAt = new Date();
+  await trip.save();
+  return trip;
 }

@@ -12,16 +12,20 @@ import Footer from './components/Footer/Footer.tsx'
 import MobileNavigation from './components/MobileNavigation/MobileNavigation.tsx'
 import TripDetailPage from './pages/TripDetail/TripDetail.tsx'
 import FavoriteDetailPage from './pages/FavoriteDetail/FavoriteDetailPage.tsx'
+import PrivacyPopup from './components/PrivacyPopup/PrivacyPopup.tsx'
+import TripEditPage from './pages/TripEdit/TripEditPage.tsx'
+import NotFoundPage from './pages/NotFound/NotFoundPage.tsx'
 
 function App() {
-
 
 
   return (
     <>
       <Header />
       <main>
+        <PrivacyPopup />
         <Routes>
+          <Route path="*" element={<NotFoundPage />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/login" element={<LoginPage />} />
@@ -34,6 +38,7 @@ function App() {
 
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailPage />} />
+            <Route path="/trips/:id/edit" element={<TripEditPage />} />
           </Route>
 
         </Routes>

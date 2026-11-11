@@ -16,6 +16,14 @@
   padding-bottom: 0.5rem;
 }
 
+.destinationContent {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .destinationList li[draggable="true"] {
   cursor: grab;
 }
@@ -33,16 +41,30 @@
   padding-top: 0.35rem;
 }
 
+/* A translucent tint of --burnt-peach stays readable in light and dark mode */
+.destinationList li.unreachable {
+  background: rgba(231, 111, 81, 0.25);
+  border: 3px solid var(--burnt-peach);
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+
+.unreachableLabel {
+  font-weight: 600;
+}
+
 .dragHandle {
   flex: 0 0 auto;
-  color: var(--charcoal-blue);
+  color: var(--cornsilk);
   font-size: 1.25rem;
   line-height: 1;
   user-select: none;
+  display: none;
 }
 
 .moveButtons {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
 }
 
@@ -54,4 +76,13 @@
 .hint {
   font-size: 0.9rem;
   opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .dragHandle {
+    display: inline-block;
+  }
+  .moveButtons {
+    display: none;
+  }
 }

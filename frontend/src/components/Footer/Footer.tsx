@@ -7,7 +7,10 @@ function Footer() {
             <div className='decorativeDivider decorativeDivider--top'></div>
 
             <div className={styles.socialLinks}>
-                <img src="/Icons/logo.svg" alt="Waypoint logo" className={styles.logo} />
+
+                <img src="/Icons/logo.svg" alt="Waypoint logo" className={`${styles.logo} ${styles.logoLight}`} />
+                <img src="/Icons/logo-dark.svg" alt="Waypoint logo" className={`${styles.logo} ${styles.logoDark}`} />
+                
                 <ul className={styles.links}>
                     <li>
                         <a href="/privacy">Privacy Policy</a>

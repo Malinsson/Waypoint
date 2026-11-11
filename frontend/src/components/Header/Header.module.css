@@ -38,6 +38,10 @@ nav a.active {
   margin-left: auto;
 }
 
+.logoutButton {
+  background-color: var(--cornsilk)
+}
+
 @media (min-width: 768px) {
   .mobileNav {
     display: none;
@@ -47,4 +51,10 @@ nav a.active {
     display: flex;
   }
 
+}
+
+@media (prefers-color-scheme: dark) {
+  .logoutButton {
+    background-color: var(--sandy-brown);
+  }
 }

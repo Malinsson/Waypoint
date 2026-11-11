@@ -1,6 +1,7 @@
 :root {
   --charcoal-blue: #264653;
   --verdigris: #2a9d8f;
+  --muted-verdigris: #6B958A;
   --cornsilk: #fefae0;
   --sandy-brown: #f4a261;
   --burnt-peach: #e76f51;
@@ -90,6 +91,20 @@ nav {
 .hint {
   font-size: 0.9rem;
   opacity: 0.8;
+}
+
+.banner {
+  border-radius: 15px 225px 255px 15px 15px 255px 225px 15px;
+  border-style: solid;
+  border-color: var(--burnt-peach);
+  border-width: 2px;
+  border-bottom-left-radius: 15px 255px;
+  border-bottom-right-radius: 225px 15px;
+  border-top-left-radius: 255px 15px;
+  border-top-right-radius: 15px 225px;
+  box-shadow: rgba(0, 0, 0, .2) 15px 28px 25px -18px;
+  padding: 1rem;
+  background: var(--cornsilk);
 }
 
 .error {

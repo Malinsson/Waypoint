@@ -183,7 +183,8 @@ Auth column: `-` public, `opt` optional auth (works for guests), `req` login req
 | POST | `/api/trips` | req | Save a planned trip | Should |
 | GET | `/api/trips` | req | List my trips | Should |
 | GET/PATCH/DELETE | `/api/trips/:id` | req | Read, update, delete a trip | Should |
-| PATCH | `/api/trips/:id/complete` | req | Mark completed, rate trip and places | Should |
+| POST | `/api/trips/:id/complete` | req | Mark trip as completed | Should |
+| PUT/DELETE | `/api/trips/:id/rating` | req | Set or clear a rating (trip, destination or stop) on a completed trip | Should |
 | GET/POST/DELETE | `/api/favorites` | req | Manage favorite places | Should |
 
 Error responses use one consistent shape: `{ "error": { "code": "STRING", "message": "Human readable" } }` with appropriate HTTP status codes.

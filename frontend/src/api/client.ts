@@ -9,12 +9,15 @@ export class ApiError extends Error {
   // HTTP status, when a response arrived. Lets callers react to a status
   // even when the body is not our JSON error shape.
   status?: number
+  // Extra info some errors carry, e.g. which destinations have no road connection
+  details?: Record<string, unknown>
 
-  constructor(code: string, message: string, status?: number) {
+  constructor(code: string, message: string, status?: number, details?: Record<string, unknown>) {
     super(message)
     this.name = 'ApiError'
     this.code = code
     if (status !== undefined) this.status = status
+    if (details !== undefined) this.details = details
   }
 }
 
@@ -33,7 +36,7 @@ type RequestOptions = {
 }
 
 async function request<T>(
-  method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   body?: unknown,
   options: RequestOptions = {},
@@ -79,6 +82,7 @@ async function request<T>(
       errorBody?.error?.code ?? 'HTTP_ERROR',
       errorBody?.error?.message ?? `Request failed with status ${response.status}`,
       response.status,
+      errorBody?.error?.details,
     )
   }
 
@@ -98,6 +102,10 @@ export function apiPost<T>(path: string, body: unknown): Promise<T> {
 
 export function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return request<T>('PATCH', path, body)
+}
+
+export function apiPut<T>(path: string, body: unknown): Promise<T> {
+  return request<T>('PUT', path, body)
 }
 
 export function apiDelete<T = void>(path: string): Promise<T> {

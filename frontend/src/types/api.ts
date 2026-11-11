@@ -153,8 +153,11 @@ export type PlanResponse = {
 export type SavedTrip = {
   _id: string
   name: string
+  destinations: TripDestination[]
   createdAt: string
   updatedAt: string
+  completedAt?: string
+  totalRating?: TripRating
 }
 
 export type SaveTripResponse = {
@@ -177,6 +180,7 @@ export type Trip = {
   destinations: TripDestination[]
   breakpoints: TripBreakpoint[]
   route: PlanResponse['route']
+  roundTrip: boolean
   maxDrivingHours: number
   accommodationPreference: { types: string[] }
   totalRating?: TripRating
@@ -189,6 +193,12 @@ export type TripRating = {
   stars: number
   comment?: string
 }
+
+// What a rating belongs to. Mirrors RatingTarget in backend/src/services/trip-service.ts
+// (the backend uses `kind`; here the same values are sent as `target`), keep in sync.
+export type RatingTarget =
+  | { target: 'trip' }
+  | { target: 'destination' | 'breakpoint'; index: number }
 
 export type TripLocation = {
   _id: string
@@ -230,5 +240,6 @@ export type ApiErrorBody = {
   error: {
     code: string
     message: string
+    details?: Record<string, unknown>
   }
 }

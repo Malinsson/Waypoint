@@ -25,7 +25,7 @@
 }
 
 .active {
-    background-color: var(--verdigris);
+    background-color: var(--cornsilk);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s, box-shadow 0.3s;
 }
@@ -39,5 +39,11 @@
 @media (min-width: 768px) {
     .mobileNav {
         display: none;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .active {
+        background-color: var(--verdigris);
     }
 }

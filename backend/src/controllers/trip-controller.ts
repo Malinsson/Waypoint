@@ -7,7 +7,12 @@ import {
   getTrip as getTripService,
   listTrips as listTripsService,
   saveTrip as saveTripService,
+  renameTrip as renameTripService,
   updateTrip as updateTripService,
+  completeTrip as completeTripService,
+  rateTrip as rateTripService,
+  clearTripRating as clearTripRatingService,
+  type RatingTarget,
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
@@ -96,16 +101,14 @@ export async function plan(req: Request, res: Response) {
 }
 
 
-
-
 export const tripInputSchema = z.object({
   name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters").optional(),
   destinations: z
     .array(destinationSchema.omit({ id: true }), "Destinations are required")
     .min(2, "Add at least 2 destinations")
     .max(10, "You can add at most 10 destinations"),
-  roundTrip: z.boolean().default(false),
   route: z.unknown().refine((route) => route !== undefined, "Route is required"),
+  roundTrip: z.boolean().default(false),
   breakpoints: z.array(z.object({
     longitude: z.number().min(-180).max(180),
     latitude: z.number().min(-90).max(90),
@@ -136,6 +139,11 @@ export async function saveTrip(req: Request, res: Response) {
   res.status(201).json({ trip: await saveTripService(requireUserId(req), input) });
 }
 
+export async function replaceTrip(req: Request, res: Response) {
+  const input = tripInputSchema.parse(req.body);
+  res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), input) });
+}
+
 export async function listTrips(req: Request, res: Response) {
   res.json({ trips: await listTripsService(requireUserId(req)) });
 }
@@ -148,7 +156,48 @@ export async function updateTrip(req: Request, res: Response) {
   const { name } = z.object({
     name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters"),
   }).parse(req.body);
-  res.json({ trip: await updateTripService(requireUserId(req), routeParam(req), name) });
+  res.json({ trip: await renameTripService(requireUserId(req), routeParam(req), name) });
+}
+
+// Which thing is rated. `index` is the position in the trip's destinations or
+// breakpoints, and is meaningless for the trip as a whole.
+const ratingTargetFields = {
+  target: z.enum(["trip", "destination", "breakpoint"]),
+  index: z.coerce.number().int().min(0).optional(),
+};
+
+function toRatingTarget(input: { target: "trip" | "destination" | "breakpoint"; index?: number | undefined }, ctx: z.RefinementCtx): RatingTarget {
+  if (input.target === "trip") return { kind: "trip" };
+  if (input.index === undefined) {
+    ctx.addIssue({ code: "custom", path: ["index"], message: "Index is required for destinations and stops" });
+    return z.NEVER;
+  }
+  return { kind: input.target, index: input.index };
+}
+
+export const ratingBodySchema = z.object({
+  ...ratingTargetFields,
+  stars: z.number("Stars must be a number").int("Stars must be a whole number").min(1, "Stars must be 1-5").max(5, "Stars must be 1-5"),
+  comment: z.string().trim().max(1000, "Comment must be at most 1000 characters").optional(),
+}).transform((input, ctx) => ({
+  target: toRatingTarget(input, ctx),
+  rating: { stars: input.stars, comment: input.comment },
+}));
+
+export const ratingQuerySchema = z.object(ratingTargetFields).transform((input, ctx) => toRatingTarget(input, ctx));
+
+export async function rateTrip(req: Request, res: Response) {
+  const { target, rating } = ratingBodySchema.parse(req.body);
+  res.json({ trip: await rateTripService(requireUserId(req), routeParam(req), target, rating) });
+}
+
+export async function clearTripRating(req: Request, res: Response) {
+  const target = ratingQuerySchema.parse(req.query);
+  res.json({ trip: await clearTripRatingService(requireUserId(req), routeParam(req), target) });
+}
+
+export async function completeTrip(req: Request, res: Response) {
+  res.json({ trip: await completeTripService(requireUserId(req), routeParam(req)) });
 }
 
 export async function deleteTrip(req: Request, res: Response) {

@@ -14,6 +14,13 @@
   min-height: 70vh;
 }
 
+.planContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex-grow: 1;
+}
+
 .planPanel h1 {
   margin-top: 0;
 }
@@ -41,6 +48,11 @@
 .selectedAccommodation {
   outline: 3px solid var(--sandy-brown);
   outline-offset: 2px;
+}
+
+.unselectedAccommodation {
+  background-color: var(--background-color);
+  color: inherit;
 }
 
 .accommodationList {

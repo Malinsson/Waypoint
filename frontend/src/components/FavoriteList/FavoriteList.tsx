@@ -3,6 +3,7 @@ import type { FavoriteList as FavoriteListType } from '../../types/api.ts'
 import styles from './FavoriteList.module.css'
 import PopupBase from '../PopupBase/PopupBase.tsx'
 import { Button } from '../atoms/Button.tsx'
+import Loader from '../atoms/Loader.tsx'
 
 type FavoriteListProps = {
   lists?: FavoriteListType[]
@@ -72,7 +73,7 @@ function FavoriteList({
           </form>
         ) : (
           <>
-            {loading && <p>Loading lists…</p>}
+            {loading && <Loader />}
             {!loading && lists.length === 0 && <p>No favorite lists yet.</p>}
             <div className={styles.favoriteListContainer}>
               <Button

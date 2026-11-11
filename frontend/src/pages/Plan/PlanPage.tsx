@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ApiError } from '../../api/client.ts'
 import { getHealth } from '../../api/health.ts'
-import { planTrip, saveTrip } from '../../api/trips.ts'
+import { getTrip, optimizeRoute, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
@@ -10,39 +12,127 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPo
 import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.tsx'
 import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
-import ReviewStep from '../../components/PlanPageSteps/ReviewStep.tsx'
+import OverviewStep from '../../components/PlanPageSteps/OverviewStep.tsx'
+import Loader from '../../components/atoms/Loader.tsx'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
 const DEFAULT_MAX_DRIVING_SECONDS = 21_600
 // Roughly the middle of Sweden, so the whole country fits at zoom 5
 const SWEDEN_CENTER: [number, number] = [16.5, 62.5]
+const LAST_PLAN_STORAGE_KEY = 'lastPlan'
+
+type PersistedPlan = {
+  destinations: Destination[]
+  manuallyReordered: boolean
+  roundTrip: boolean
+  accommodationTypes: AccommodationType[]
+  maxDrivingSeconds: number
+  plan: PlanResponse | null
+  step: 1 | 2 | 3 | 4
+  activeBreakpointIndex: number
+}
+
+function readPersistedPlan(): PersistedPlan | null {
+  const storedPlan = localStorage.getItem(LAST_PLAN_STORAGE_KEY)
+  if (!storedPlan) return null
+
+  try {
+    const parsed: unknown = JSON.parse(storedPlan)
+    if (!parsed || typeof parsed !== 'object') return null
+
+    const value = parsed as Record<string, unknown>
+    const step = value.step
+    if (
+      !Array.isArray(value.destinations) ||
+      !Array.isArray(value.accommodationTypes) ||
+      typeof value.manuallyReordered !== 'boolean' ||
+      typeof value.roundTrip !== 'boolean' ||
+      typeof value.maxDrivingSeconds !== 'number' ||
+      (step !== 1 && step !== 2 && step !== 3 && step !== 4) ||
+      typeof value.activeBreakpointIndex !== 'number' ||
+      (value.plan !== null && typeof value.plan !== 'object')
+    ) {
+      localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
+      return null
+    }
+
+    return {
+      destinations: value.destinations as Destination[],
+      manuallyReordered: value.manuallyReordered,
+      roundTrip: value.roundTrip,
+      accommodationTypes: value.accommodationTypes as AccommodationType[],
+      maxDrivingSeconds: value.maxDrivingSeconds,
+      plan: value.plan as PlanResponse | null,
+      step,
+      activeBreakpointIndex: value.activeBreakpointIndex,
+    }
+  } catch {
+    localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
+    return null
+  }
+}
 
 function PlanPage() {
+  const { id: editTripId } = useParams<{ id: string }>()
+  const editMode = Boolean(editTripId)
+  const navigate = useNavigate()
   const { user } = useAuth()
-  const [destinations, setDestinations] = useState<Destination[]>([])
-  const [manuallyReordered, setManuallyReordered] = useState(false)
-  const [roundTrip, setRoundTrip] = useState(false)
-  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(['hotel'])
-  const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(DEFAULT_MAX_DRIVING_SECONDS)
-  const [plan, setPlan] = useState<PlanResponse | null>(null)
+  const [storedPlan] = useState<PersistedPlan | null>(readPersistedPlan)
+  const [destinations, setDestinations] = useState<Destination[]>(storedPlan?.destinations ?? [])
+  const [manuallyReordered, setManuallyReordered] = useState(storedPlan?.manuallyReordered ?? false)
+  const [roundTrip, setRoundTrip] = useState(storedPlan?.roundTrip ?? false)
+  const [accommodationTypes, setAccommodationTypes] = useState<AccommodationType[]>(storedPlan?.accommodationTypes ?? ['hotel'])
+  const [maxDrivingSeconds, setMaxDrivingSeconds] = useState(storedPlan?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
+  const [plan, setPlan] = useState<PlanResponse | null>(storedPlan?.plan ?? null)
   const [planning, setPlanning] = useState(false)
   const [planError, setPlanError] = useState<string | null>(null)
+  // Set when the route failed because of specific destinations. An empty list
+  // means "no road connection, but we could not tell which stop"; null means
+  // some other error.
+  const [unreachableIds, setUnreachableIds] = useState<string[] | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
+  const [tripName, setTripName] = useState<string | undefined>(undefined)
+  const [editLoading, setEditLoading] = useState(editMode)
+  const [editLoadError, setEditLoadError] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1)
-  const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(0)
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
+  const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
 
   useEffect(() => {
-    setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
-  }, [user])
+    if (!editTripId) return
+
+    getTrip(editTripId)
+      .then(({ trip }) => {
+        setTripName(trip.name)
+        setDestinations(trip.destinations.map((destination) => ({
+          id: crypto.randomUUID(),
+          name: destination.locationId.name,
+          location: [destination.locationId.longitude, destination.locationId.latitude],
+          description: destination.locationId.description,
+        })))
+        setRoundTrip(trip.roundTrip ?? false)
+        setAccommodationTypes(trip.accommodationPreference.types as AccommodationType[])
+        setMaxDrivingSeconds(trip.maxDrivingHours * 3_600)
+        setStep(1)
+        setPlanError(null)
+      })
+      .catch((err) => setEditLoadError(err instanceof Error ? err.message : 'Could not load this trip.'))
+      .finally(() => setEditLoading(false))
+  }, [editTripId])
+
+  useEffect(() => {
+    if (!storedPlan && !editMode) {
+      setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
+    }
+  }, [storedPlan, user])
 
   // Render's free services sleep when idle. A quiet request when the page
   // opens wakes the backend, so it is ready when the user starts typing.
@@ -51,6 +141,21 @@ function PlanPage() {
     warmupPromise.current = getHealth().catch(() => undefined)
   }, [])
 
+  useEffect(() => {
+    if (!editMode && destinations.length > 0) {
+      localStorage.setItem(LAST_PLAN_STORAGE_KEY, JSON.stringify({
+        destinations,
+        manuallyReordered,
+        roundTrip,
+        accommodationTypes,
+        maxDrivingSeconds,
+        plan,
+        step,
+        activeBreakpointIndex,
+      }))
+    }
+  }, [plan, destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds, step, activeBreakpointIndex])
+
   // Any change to the list makes the old route wrong, so it is cleared and
   // the user plans again
   function updateDestinations(next: Destination[]) {
@@ -58,6 +163,7 @@ function PlanPage() {
     setManuallyReordered(false)
     setPlan(null)
     setPlanError(null)
+    setUnreachableIds(null)
     setSaveError(null)
     setSavedMessage(null)
     setDuplicateDestinationError(null)
@@ -102,6 +208,7 @@ function PlanPage() {
   function startOver() {
     updateDestinations([])
     setRoundTrip(false)
+    localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
     setResetCount((count) => count + 1)
     setShowConfirmationPopup(false)
   }
@@ -112,6 +219,7 @@ function PlanPage() {
 
     setPlanning(true)
     setPlanError(null)
+    setUnreachableIds(null)
     setSaveError(null)
     setSavedMessage(null)
     try {
@@ -120,12 +228,24 @@ function PlanPage() {
       await warmupPromise.current
       const nextPlan = await planTrip(destinations, manuallyReordered, roundTrip, accommodationTypes, maxDrivingSeconds)
       setPlan(nextPlan)
+      // Show the list in the order that was actually planned (spec: ordering
+      // rules). The return stop of a round trip is not a list item, and
+      // updateDestinations is not used because it would clear the new plan.
+      setDestinations(
+        nextPlan.destinations
+          .filter((destination) => !destination.id.endsWith('-return'))
+          .map(({ id, name, location, description }) => ({ id, name, location, description })),
+      )
       setActiveBreakpointIndex(0)
       setStep(2)
 
     } catch (err) {
       // The destinations are kept, so "Try again" can resend the same list
       setPlanError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      if (err instanceof ApiError && err.code === 'ROUTE_NOT_FOUND') {
+        const ids = err.details?.destinationIds
+        setUnreachableIds(Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : [])
+      }
     } finally {
       setPlanning(false)
     }
@@ -139,8 +259,13 @@ function PlanPage() {
     setSaveError(null)
     setSavedMessage(null)
     try {
-      await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
-      setSavedMessage('Trip saved.')
+      if (editTripId) {
+        await updateSavedTrip(editTripId, plan, maxDrivingSeconds, accommodationTypes, tripName)
+        navigate(`/trips/${editTripId}`)
+      } else {
+        await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
+        setSavedMessage('Trip saved.')
+      }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Could not save your trip. Please try again.')
     } finally {
@@ -170,6 +295,18 @@ function PlanPage() {
         const { selectedAccommodationId: _selectedAccommodationId, ...withoutSelection } = breakPoint
         return { ...withoutSelection, skipped: true }
       }),
+    })
+  }
+
+  function undoSkipBreakPoint(breakPointIndex: number) {
+    if (!plan) return
+    setPlan({
+      ...plan,
+      breakPoints: plan.breakPoints.map((breakPoint, index) =>
+        index === breakPointIndex
+          ? { ...breakPoint, skipped: false }
+          : breakPoint,
+      ),
     })
   }
 
@@ -257,8 +394,10 @@ function PlanPage() {
 
   return (
     <section className="mainSection">
+      {editLoading && <Loader />}
+      {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
-      {showConfirmationPopup && (
+      {!editLoading && (!editMode || !editLoadError) && showConfirmationPopup && (
         <ConfirmationPopup 
         message="Are you sure you want to start over? All your current destinations will be lost." 
         onConfirm={startOver} 
@@ -267,12 +406,12 @@ function PlanPage() {
         />
       )}
 
-      <div className={styles.planLayout}>
+      {!editLoading && (!editMode || !editLoadError) && <div className={styles.planLayout}>
         <aside className={styles.planPanel}>
 
           <div className={styles.stepHeader}>
             <p className={styles.stepLabel}>Step {step} of 4</p>
-            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Review your trip'}</h1>
+            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
           </div>
 
           {step === 1 && (
@@ -283,6 +422,7 @@ function PlanPage() {
               resetCount={resetCount}
               duplicateDestinationError={duplicateDestinationError}
               roundTrip={roundTrip}
+              unreachableIds={unreachableIds ?? []}
               onAdd={addDestination}
               onRemove={removeDestination}
               onReorder={reorderDestinations}
@@ -299,10 +439,13 @@ function PlanPage() {
             <PreferencesStep
               accommodationTypes={accommodationTypes}
               maxDrivingSeconds={maxDrivingSeconds}
+              willOptimize={optimizeRoute(destinations, manuallyReordered)}
               planning={planning}
               plan={plan}
               planError={planError}
-              isLoggedIn={user !== null}
+              unreachableNames={unreachableIds === null
+                ? null
+                : destinations.filter((destination) => unreachableIds.includes(destination.id)).map((destination) => destination.name)}
               onToggleAccommodationType={toggleAccommodationType}
               onMaxDrivingSecondsChange={(seconds) => {
                 setMaxDrivingSeconds(seconds)
@@ -312,10 +455,9 @@ function PlanPage() {
               onPlan={() => void handlePlan()}
               onTryAgain={() => void handlePlan()}
               onContinue={() => setStep(plan?.breakPoints.length ? 3 : 4)}
+              onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
-
-          {plan && (step === 2 || step === 4) && <TripSummary plan={plan} />}
 
           {plan && plan.warnings.length > 0 && (
             <section aria-label="Planning notices">
@@ -332,13 +474,17 @@ function PlanPage() {
               activeBreakpointIndex={activeBreakpointIndex}
               onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
               onSkip={() => skipBreakPoint(activeBreakpointIndex)}
+              onUndoSkip={() => undoSkipBreakPoint(activeBreakpointIndex)}
               onBack={() => setStep(2)}
               onNext={continueFromBreakpoint}
+              onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
 
+          {plan && (step === 4) && <TripSummary plan={plan} />}
+
           {plan && step === 4 && (
-            <ReviewStep
+            <OverviewStep
               plan={plan}
               isLoggedIn={user !== null}
               saving={saving}
@@ -346,6 +492,8 @@ function PlanPage() {
               saveError={saveError}
               onSave={() => void handleSave()}
               onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
+              onStartOver={() => setShowConfirmationPopup(true)}
+              saveButtonLabel={editMode ? 'Save changes' : undefined}
             />
           )}
         </aside>
@@ -357,7 +505,7 @@ function PlanPage() {
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
         />
-      </div>
+      </div>}
     </section>
   )
 }

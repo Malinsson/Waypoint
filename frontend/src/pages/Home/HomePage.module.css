@@ -1,7 +1,11 @@
 .hero {
+    align-items: center;
+    background: var(--charcoal-blue);
     text-align: center;
     width: 100%;
     height: 50vh;
+    min-height: 28rem;
+    overflow: hidden;
     position: relative;
 }
 
@@ -11,41 +15,306 @@
     font-family: var(--font-heading);
 }
 
-.heroText {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+.planButton {
+    background: var(--sandy-brown);
+    padding: 0.75rem 1.5rem;
+    color: var(--charcoal-blue);
+    border-color: var(--charcoal-blue);
 }
 
+.heroText {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1rem;
+    inset: 0;
+    position: absolute;
+    z-index: 1;
+}
+
+
 .heroSlogan {
-    width: 70%;
+    filter: drop-shadow(0 0.2rem 0.2rem rgba(38, 70, 83, 0.5));
+    width: min(70%, 18rem);
     height: auto;
-    margin-top: 15%;
+}
+
+.heroDescription {
+    color: var(--cornsilk);
+    margin: 0.75rem 0 0;
+    max-width: 25rem;
+}
+
+.heroLink {
+    align-items: center;
+    background: var(--cornsilk);
+    border-radius: var(--corner-radius-sm);
+    color: var(--charcoal-blue);
+    display: inline-flex;
+    font-weight: var(--weight-bold);
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding: 0.7rem 1rem;
+}
+
+.heroLink span {
+    font-size: 1.25rem;
 }
 
 .heroImage {
+    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    align-self: top;
+    position: absolute;
+    inset: 0;
 }
 
 .intro {
-    padding: 1rem 1.5rem;
+    background: var(--charcoal-blue);
+    color: var(--cornsilk);
+    gap: 1rem;
+    padding: 3rem 1.5rem;
     max-width: var(--max-text-width);
-    margin: 0 auto;
+    margin: 2rem auto;
+}
+
+.intro:hover {
+    transform: none;
+}
+
+.introHeading {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.introHeading h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    line-height: 1.1;
+    margin: 0;
+}
+
+
+.introAccent {
+    background: var(--verdigris);
+    border-radius: 999px;
+    display: block;
+    height: 0.35rem;
+    margin-top: 1rem;
+    transform: rotate(-2deg);
+    width: 4.5rem;
 }
 
 .intro p {
     text-align: left;
+    max-width: 46rem;
+}
+
+.intro > p:last-child {
+    font-family: var(--font-detail);
+    font-weight: var(--weight-bold);
+    font-size: var(--font-size-lg);
+    margin-bottom: 0;
+    text-align: center;
+}
+
+.features {
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    padding: 4rem var(--padding-mobile) 4rem;
+}
+
+.sectionHeading {
+    max-width: 42rem;
+    margin-bottom: 2rem;
+}
+
+.sectionHeading h2,
+.routeStory h2 {
+    font-size: clamp(1.7rem, 4vw, 2.7rem);
+    line-height: 1.15;
+}
+
+.featureGrid {
+    display: grid;
+    gap: 1rem;
+}
+
+.featureCard {
+    min-height: 12rem;
+    padding: 1.5rem;
+    position: relative;
+    color: var(--charcoal-blue);
+    overflow: hidden;
+}
+
+.featureCard::after {
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    content: "";
+    height: 7rem;
+    opacity: 0.15;
+    position: absolute;
+    right: -2rem;
+    top: -2rem;
+    width: 7rem;
+}
+
+.featureCardRoute {
+    background: var(--sandy-brown);
+}
+
+.featureCardBreak {
+    background: var(--verdigris);
+}
+
+.featureCardSave {
+    background: var(--burnt-peach);
+}
+
+.featureNumber {
+    display: block;
+    font-family: var(--font-detail);
+    font-size: var(--font-size-sm);
+    font-weight: var(--weight-bold);
+    margin-bottom: 3rem;
+}
+
+.featureCard h3 {
+    font-size: 1.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.featureCard p {
+    margin: 0;
+    max-width: 22rem;
+}
+
+.routeStory {
+    align-items: center;
+    background: var(--charcoal-blue);
+    color: var(--cornsilk);
+    display: grid;
+    gap: 2rem;
+    margin-top: 5rem;
+    overflow: hidden;
+    padding: 2rem 1.5rem;
+}
+
+.routeStory:hover {
+    transform: none;
+}
+
+.routeStory h2 {
+    margin-bottom: 1rem;
+}
+
+.routeStoryText > p:not(.eyebrow) {
+    max-width: 34rem;
+}
+
+.planLink {
+    align-items: center;
+    background: var(--sandy-brown);
+    color: var(--charcoal-blue);
+    display: inline-flex;
+    font-weight: var(--weight-bold);
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.7rem 1rem;
+}
+
+.planLink span {
+    color: var(--charcoal-blue);
+    font-size: var(--font-size-lg);
+}
+
+.routeGraphic {
+    min-height: 9rem;
+    position: relative;
+}
+
+.routeLine {
+    background: var(--sandy-brown);
+    height: 0.35rem;
+    left: 8%;
+    position: absolute;
+    right: 8%;
+    top: 3.5rem;
+    transform: rotate(-8deg);
+}
+
+.routePoint {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 1.8rem;
+    z-index: 1;
+}
+
+.routePoint span {
+    background: var(--cornsilk);
+    border: 0.4rem solid var(--sandy-brown);
+    border-radius: 50%;
+    height: 2rem;
+    margin-bottom: 0.6rem;
+    width: 2rem;
+}
+
+.routePoint strong {
+    font-family: var(--font-detail);
+    font-size: var(--font-size-sm);
+}
+
+.routeStart {
+    left: 3%;
+}
+
+.routeBreak {
+    left: 45%;
+    top: 3.2rem;
+}
+
+.routeBreak span {
+    border-color: var(--burnt-peach);
+    height: 2.5rem;
+    width: 2.5rem;
+}
+
+.routeEnd {
+    right: 3%;
+    top: 0.8rem;
+}
+
+.routeEnd span {
+    border-color: var(--verdigris);
 }
 
 
 
 @media (min-width: 768px) {
+    .intro {
+        padding: 4rem var(--padding-desktop) 4rem;
+    }
+
+    .features {
+        padding-left: var(--padding-desktop);
+        padding-right: var(--padding-desktop);
+    }
+
+    .featureGrid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .routeStory {
+        grid-template-columns: 1fr 1fr;
+        padding: 3rem;
+    }
+
     .hero {
         height: 60vh;
     }

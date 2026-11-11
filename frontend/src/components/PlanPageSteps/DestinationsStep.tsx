@@ -12,6 +12,7 @@ type DestinationsStepProps = {
   resetCount: number
   duplicateDestinationError: string | null
   roundTrip: boolean
+  unreachableIds: string[]
   onAdd: (result: GeocodeResult) => void
   onRemove: (id: string) => void
   onReorder: (orderedIds: string[]) => void
@@ -27,6 +28,7 @@ function DestinationsStep({
   resetCount,
   duplicateDestinationError,
   roundTrip,
+  unreachableIds,
   onAdd,
   onRemove,
   onReorder,
@@ -34,26 +36,31 @@ function DestinationsStep({
   onStartOver,
   onContinue,
 }: DestinationsStepProps) {
+
   return (
     <>
-      <AddDestinationForm key={resetCount} onAdd={onAdd} disabled={!canAddMore || planning} />
-      {duplicateDestinationError && (
-        <p className="error" role="alert">
-          {duplicateDestinationError}
-        </p>
-      )}
-      {!canAddMore && <p className="hint">You can add at most 10 destinations.</p>}
+      <div className={styles.planContent}>
+        <AddDestinationForm key={resetCount} onAdd={onAdd} disabled={!canAddMore || planning} />
+        {duplicateDestinationError && (
+          <p className="error" role="alert">
+            {duplicateDestinationError}
+          </p>
+        )}
+        {!canAddMore && <p className="hint">You can add at most 10 destinations.</p>}
 
-      {destinations.length === 0 && <LocateMe onLocate={(location) => onAdd({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
+        {destinations.length === 0 && <LocateMe onLocate={(location) => onAdd({ label: 'Current Location', location: [location[0], location[1]], description: 'Your current location', kind: 'address' })} />}
 
-      <DestinationList
-        destinations={destinations}
-        onRemove={onRemove}
-        onReorder={onReorder}
-        roundTrip={roundTrip}
-        onRoundTripChange={onRoundTripChange}
-        disabled={planning}
-      />
+
+        <DestinationList
+          destinations={destinations}
+          onRemove={onRemove}
+          onReorder={onReorder}
+          roundTrip={roundTrip}
+          unreachableIds={unreachableIds}
+          onRoundTripChange={onRoundTripChange}
+          disabled={planning}
+        />
+      </div>
       <div className={styles.planActions}>
         <Button type="button" variant="tertiary" onClick={onStartOver} disabled={planning || destinations.length === 0}>
           Start over

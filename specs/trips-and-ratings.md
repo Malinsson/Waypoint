@@ -104,15 +104,25 @@ All paths are under `/api`. All require authentication. JSON in and out. Errors 
 | `GET` | `/trips` | List own trips (summary) | 200 |
 | `GET` | `/trips/:id` | Get one own trip, with ratings | 200 |
 | `PATCH` | `/trips/:id` | Rename (only `name` in v1) | 200 + trip |
+| `PUT` | `/trips/:id` | Replace the saved plan after editing and recalculating it | 200 + trip |
 | `DELETE` | `/trips/:id` | Delete trip and its ratings | 204 |
 | `PUT` | `/trips/:id/rating` | Create or replace own rating | 201 (created) or 200 (replaced) |
 | `POST` | `/trips/:id/complete` | Mark trip as completed | 200 |
 
 - `POST /trips` body: `name?`, `destinations` (each `{ name, address?, location: [lon, lat], wikidataId?, rating? }`), `route`, `breakpoints`, `drivingLimitHours`, `accommodationPreferences`, `totalRating`, `completedAt`. The server upserts the Locations (4.0), stores their ids, and sets `userId` and timestamps. Ignore any client-supplied `_id`, `userId`, `locationId` or timestamps.
+- `PUT /trips/:id` accepts the same plan snapshot fields as `POST /trips`, verifies ownership, and replaces the destinations, route, breakpoints, driving limit, round-trip flag, and accommodation preferences. It preserves the trip id, owner, timestamps, ratings, and completion state.
 - `GET /trips` returns per trip: `id`, `name`, `createdAt`, `updatedAt`, first and last destination name, total distance and duration, rating count. Sorted by `updatedAt` descending. `limit` (default 20, max 50) and `cursor` (`_id`/`updatedAt` based).
 - `GET /trips/:id` returns the trip with `Location` populated (converted to `location: [lon, lat]`) and `ratings: Rating[]`.
 
-### Ratings (could)
+### Ratings (implemented: embedded in the trip)
+
+Decision: ratings are stored inside the `Trip` document (`destinations[].rating`, `breakpoints[].rating`, `totalRating`), not in a separate collection. Section 4.2 and the `/ratings/:locationId` endpoints below stay a Could. Field names in the code are `maxDrivingHours` (1-16) and `accommodationPreference`; these win over `drivingLimitHours` (1-12) and `accommodationPreferences` in section 4.1.
+
+- `PUT /trips/:id/rating`, body `{ target: "trip" | "destination" | "breakpoint", index?, stars (integer 1-5), comment? (max 1000) }`. `index` is the position in the trip's `destinations` or `breakpoints` and is required for those two targets. Replaces any existing rating, returns 200 and the trip.
+- `DELETE /trips/:id/rating?target=...&index=...` clears a rating, returns 200 and the trip.
+- Errors: 409 `TRIP_NOT_COMPLETED` if the trip is not completed, 404 `PLACE_NOT_FOUND` if the index does not exist, 404 `TRIP_NOT_FOUND` for another user's trip.
+
+### Ratings (could, separate collection)
 
 | Method | Path | Purpose | Success |
 |---|---|---|---|

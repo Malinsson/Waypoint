@@ -1,0 +1,39 @@
+.loaderContainer {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    background-color: var(--background-color);
+}
+
+.circle {
+    position: relative;
+    overflow: hidden;
+    background-color: var(--verdigris);
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    flex-shrink: 0;
+}
+
+.map {
+    position: absolute;
+    left: -50%;
+    width: 200%;
+    height: 100%;
+    max-width: none;
+    object-fit: cover;
+    animation: globeSpin 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes globeSpin {
+    from { transform: translateX(0); }
+    to { transform: translateX(50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map {
+        animation: none;
+    }
+}

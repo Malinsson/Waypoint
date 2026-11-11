@@ -1,8 +1,28 @@
+.favoritePage {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+ 
+}
+
+.searchForm {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  width: 100%;
+  max-width: 800px;
+}
+
+.searchForm button {
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .createForm {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin: 1rem;
 }
 
 .createForm label {
@@ -34,24 +54,62 @@
   display: grid;
   grid-template-columns: 1fr;
   width: 100%;
-  max-width: var(--max-content-width);
   gap: 1rem;
   margin: 2rem 0;
 }
 
 .list {
-  padding: 1rem;
+  padding: 2rem 1rem;
   cursor: pointer;
+  position: relative;
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.listHeader p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .list h2 {
   margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.list ul {
+  padding-top: 0.5rem;
 }
 
 .list li {
   display: flex;
   flex-direction: column;
   margin-bottom: 0.75rem;
+}
+
+.listDivider {
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+}
+
+.viewMore {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 0.5rem;
+  margin: 0.25rem;
 }
 
 .createNewList {
@@ -82,5 +140,9 @@
 
   .lists {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .viewMore {
+    margin: 0.75rem;
   }
 }
