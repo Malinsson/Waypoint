@@ -429,7 +429,7 @@ Source of truth is Geoapify's category list. Verify each value there before rely
 This flow does not persist anything. The plan response is transient. The saved version of a plan (`Trip`) is defined in `specs/trips-and-ratings.md`, and it must store the final order.
 
 Validation (Zod):
-- `destinations`: array of 2-10 items (with `roundTrip`, the extra last waypoint is added by the server after validation).
+- `destinations`: array of 2-10 items (with `roundTrip`, the extra last waypoint is added by the server after validation). When a trip is saved, the closing stop is already part of the list, so a saved round trip may hold up to 11 items; without `roundTrip` the limit stays 10.
 - Each destination: `id` (non-empty string, unique within the request, max 50 characters), and `location` (two numbers, longitude -180 to 180, latitude -90 to 90) **or** `address` (trimmed string, 1-200 characters). `name` is optional (1-100 characters).
 - `options.optimizeOrder`: boolean, default `false`.
 - `options.roundTrip`: boolean, default `false`.

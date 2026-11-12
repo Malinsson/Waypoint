@@ -108,3 +108,42 @@ test("saved duplicate destinations remain invalid without round trip", () => {
 
   assert.equal(result.success, false);
 });
+
+// Distinct places along a line so the duplicate check does not interfere.
+function makeDestinations(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    name: `Stop ${i}`,
+    location: [10 + i, 55 + i * 0.5] as [number, number],
+  }));
+}
+
+function savedTrip(destinations: ReturnType<typeof makeDestinations>, roundTrip: boolean) {
+  return {
+    name: "Long trip",
+    destinations,
+    roundTrip,
+    route: { type: "LineString", coordinates: [] },
+    maxDrivingHours: 6,
+    accommodationPreference: { types: ["hotel"] },
+  };
+}
+
+test("saved round trip accepts 10 destinations plus the closing stop", () => {
+  const stops = makeDestinations(10);
+  const closed = [...stops, stops[0]];
+  assert.equal(tripInputSchema.safeParse(savedTrip(closed, true)).success, true);
+});
+
+test("saved trip rejects 11 destinations without round trip", () => {
+  const result = tripInputSchema.safeParse(savedTrip(makeDestinations(11), false));
+  assert.equal(result.success, false);
+  if (!result.success) {
+    assert.match(result.error.issues[0].message, /at most 10 destinations/i);
+  }
+});
+
+test("saved round trip rejects more than 11 destinations", () => {
+  const stops = makeDestinations(11);
+  const closed = [...stops, stops[0]];
+  assert.equal(tripInputSchema.safeParse(savedTrip(closed, true)).success, false);
+});
