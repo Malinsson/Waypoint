@@ -19,7 +19,7 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
   return (
     <>
       <section aria-label="Selected accommodation stops" className={styles.planContent}>
-        <h2>Accommodation stops</h2>
+        <h2>Accommodation stops:</h2>
         <p className="hint">Your selected places to stay along the route.</p>
         <ol>
           {plan.breakPoints.map((breakPoint, index) => {

@@ -10,6 +10,7 @@ import styles from './TripDetail.module.css'
 import { Button } from '../../components/atoms/Button.tsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx';
 import PopupBase from '../../components/PopupBase/PopupBase.tsx';
+import RenameForm from '../../components/RenameForm/RenameForm.tsx';
 import { Pencil } from 'lucide-react';
 import Loader from '../../components/atoms/Loader.tsx';
 import BottomSheet from '../../components/BottomSheet/BottomSheet.tsx';
@@ -24,7 +25,6 @@ function TripsDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRenamePopup, setShowRenamePopup] = useState(false);
-  const [renameName, setRenameName] = useState('');
   const [showCompletedPopup, setShowCompletedPopup] = useState(false);
   const [showRatingPopup, setShowRatingPopup] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
@@ -163,14 +163,13 @@ function TripsDetailPage() {
           isOpen={showRenamePopup}
         >
           <h2>Rename Trip</h2>
-          <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameTrip(trip?._id || '', renameName); setShowRenamePopup(false); }}>
-          <label htmlFor="newName">Enter a new name for the trip:</label>
-          <input type="text" id="newName" placeholder="New name" className="decorativeBorder inputField" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
-            <div className={styles.actions}>
-              <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
-              <Button type="submit">Rename</Button>
-            </div>
-          </form>
+          <RenameForm
+            label="Enter a new name for the trip:"
+            initialName={trip?.name ?? ''}
+            submitLabel="Rename"
+            onSecondary={() => setShowRenamePopup(false)}
+            onSubmit={(name) => { handleRenameTrip(trip?._id || '', name); setShowRenamePopup(false); }}
+          />
         </PopupBase>
         )}
 
@@ -221,7 +220,7 @@ function TripsDetailPage() {
               <div className={styles.row}>
                 <h1>{trip.name}</h1>
                 {!trip.completedAt && (
-                  <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+                  <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
                 )}
               </div>
             }

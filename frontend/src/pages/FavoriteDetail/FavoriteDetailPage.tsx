@@ -5,6 +5,7 @@ import { getFavoriteList, removeFavoriteFromList, renameFavoriteList, deleteFavo
 import { Button } from '../../components/atoms/Button';
 import { Pencil, Trash } from 'lucide-react';
 import PopupBase from '../../components/PopupBase/PopupBase';
+import RenameForm from '../../components/RenameForm/RenameForm';
 import MapView, { type MapMarker } from '../../components/MapView/MapView';
 import Loader from '../../components/atoms/Loader';
 import BottomSheet from '../../components/BottomSheet/BottomSheet';
@@ -19,7 +20,6 @@ function FavoriteDetailPage() {
     const [error, setError] = useState<string | null>(null)
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [showRenamePopup, setShowRenamePopup] = useState(false);
-    const [renameName, setRenameName] = useState('');
     // Phone layout: how far the list panel is slid up over the map
     const [sheetSnap, setSheetSnap] = useState<SnapPoint>('half');
 
@@ -117,14 +117,13 @@ function FavoriteDetailPage() {
             isOpen={showRenamePopup}
           >
             <h2>Rename Favorite List</h2>
-            <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameList(favoriteList?._id || '', renameName); setShowRenamePopup(false); }}>
-            <label htmlFor="newName">Enter a new name for the favorite list:</label>
-            <input type="text" id="newName" placeholder="New name" className="decorativeBorder inputField" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
-              <div className={styles.actions}>
-                <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
-                <Button type="submit">Rename</Button>
-              </div>
-            </form>
+            <RenameForm
+              label="Enter a new name for the favorite list:"
+              initialName={favoriteList?.name ?? ''}
+              submitLabel="Rename"
+              onSecondary={() => setShowRenamePopup(false)}
+              onSubmit={(name) => { handleRenameList(favoriteList?._id || '', name); setShowRenamePopup(false); }}
+            />
           </PopupBase>
         )}
 
@@ -139,7 +138,7 @@ function FavoriteDetailPage() {
               header={
                 <div className={styles.head}>
                   <h1>{favoriteList.name}</h1>
-                  <Button type="button" onClick={() => { setRenameName(favoriteList.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+                  <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
                 </div>
               }
             >

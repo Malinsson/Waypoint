@@ -9,6 +9,8 @@ import { useAuth } from '../../context/auth-context.ts'
 import type { AccommodationType, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx'
+import PopupBase from '../../components/PopupBase/PopupBase.tsx'
+import RenameForm from '../../components/RenameForm/RenameForm.tsx'
 import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.tsx'
 import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
@@ -108,6 +110,7 @@ function PlanPage() {
   const [editLoadError, setEditLoadError] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
+  const [showNamePopup, setShowNamePopup] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
   const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
   // Phone layout: how far the planning panel is slid up over the map
@@ -273,7 +276,22 @@ function PlanPage() {
     }
   }
 
-  async function handleSave() {
+  // A new trip asks for a name first. An existing trip already has one, so editing saves directly.
+  function handleSaveClick() {
+    if (editTripId) {
+      void handleSave()
+    } else {
+      setShowNamePopup(true)
+    }
+  }
+
+  // Empty name means "name later": the backend then makes a default name
+  function handleNameChosen(name: string) {
+    setShowNamePopup(false)
+    void handleSave(name || undefined)
+  }
+
+  async function handleSave(name?: string) {
     // A plan is required because the save request must contain the planned route.
     if (!user || !plan || saving) return
 
@@ -285,7 +303,7 @@ function PlanPage() {
         await updateSavedTrip(editTripId, plan, maxDrivingSeconds, accommodationTypes, tripName)
         navigate(`/trips/${editTripId}`)
       } else {
-        await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
+        await saveTrip(plan, name, accommodationTypes, maxDrivingSeconds)
         setSavedMessage('Trip saved.')
       }
     } catch (err) {
@@ -434,6 +452,20 @@ function PlanPage() {
         />
       )}
 
+      {showNamePopup && (
+        <PopupBase onCancel={() => setShowNamePopup(false)} isOpen={showNamePopup}>
+          <h2>Name your trip</h2>
+          <RenameForm
+            label="Give your trip a name now, or leave it empty to name it later:"
+            placeholder="Trip name"
+            submitLabel="Save"
+            secondaryLabel="Name later"
+            onSecondary={() => handleNameChosen('')}
+            onSubmit={handleNameChosen}
+          />
+        </PopupBase>
+      )}
+
       {!editLoading && (!editMode || !editLoadError) && <SheetLayout className={styles.planLayout}>
         <BottomSheet
           label="Trip planner"
@@ -544,7 +576,7 @@ function PlanPage() {
               saving={saving}
               savedMessage={savedMessage}
               saveError={saveError}
-              onSave={() => void handleSave()}
+              onSave={handleSaveClick}
               onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
               onStartOver={() => setShowConfirmationPopup(true)}
               saveButtonLabel={editMode ? 'Save changes' : undefined}
