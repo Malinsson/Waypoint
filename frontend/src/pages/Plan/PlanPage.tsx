@@ -6,7 +6,7 @@ import { getTrip, optimizeBlockedReason, planTrip, saveTrip, updateSavedTrip } f
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { AccommodationType, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
+import type { AccommodationType, Breakpoint, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx'
 import PopupBase from '../../components/PopupBase/PopupBase.tsx'
@@ -396,18 +396,31 @@ function PlanPage() {
         ]
       }
 
-      const destinationMarkers = (plan?.destinations ?? destinations).map((destination, index) => ({
-        id: destination.id,
-        location: destination.location,
-        label: String(index + 1),
-        kind: 'destination' as const,
-      }))
-      const breakpointMarkers = (plan?.breakPoints ?? []).map((breakPoint, index) => ({
-        id: `breakpoint-${index}`,
-        location: breakPoint.location,
-        label: `S${index + 1}`,
-        kind: 'breakpoint' as const,
-      }))
+      // A round trip ends where it starts, so the first marker is left out and
+      // the last one (the return stop) shows the final number
+      const isRoundTrip = plan?.destinations.some((destination) => destination.id.endsWith('-return')) ?? false
+      const destinationMarkers = (plan?.destinations ?? destinations)
+        .map((destination, index) => ({
+          id: destination.id,
+          location: destination.location,
+          label: String(index + 1),
+          kind: 'destination' as const,
+        }))
+        .filter((_marker, index) => !(isRoundTrip && index === 0))
+      // On the overview a chosen accommodation replaces its break point marker,
+      // since the two would sit on top of each other. Skipped or unchosen stops keep theirs.
+      const hasShownAccommodation = (breakPoint: Breakpoint) =>
+        step === 4 && !breakPoint.skipped && breakPoint.accommodation.some((place) => place.id === breakPoint.selectedAccommodationId)
+      const breakpointMarkers = (plan?.breakPoints ?? []).flatMap((breakPoint, index) =>
+        hasShownAccommodation(breakPoint)
+          ? []
+          : [{
+            id: `breakpoint-${index}`,
+            location: breakPoint.location,
+            label: `S${index + 1}`,
+            kind: 'breakpoint' as const,
+          }],
+      )
       const selectedAccommodationMarkers = step === 4
         ? (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
           breakPoint.accommodation
@@ -426,6 +439,20 @@ function PlanPage() {
   )
 
   const activeBreakpoint = plan?.breakPoints[activeBreakpointIndex]
+  // The chosen place is the highlighted one, whether it was picked in the list or on the map
+  const highlightedMarkerId = step === 3 && activeBreakpoint?.selectedAccommodationId && !activeBreakpoint.skipped
+    ? `accommodation-${activeBreakpointIndex}-${activeBreakpoint.selectedAccommodationId}`
+    : null
+
+  // Earlier stops stay editable: only the first stop goes back to preferences
+  function backFromBreakpoint() {
+    if (activeBreakpointIndex > 0) {
+      setActiveBreakpointIndex((index) => index - 1)
+    } else {
+      setStep(2)
+    }
+  }
+
   const selectAccommodationMarker = (markerId: string) => {
     const placeId = markerId.replace(`accommodation-${activeBreakpointIndex}-`, '')
     if (activeBreakpoint?.accommodation.some((place) => place.id === placeId)) {
@@ -561,7 +588,7 @@ function PlanPage() {
               onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
               onSkip={() => skipBreakPoint(activeBreakpointIndex)}
               onUndoSkip={() => undoSkipBreakPoint(activeBreakpointIndex)}
-              onBack={() => setStep(2)}
+              onBack={backFromBreakpoint}
               onNext={continueFromBreakpoint}
               onStartOver={() => setShowConfirmationPopup(true)}
             />
@@ -588,6 +615,7 @@ function PlanPage() {
           center={SWEDEN_CENTER}
           zoom={5}
           markers={markers}
+          highlightedMarkerId={highlightedMarkerId}
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
         />
