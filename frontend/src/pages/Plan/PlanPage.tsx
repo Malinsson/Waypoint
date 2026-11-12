@@ -298,6 +298,8 @@ function PlanPage() {
 
   function chooseAccommodation(breakPointIndex: number, accommodationId: string) {
     if (!plan) return
+    // Any edit makes the saved copy outdated, so the save button must work again
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) =>
@@ -310,6 +312,7 @@ function PlanPage() {
 
   function skipBreakPoint(breakPointIndex: number) {
     if (!plan) return
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) => {
@@ -322,6 +325,7 @@ function PlanPage() {
 
   function undoSkipBreakPoint(breakPointIndex: number) {
     if (!plan) return
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) =>

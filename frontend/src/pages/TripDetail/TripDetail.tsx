@@ -281,15 +281,19 @@ function TripsDetailPage() {
                 <>
                   <h3>Breakpoints:</h3>
                   <ol className={styles.destinationsList}>
-                    {trip.breakpoints.map((breakpoint, index) => (
-                      <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
-                        {breakpoint.skipped
-                          ? 'Stop skipped'
-                          : breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)?.name
-                            ?? breakpoint.locationId?.name
-                            ?? 'Suggested stop'}
-                      </li>
-                    ))}
+                    {trip.breakpoints.map((breakpoint, index) => {
+                      const selectedPlace = breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)
+                      return (
+                        <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
+                          {breakpoint.skipped
+                            ? 'Stop skipped'
+                            : selectedPlace?.name ?? breakpoint.locationId?.name ?? 'Suggested stop'}
+                          {!breakpoint.skipped && selectedPlace?.address && (
+                            <><br /><span className="hint">{selectedPlace.address}</span></>
+                          )}
+                        </li>
+                      )
+                    })}
                   </ol>
                 </>
               )}

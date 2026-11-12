@@ -32,7 +32,12 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
                 {breakPoint.skipped
                   ? 'Skipped'
                   : selectedPlace
-                    ? `${selectedPlace.name} (${selectedPlace.type})`
+                    ? (
+                      <>
+                        {selectedPlace.name} ({selectedPlace.type})
+                        {selectedPlace.address && <><br /><span className="hint">{selectedPlace.address}</span></>}
+                      </>
+                    )
                     : breakPoint.accommodation.length === 0
                       ? 'No accommodation found nearby'
                       : 'No accommodation selected'}
@@ -47,14 +52,13 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
           <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
         {isLoggedIn ? (
           <>
-            <Button type="button" onClick={onSave} disabled={saving}>
-              {saving ? 'Saving…' : saveButtonLabel}
+            <Button type="button" onClick={onSave} disabled={saving || savedMessage !== null}>
+              {saving ? 'Saving…' : savedMessage !== null ? 'Trip saved' : saveButtonLabel}
             </Button>
           </>
         ) : (
           <p className="hint"><Link to="/login">Log in</Link> to save this trip.</p>
         )}
-        {savedMessage && <p className="hint" role="status">{savedMessage}</p>}
         {saveError && <p className="banner error" role="alert">{saveError}</p>}
         </div>
       </section>
