@@ -1,6 +1,7 @@
 .row {
     margin: 1rem 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
     text-align: center;
@@ -20,20 +21,14 @@
     font-size: var(--font-size-sm);
 }
 
+/* Layout for wide screens only. On phones SheetLayout and BottomSheet take over. */
 .tripDetails {
     width: 100%;
-    max-width: var(--max-content-width);
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-
 }
 
 .tripInfo {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    width: clamp(100%, 35%, 42rem);
 }
 
 .destinationsList {
@@ -62,6 +57,7 @@
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     width: 100%;
     gap: 0.5rem;
@@ -74,7 +70,15 @@
     }
 
     .tripDetails {
+        max-width: var(--max-content-width);
+        display: flex;
         flex-direction: row-reverse;
+        gap: 1rem;
+    }
+
+    .tripInfo {
+        gap: 0.5rem;
+        width: clamp(100%, 35%, 42rem);
     }
 
     .row {

@@ -21,7 +21,8 @@
     touch-action: manipulation;
     vertical-align: middle;
     width: auto;
-    word-break: keep-all;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     background-position: 0 90%;
     align-self: center;
     background-repeat: repeat no-repeat;

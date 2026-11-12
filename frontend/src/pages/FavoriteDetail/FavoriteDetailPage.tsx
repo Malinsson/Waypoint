@@ -7,6 +7,9 @@ import { Pencil, Trash } from 'lucide-react';
 import PopupBase from '../../components/PopupBase/PopupBase';
 import MapView, { type MapMarker } from '../../components/MapView/MapView';
 import Loader from '../../components/atoms/Loader';
+import BottomSheet from '../../components/BottomSheet/BottomSheet';
+import SheetLayout from '../../components/BottomSheet/SheetLayout';
+import type { SnapPoint } from '../../components/BottomSheet/snap';
 import styles from './FavoriteDetailPage.module.css'
 
 function FavoriteDetailPage() {
@@ -17,6 +20,8 @@ function FavoriteDetailPage() {
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
     const [showRenamePopup, setShowRenamePopup] = useState(false);
     const [renameName, setRenameName] = useState('');
+    // Phone layout: how far the list panel is slid up over the map
+    const [sheetSnap, setSheetSnap] = useState<SnapPoint>('half');
 
     useEffect(() => {
       if (!id) {
@@ -123,13 +128,22 @@ function FavoriteDetailPage() {
           </PopupBase>
         )}
 
+      <SheetLayout className={styles.mapLayout}>
           {favoriteList && (
-            <div className={styles.favoriteDetail}>
-              <div className={styles.favoriteDetailContainer}>
+            <BottomSheet
+              label="Favorite list"
+              snap={sheetSnap}
+              onSnapChange={setSheetSnap}
+              className={styles.panel}
+              bodyClassName={styles.favoriteDetail}
+              header={
                 <div className={styles.head}>
                   <h1>{favoriteList.name}</h1>
                   <Button type="button" onClick={() => { setRenameName(favoriteList.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
                 </div>
+              }
+            >
+              <div className={styles.favoriteDetailContainer}>
                 <h3>Locations in this list:</h3>
                 {favoriteList.locations.length === 0 ? (
                   <p>No saved locations in this list.</p>
@@ -151,16 +165,15 @@ function FavoriteDetailPage() {
               <div className={styles.actions}>
                 <Button type="button" variant="secondary" onClick={() => setShowDeleteConfirmation(true)}>Delete this list</Button>
               </div>
-              
-            </div>
+            </BottomSheet>
           )}
 
-
-      <MapView
-        markers={markers}
-        zoom={10}
-        center={markers[0]?.location ?? [16.5, 62.5]}
-        />
+          <MapView
+            markers={markers}
+            zoom={10}
+            center={markers[0]?.location ?? [16.5, 62.5]}
+          />
+      </SheetLayout>
 
     </section>
   )

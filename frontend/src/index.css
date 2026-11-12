@@ -32,6 +32,8 @@
   --padding-desktop: 2rem;
 
   --mobile-nav-height: 5rem;
+  /* Approximate height of the top bar on phones; used to size full-screen map pages */
+  --mobile-header-height: 4.5rem;
 
   --background-color: var(--cornsilk);
   --border-color: var(--charcoal-blue);
@@ -147,7 +149,7 @@ nav {
 
 .decorativeDivider {
   position: absolute;
-  height: 3px;
+  height: 4px;
   width: 100%;
   border: none;
   background: transparent;
@@ -156,6 +158,7 @@ nav {
 .decorativeDivider--top {
   left: 0;
   top: 0;
+  transform: translateY(-3px);
 }
 .decorativeDivider--bottom {
   left: 0;
