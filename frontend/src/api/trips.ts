@@ -99,6 +99,7 @@ export function saveTrip(
     destinations: plan.destinations.map((destination) => ({
       name: destination.name,
       location: destination.location,
+      ...(destination.description ? { description: destination.description } : {}),
     })),
     route: plan.route,
     breakpoints: plan.breakPoints.map((breakPoint) => ({

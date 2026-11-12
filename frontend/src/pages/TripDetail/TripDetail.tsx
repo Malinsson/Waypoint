@@ -258,9 +258,19 @@ function TripsDetailPage() {
               <h3 ref={destinationsHeadingRef} tabIndex={-1}>Destinations:</h3>
               <ol className={styles.destinationsList} aria-labelledby={destinationsHeadingRef.current?.id}>
                 {trip.destinations.map((destination, index) => (
-                  <li key={destination.locationId._id}>
-                    {destination.locationId.name} {destination.locationId.description && `- ${destination.locationId.description}`}
-                    {destination.description && ` - ${destination.description ?? ""}`}
+                  <li key={`${destination.locationId._id}-${index}`}>
+
+                    {destination.locationId.name} {destination.locationId.description && (
+                      <>
+                        <br />
+                        <span className="hint">{destination.locationId.description}</span>
+                      </>
+                    )}
+                    {destination.description && (<>
+                      <br />
+                      <span className="hint">{destination.description ?? ""}</span>
+                    </>)}
+
                     {/* Ratings are only possible once the trip is completed */}
                     {trip.completedAt && (
                       <div className={styles.destinationRating}>

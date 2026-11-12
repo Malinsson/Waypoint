@@ -26,6 +26,10 @@
     width: 100%;
 }
 
+.tripDetails h3 {
+    margin: 0.5rem 0;
+}
+
 .tripInfo {
     display: flex;
     flex-direction: column;
@@ -38,7 +42,9 @@
 
 .destinationsList li {
     margin: 0.5rem 0;
+    padding: 0.25rem 0;
 }
+
 
 .destinationRating {
     padding: 0.5rem 0;
