@@ -16,8 +16,10 @@ export const app = express();
 app.set("trust proxy", 1);
 
 app.use(cors({ origin: config.corsOrigin }));
-// Saved trips include route geometry and accommodation snapshots.
-app.use(express.json({ limit: "1mb" }));
+// Saved trips include the full-resolution route geometry (tens of thousands of
+// coordinates on a long drive), so the body can exceed 1 MB even for a trip
+// with few destinations.
+app.use(express.json({ limit: "5mb" }));
 
 app.use("/api/health", healthRouter);
 app.use("/api/auth", authRouter);
