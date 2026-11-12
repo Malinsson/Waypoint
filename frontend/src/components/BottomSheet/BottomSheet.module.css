@@ -21,10 +21,16 @@
 }
 
 .body {
+  min-width: 0;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   gap: 0.5rem;
+}
+
+.divider {
+  display: none;
 }
 
 @media (max-width: 767px) {
@@ -44,6 +50,7 @@
     will-change: transform;
   }
 
+
   /* Covers the whole map area, but the sheet (z-index 5) sits above it,
      so only the strip above the sheet can be tapped */
   .backdrop {
@@ -51,6 +58,10 @@
     position: absolute;
     inset: 0;
     z-index: 4;
+  }
+
+  .divider {
+    display: block;
   }
 
   /* The sheet must follow the finger without lagging behind */
@@ -87,9 +98,19 @@
     overflow-y: auto;
     /* Reaching the end of the list must not start scrolling the page behind */
     overscroll-behavior: contain;
+    /* Last resort: nothing in the sheet should ever scroll sideways */
+    overflow-x: hidden;
+    /* Hide the scrollbar; scrolling by touch still works */
+    scrollbar-width: none;
     /* The lower part of the sheet is off screen when it is not fully open.
        Padding of the same size lets the last row scroll up into view. */
     padding: 0.5rem 0 calc(1rem + var(--sheet-offset, 0px));
+  }
+}
+
+@media (max-width: 767px) {
+  .body::-webkit-scrollbar {
+    display: none;
   }
 }
 

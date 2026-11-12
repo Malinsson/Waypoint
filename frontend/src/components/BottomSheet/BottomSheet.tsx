@@ -157,7 +157,8 @@ function BottomSheet({
         '--sheet-offset': `${offsets?.[snap] ?? 0}px`,
       } as CSSProperties}
     >
-      <div className="decorativeDivider decorativeDivider--top " />
+      <div className={`decorativeDivider decorativeDivider--top ${styles.divider} `} />
+
       <div className={styles.top} onFocus={handleFocus}>
         <div
           ref={peekRef}

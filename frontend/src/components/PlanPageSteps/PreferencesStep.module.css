@@ -1,7 +1,8 @@
 .accommodationFieldset {
+    min-width: 0;
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
     transform: none;
 }
 
@@ -105,6 +106,7 @@ input[type=range] {
     -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
     appearance: none;
     width: 100%; /* Specific width is required for Firefox. */
+    margin: 0;
     background: transparent; /* Otherwise white in Chrome */
 }
 

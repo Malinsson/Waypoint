@@ -1,6 +1,7 @@
 .row {
     margin: 1rem 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 1rem;
     text-align: center;
@@ -56,6 +57,7 @@
 
 .actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
     width: 100%;
     gap: 0.5rem;

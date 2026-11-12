@@ -22,6 +22,8 @@
   justify-content: flex-start;
   gap: 0.5rem;
   width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .destinationList li[draggable="true"] {
