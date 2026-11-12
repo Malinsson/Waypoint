@@ -12,6 +12,9 @@ import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPo
 import PopupBase from '../../components/PopupBase/PopupBase.tsx';
 import { Pencil } from 'lucide-react';
 import Loader from '../../components/atoms/Loader.tsx';
+import BottomSheet from '../../components/BottomSheet/BottomSheet.tsx';
+import SheetLayout from '../../components/BottomSheet/SheetLayout.tsx';
+import type { SnapPoint } from '../../components/BottomSheet/snap.ts';
 
 
 function TripsDetailPage() {
@@ -26,6 +29,8 @@ function TripsDetailPage() {
   const [showRatingPopup, setShowRatingPopup] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
   const destinationsHeadingRef = useRef<HTMLHeadingElement>(null);
+  // Phone layout: how far the details panel is slid up over the map
+  const [sheetSnap, setSheetSnap] = useState<SnapPoint>('half');
 
   // Stable identities: PopupBase re-focuses its first element whenever onCancel changes
   const closeCompletedPopup = useCallback(() => setShowCompletedPopup(false), []);
@@ -204,14 +209,23 @@ function TripsDetailPage() {
       {loading && <Loader />}
       {error && <p className="error" role="alert">{error}</p>}
       {trip && (
-        <>
-          <div className={styles.row}>
-            <h1>{trip.name}</h1>
-            {!trip.completedAt && (
-              <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
-            )}
-          </div>
+        <SheetLayout className={styles.tripDetails}>
+          <MapView center={center} zoom={5} markers={markers} route={routeCoordinates} />
 
+          <BottomSheet
+            label="Trip details"
+            snap={sheetSnap}
+            onSnapChange={setSheetSnap}
+            className={styles.tripInfo}
+            header={
+              <div className={styles.row}>
+                <h1>{trip.name}</h1>
+                {!trip.completedAt && (
+                  <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+                )}
+              </div>
+            }
+          >
           {trip.totalRating && (
             <>
               <h2>Your rating</h2>
@@ -237,10 +251,6 @@ function TripsDetailPage() {
             {trip.completedAt && <p className={styles.details}>Completed: {new Date(trip.completedAt).toLocaleString()}</p>}
           </div>
 
-          <div className={styles.tripDetails}>
-            <MapView center={center} zoom={5} markers={markers} route={routeCoordinates} />
-
-            <article className={styles.tripInfo}>
               <h2>Route summary</h2>
               <p>{formatDistance(trip.route.distanceMeters)} · {formatDuration(trip.route.durationSeconds)} driving</p>
               <p>Maximum driving time: {trip.maxDrivingHours} hours</p>
@@ -286,8 +296,6 @@ function TripsDetailPage() {
 
               <h3>Accommodation selections:</h3>
               <p>{trip.accommodationPreference.types.join(', ')}</p>
-            </article>
-          </div>
 
           <div className={styles.actions}>
             {trip.completedAt ? (
@@ -305,7 +313,8 @@ function TripsDetailPage() {
             )}
             <Button type="button" variant="tertiary" onClick={() => setShowDeleteConfirmation(true)}>Delete trip</Button>
           </div>
-        </>
+          </BottomSheet>
+        </SheetLayout>
       )}
     </section>
   )

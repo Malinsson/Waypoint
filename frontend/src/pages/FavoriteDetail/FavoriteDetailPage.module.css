@@ -10,8 +10,15 @@
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    min-height: 70vh;
-    flex-grow: 1;
+}
+
+/* Wide screens: list panel and map side by side. On phones SheetLayout and BottomSheet take over. */
+.mapLayout {
+    width: 100%;
+}
+
+.panel {
+    width: 100%;
 }
 
 .favoriteDetailContainer {
@@ -66,6 +73,12 @@
 @media (min-width: 768px) {
     .flexDirections {
         flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .mapLayout {
+        display: flex;
+        gap: 1rem;
         align-items: flex-start;
     }
 

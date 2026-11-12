@@ -1,11 +1,14 @@
 /* OpenLayers draws nothing in a container without an explicit height */
 .map {
-  height: calc(80vh - var(--mobile-nav-height));
+  height: 80vh;
   width: 100%;
 }
 
-@media (min-width: 768px) {
+/* On phones the map fills its SheetLayout, and the sheet slides over it */
+@media (max-width: 767px) {
   .map {
-    height: 80vh;
+    position: absolute;
+    inset: 0;
+    height: 100%;
   }
 }

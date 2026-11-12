@@ -14,6 +14,10 @@ import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
 import OverviewStep from '../../components/PlanPageSteps/OverviewStep.tsx'
 import Loader from '../../components/atoms/Loader.tsx'
+import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
+import BottomSheet from '../../components/BottomSheet/BottomSheet.tsx'
+import SheetLayout from '../../components/BottomSheet/SheetLayout.tsx'
+import type { SnapPoint } from '../../components/BottomSheet/snap.ts'
 
 const MIN_DESTINATIONS = 2
 const MAX_DESTINATIONS = 10
@@ -106,10 +110,17 @@ function PlanPage() {
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
   const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
+  // Phone layout: how far the planning panel is slid up over the map
+  const [sheetSnap, setSheetSnap] = useState<SnapPoint>('half')
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
   const [resetCount, setResetCount] = useState(0)
+
+  // A new step brings new content, so the panel is brought back up to show it
+  useEffect(() => {
+    setSheetSnap('half')
+  }, [step])
 
   useEffect(() => {
     if (!editTripId) return
@@ -397,6 +408,8 @@ function PlanPage() {
     const placeId = markerId.replace(`accommodation-${activeBreakpointIndex}-`, '')
     if (activeBreakpoint?.accommodation.some((place) => place.id === placeId)) {
       chooseAccommodation(activeBreakpointIndex, placeId)
+      // Phone: get the panel out of the way so the user can see the map
+      setSheetSnap('collapsed')
     }
   }
 
@@ -417,21 +430,42 @@ function PlanPage() {
         />
       )}
 
-      {!editLoading && (!editMode || !editLoadError) && <div className={styles.planLayout}>
-        <aside className={styles.planPanel}>
-
-          <div className={styles.stepHeader}>
-            <p className={styles.stepLabel}>Step {step} of 4</p>
-            <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
-          </div>
+      {!editLoading && (!editMode || !editLoadError) && <SheetLayout className={styles.planLayout}>
+        <BottomSheet
+          label="Trip planner"
+          snap={sheetSnap}
+          onSnapChange={setSheetSnap}
+          className={styles.planPanel}
+          // Step 3 reuses the same panel for each stop, so the stop counts too
+          scrollResetKey={`${step}-${activeBreakpointIndex}`}
+          header={
+            <div className={styles.stepHeader}>
+              <p className={styles.stepLabel}>Step {step} of 4</p>
+              <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
+            </div>
+          }
+          pinned={step === 1 && (
+            <div className={styles.searchBar}>
+              <AddDestinationForm
+                key={resetCount}
+                onAdd={addDestination}
+                disabled={!canAddMore || planning}
+                biasLocation={destinations.at(-1)?.location}
+              />
+              {duplicateDestinationError && (
+                <p className="error" role="alert">
+                  {duplicateDestinationError}
+                </p>
+              )}
+              {!canAddMore && <p className="hint">You can add at most 10 destinations.</p>}
+            </div>
+          )}
+        >
 
           {step === 1 && (
             <DestinationsStep
               destinations={destinations}
-              canAddMore={canAddMore}
               planning={planning}
-              resetCount={resetCount}
-              duplicateDestinationError={duplicateDestinationError}
               roundTrip={roundTrip}
               unreachableIds={unreachableIds ?? []}
               onAdd={addDestination}
@@ -512,7 +546,7 @@ function PlanPage() {
               saveButtonLabel={editMode ? 'Save changes' : undefined}
             />
           )}
-        </aside>
+        </BottomSheet>
 
         <MapView
           center={SWEDEN_CENTER}
@@ -521,7 +555,7 @@ function PlanPage() {
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
         />
-      </div>}
+      </SheetLayout>}
     </section>
   )
 }

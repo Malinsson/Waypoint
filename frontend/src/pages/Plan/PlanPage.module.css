@@ -1,17 +1,12 @@
-/* Plan page: side panel next to a large map */
+/* Plan page: side panel next to a large map. On phones the panel is a
+   BottomSheet over a full-screen map, see BottomSheet and SheetLayout. */
 .planLayout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  align-items: start;
   width: 100%;
 }
 
-.planPanel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-height: 70vh;
+/* Stays visible above the sliding content */
+.searchBar {
+  padding-bottom: 0.5rem;
 }
 
 .planContent {
@@ -26,7 +21,7 @@
 }
 
 .stepHeader {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .stepLabel {
@@ -81,13 +76,27 @@
   color: #c62828;
 }
 
-/* On narrow screens the panel sits above the map */
-@media (min-width: 800px) {
+/* Between 768px and 900px the panel sits above the map */
+@media (min-width: 768px) {
   .planLayout {
-    grid-template-columns: minmax(18rem, 24rem) 1fr;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    align-items: start;
   }
 
   .planPanel {
-    min-height: 80vh;
+    min-height: 70dvh;
+  }
+}
+
+@media (min-width: 900px) {
+  .planLayout {
+    grid-template-columns: 30dvw 1fr;
+  }
+
+  .planPanel {
+    min-height: 80dvh;
+    width: 30dvw;
   }
 }

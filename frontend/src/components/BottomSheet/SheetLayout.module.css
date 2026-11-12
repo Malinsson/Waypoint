@@ -1,0 +1,12 @@
+@media (max-width: 767px) {
+  .layout {
+    /* The sheet is positioned against this box, and anything sliding out of it is hidden */
+    position: relative;
+    overflow: hidden;
+    /* Cancel the page padding so the map reaches the screen edges */
+    width: calc(100% + 2 * var(--padding-mobile));
+    margin: calc(-1 * var(--padding-mobile));
+    /* --layout-top is measured in SheetLayout.tsx; the header guess is only a fallback */
+    height: calc(100dvh - var(--layout-top, var(--mobile-header-height)) - var(--mobile-nav-height));
+  }
+}

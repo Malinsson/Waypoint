@@ -89,9 +89,17 @@ function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: Ma
     markerSourceRef.current = markerSource
     routeSourceRef.current = routeSource
 
+    // OpenLayers only measures its container on load, so a changed size
+    // (rotating the phone, the browser toolbar hiding) needs an explicit update
+    const resizeObserver = new ResizeObserver(() => map.updateSize())
+    resizeObserver.observe(containerRef.current)
+
     // Detach the map on unmount. Without this, StrictMode's double mount
     // in development leaves two maps stacked in the same div.
-    return () => map.setTarget(undefined)
+    return () => {
+      resizeObserver.disconnect()
+      map.setTarget(undefined)
+    }
     // Deliberately empty: the map is created once, and center/zoom are
     // only the starting view
     // oxlint-disable-next-line react-hooks/exhaustive-deps
