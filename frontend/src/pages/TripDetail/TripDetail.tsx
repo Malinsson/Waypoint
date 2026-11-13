@@ -216,6 +216,7 @@ function TripsDetailPage() {
             snap={sheetSnap}
             onSnapChange={setSheetSnap}
             className={styles.tripInfo}
+            bodyClassName={styles.tripBody}
             header={
               <div className={styles.row}>
                 <h1>{trip.name}</h1>

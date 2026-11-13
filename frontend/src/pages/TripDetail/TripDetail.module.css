@@ -77,7 +77,26 @@
 
     .tripInfo {
         gap: 0.5rem;
-        width: clamp(100%, 35%, 42rem);
+        width: 40vw;
+        height: min(80dvh, calc(100dvh - var(--header-height)));
+        min-height: 70dvh;
+        max-height: calc(100dvh - var(--header-height));
+        overflow: hidden;
+    }
+
+    .tripBody {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 1;
+        margin-top: auto;
+        padding: 0.75rem 0;
+        background-color: var(--background-color);
     }
 
     .row {

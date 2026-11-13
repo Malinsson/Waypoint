@@ -1,7 +1,9 @@
 :root {
   --charcoal-blue: #264653;
-  --verdigris: #2a9d8f;
-  --muted-verdigris: #6B958A;
+
+  /* Muted version of verdigris for light mode, to reduce contrast with the background */
+  --verdigris: #6B958A;
+
   --cornsilk: #fefae0;
   --sandy-brown: #f4a261;
   --burnt-peach: #e76f51;
@@ -31,6 +33,7 @@
   --padding-mobile: 1rem;
   --padding-desktop: 2rem;
 
+  --header-height: 4.5rem;
   --mobile-nav-height: 5rem;
   /* Approximate height of the top bar on phones; used to size full-screen map pages */
   --mobile-header-height: 4.5rem;
@@ -48,7 +51,11 @@
 
 }
 
-
+@media (prefers-color-scheme: dark) {
+  :root {
+    --verdigris: #2a9d8f;
+  }
+}
 
 * {
   box-sizing: border-box;
@@ -201,6 +208,16 @@ nav {
   body {
     padding-bottom: 0;
   }
+
+  .disableScrolling {
+    overflow: hidden;
+    max-height: calc(100vh - var(--header-height));
+  }
+
+  .overflowScroll {
+    overflow-y: auto;
+  }
+
 }
 
 

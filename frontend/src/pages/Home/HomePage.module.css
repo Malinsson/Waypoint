@@ -72,8 +72,8 @@
 }
 
 .intro {
-    background: var(--charcoal-blue);
-    color: var(--cornsilk);
+    background: var(--verdigris);
+    color: black;
     gap: 1rem;
     padding: 3rem 1.5rem;
     max-width: var(--max-text-width);
@@ -99,7 +99,7 @@
 
 
 .introAccent {
-    background: var(--verdigris);
+    background: var(--sandy-brown);
     border-radius: 999px;
     display: block;
     height: 0.35rem;
@@ -147,7 +147,7 @@
     min-height: 12rem;
     padding: 1.5rem;
     position: relative;
-    color: var(--charcoal-blue);
+    color: black;
     overflow: hidden;
 }
 

@@ -4,7 +4,6 @@ import { ApiError } from '../../api/client.ts'
 import { getHealth } from '../../api/health.ts'
 import { getTrip, optimizeBlockedReason, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
-import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
 import type { AccommodationType, Breakpoint, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
@@ -466,7 +465,7 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <section className="mainSection">
+    <section className="mainSection disableScrolling" aria-label="Trip planner">
       {editLoading && <Loader />}
       {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
@@ -499,6 +498,7 @@ function PlanPage() {
           snap={sheetSnap}
           onSnapChange={setSheetSnap}
           className={styles.planPanel}
+          bodyClassName={styles.planBody}
           // Step 3 reuses the same panel for each stop, so the stop counts too
           scrollResetKey={`${step}-${activeBreakpointIndex}`}
           header={
@@ -593,8 +593,6 @@ function PlanPage() {
               onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
-
-          {plan && (step === 4) && <TripSummary plan={plan} />}
 
           {plan && step === 4 && (
             <OverviewStep
