@@ -10,7 +10,7 @@ function TripSummary({ plan }: TripSummaryProps) {
   const { route, destinations } = plan
 
   return (
-    <section className="trip-summary">
+    <section className="tripSummary">
       <h2>Your trip</h2>
       <p>
         <strong>

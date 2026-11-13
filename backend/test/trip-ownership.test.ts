@@ -103,17 +103,55 @@ test("deleteTrip cannot delete another user's trip", async (t) => {
   assertScopedToUser(filters[0]);
 });
 
-test("listTrips only asks for the caller's trips", async (t) => {
-  const filters: Filter[] = [];
+// Fakes Trip.find and Trip.countDocuments and records what the service asked for.
+function mockTripList(t: TestContext, total: number) {
+  const calls = { filters: [] as Filter[], countFilters: [] as Filter[], sort: undefined as unknown, skip: -1, limit: -1 };
   t.mock.method(Trip, "find", (filter: Filter) => {
-    filters.push(filter);
-    const chain = { sort: () => chain, populate: () => chain, lean: async () => [] };
+    calls.filters.push(filter);
+    const chain = {
+      sort: (sort: unknown) => { calls.sort = sort; return chain; },
+      skip: (n: number) => { calls.skip = n; return chain; },
+      limit: (n: number) => { calls.limit = n; return chain; },
+      populate: () => chain,
+      lean: async () => [],
+    };
     return chain;
   });
+  t.mock.method(Trip, "countDocuments", async (filter: Filter) => {
+    calls.countFilters.push(filter);
+    return total;
+  });
+  return calls;
+}
 
-  await listTrips(userA);
+test("listTrips only asks for the caller's trips, in both the page and the count", async (t) => {
+  const calls = mockTripList(t, 0);
 
-  assert.equal(filters[0]?.userId?.toString(), userA);
+  await listTrips(userA, { page: 1, limit: 10 });
+
+  assert.equal(calls.filters[0]?.userId?.toString(), userA);
+  assert.equal(calls.countFilters[0]?.userId?.toString(), userA);
+});
+
+test("listTrips returns the first page newest first", async (t) => {
+  const calls = mockTripList(t, 25);
+
+  const result = await listTrips(userA, { page: 1, limit: 10 });
+
+  assert.deepEqual(calls.sort, { updatedAt: -1, _id: -1 });
+  assert.equal(calls.skip, 0);
+  assert.equal(calls.limit, 10);
+  assert.equal(result.total, 25);
+  assert.equal(result.hasMore, true);
+});
+
+test("listTrips skips earlier pages and reports the last page as final", async (t) => {
+  const calls = mockTripList(t, 25);
+
+  const result = await listTrips(userA, { page: 3, limit: 10 });
+
+  assert.equal(calls.skip, 20);
+  assert.equal(result.hasMore, false);
 });
 
 test("a malformed trip id is rejected with 400 before the database is queried", async (t) => {

@@ -16,6 +16,7 @@ import {
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
+import { paginationQuerySchema } from "../utils/pagination.js";
 import { getMaxDrivingSeconds, updateMaxDrivingSeconds } from "../services/auth-service.js";
 
 // [longitude, latitude], the same order as GeoJSON
@@ -105,8 +106,7 @@ export const tripInputSchema = z.object({
   name: z.string().trim().min(1, "Trip name is required").max(100, "Trip name must be at most 100 characters").optional(),
   destinations: z
     .array(destinationSchema.omit({ id: true }), "Destinations are required")
-    .min(2, "Add at least 2 destinations")
-    .max(10, "You can add at most 10 destinations"),
+    .min(2, "Add at least 2 destinations"),
   route: z.unknown().refine((route) => route !== undefined, "Route is required"),
   roundTrip: z.boolean().default(false),
   breakpoints: z.array(z.object({
@@ -128,6 +128,12 @@ export const tripInputSchema = z.object({
     types: z.array(z.enum(ACCOMMODATION_TYPES)).min(1).default(["hotel"]),
   }).prefault({}),
 }).superRefine((input, ctx) => {
+  // A saved round trip already contains the closing stop, so it may hold one
+  // more entry than the 10 the user typed in.
+  const maxDestinations = input.roundTrip ? 11 : 10;
+  if (input.destinations.length > maxDestinations) {
+    ctx.addIssue({ code: "custom", path: ["destinations"], message: "You can add at most 10 destinations" });
+  }
   if (!hasDuplicateDestinations(input.destinations)) return;
   if (!hasOnlyRoundTripDuplicate(input.destinations, input.roundTrip)) {
     ctx.addIssue({ code: "custom", path: ["destinations"], message: "You already added that destination to this trip" });
@@ -145,7 +151,8 @@ export async function replaceTrip(req: Request, res: Response) {
 }
 
 export async function listTrips(req: Request, res: Response) {
-  res.json({ trips: await listTripsService(requireUserId(req)) });
+  const pagination = paginationQuerySchema.parse(req.query);
+  res.json(await listTripsService(requireUserId(req), pagination));
 }
 
 export async function getTrip(req: Request, res: Response) {

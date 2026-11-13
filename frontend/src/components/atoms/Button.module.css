@@ -32,7 +32,7 @@
 }
 
 .primary {
-  background-color: var(--muted-verdigris);
+  background-color: var(--verdigris);
 }
 
 .secondary {
@@ -57,10 +57,4 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
 
-
-  .primary {
-    background-color: var(--verdigris);
-  }
-}

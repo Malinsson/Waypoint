@@ -10,6 +10,7 @@ import styles from './TripDetail.module.css'
 import { Button } from '../../components/atoms/Button.tsx';
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx';
 import PopupBase from '../../components/PopupBase/PopupBase.tsx';
+import RenameForm from '../../components/RenameForm/RenameForm.tsx';
 import { Pencil } from 'lucide-react';
 import Loader from '../../components/atoms/Loader.tsx';
 import BottomSheet from '../../components/BottomSheet/BottomSheet.tsx';
@@ -24,7 +25,6 @@ function TripsDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRenamePopup, setShowRenamePopup] = useState(false);
-  const [renameName, setRenameName] = useState('');
   const [showCompletedPopup, setShowCompletedPopup] = useState(false);
   const [showRatingPopup, setShowRatingPopup] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
@@ -163,14 +163,13 @@ function TripsDetailPage() {
           isOpen={showRenamePopup}
         >
           <h2>Rename Trip</h2>
-          <form className={styles.renameForm} onSubmit={(e) => { e.preventDefault(); handleRenameTrip(trip?._id || '', renameName); setShowRenamePopup(false); }}>
-          <label htmlFor="newName">Enter a new name for the trip:</label>
-          <input type="text" id="newName" placeholder="New name" className="decorativeBorder inputField" value={renameName} onChange={(e) => setRenameName(e.target.value)} />
-            <div className={styles.actions}>
-              <Button type="button" variant="secondary" onClick={() => setShowRenamePopup(false)}>Cancel</Button>
-              <Button type="submit">Rename</Button>
-            </div>
-          </form>
+          <RenameForm
+            label="Enter a new name for the trip:"
+            initialName={trip?.name ?? ''}
+            submitLabel="Rename"
+            onSecondary={() => setShowRenamePopup(false)}
+            onSubmit={(name) => { handleRenameTrip(trip?._id || '', name); setShowRenamePopup(false); }}
+          />
         </PopupBase>
         )}
 
@@ -217,11 +216,12 @@ function TripsDetailPage() {
             snap={sheetSnap}
             onSnapChange={setSheetSnap}
             className={styles.tripInfo}
+            bodyClassName={styles.tripBody}
             header={
               <div className={styles.row}>
                 <h1>{trip.name}</h1>
                 {!trip.completedAt && (
-                  <Button type="button" onClick={() => { setRenameName(trip.name); setShowRenamePopup(true); }}><Pencil size={16} /></Button>
+                  <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
                 )}
               </div>
             }
@@ -259,9 +259,19 @@ function TripsDetailPage() {
               <h3 ref={destinationsHeadingRef} tabIndex={-1}>Destinations:</h3>
               <ol className={styles.destinationsList} aria-labelledby={destinationsHeadingRef.current?.id}>
                 {trip.destinations.map((destination, index) => (
-                  <li key={destination.locationId._id}>
-                    {destination.locationId.name} {destination.locationId.description && `- ${destination.locationId.description}`}
-                    {destination.description && ` - ${destination.description ?? ""}`}
+                  <li key={`${destination.locationId._id}-${index}`}>
+
+                    {destination.locationId.name} {destination.locationId.description && (
+                      <>
+                        <br />
+                        <span className="hint">{destination.locationId.description}</span>
+                      </>
+                    )}
+                    {destination.description && (<>
+                      <br />
+                      <span className="hint">{destination.description ?? ""}</span>
+                    </>)}
+
                     {/* Ratings are only possible once the trip is completed */}
                     {trip.completedAt && (
                       <div className={styles.destinationRating}>
@@ -281,15 +291,19 @@ function TripsDetailPage() {
                 <>
                   <h3>Breakpoints:</h3>
                   <ol className={styles.destinationsList}>
-                    {trip.breakpoints.map((breakpoint, index) => (
-                      <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
-                        {breakpoint.skipped
-                          ? 'Stop skipped'
-                          : breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)?.name
-                            ?? breakpoint.locationId?.name
-                            ?? 'Suggested stop'}
-                      </li>
-                    ))}
+                    {trip.breakpoints.map((breakpoint, index) => {
+                      const selectedPlace = breakpoint.accommodation?.find(({ id }) => id === breakpoint.selectedAccommodationId)
+                      return (
+                        <li key={`${breakpoint.longitude}-${breakpoint.latitude}-${index}`}>
+                          {breakpoint.skipped
+                            ? 'Stop skipped'
+                            : selectedPlace?.name ?? breakpoint.locationId?.name ?? 'Suggested stop'}
+                          {!breakpoint.skipped && selectedPlace?.address && (
+                            <><br /><span className="hint">{selectedPlace.address}</span></>
+                          )}
+                        </li>
+                      )
+                    })}
                   </ol>
                 </>
               )}

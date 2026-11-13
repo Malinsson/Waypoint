@@ -28,19 +28,25 @@ type MapViewProps = {
   center: LonLat
   zoom: number
   markers?: MapMarker[]
+  // Id of the marker to draw emphasized, if any
+  highlightedMarkerId?: string | null
   // The route line in [lon, lat] points, or null for no route
   route?: LonLat[] | null
   onMarkerClick?: (markerId: string) => void
 }
 
-function markerStyle(label: string, kind: MapMarker['kind']): Style {
+function markerStyle(label: string, kind: MapMarker['kind'], highlighted = false): Style {
   return new Style({
+    // A highlighted marker is bigger, has a dark ring and is drawn above its neighbours
+    zIndex: highlighted ? 1 : 0,
     image: new Circle({
-      radius: 12,
+      radius: highlighted ? 17 : 12,
       fill: new Fill({
         color: kind === 'accommodation' ? '#2e7d32' : kind === 'breakpoint' ? '#ef6c00' : '#1976d2',
       }),
-      stroke: new Stroke({ color: '#fff', width: 2 }),
+      stroke: highlighted
+        ? new Stroke({ color: '#111', width: 4 })
+        : new Stroke({ color: '#fff', width: 2 }),
     }),
     text: new Text({
       text: label,
@@ -57,15 +63,18 @@ const routeStyle = new Style({
 // Space between the route and the map edge when zooming to fit it
 const FIT_PADDING = [40, 40, 40, 40]
 const MARKER_MAX_ZOOM = 15
+// Matches the marker circle (radius 12), so clicks just outside it do nothing
+const CLICK_RADIUS_PX = 14
 
 // The OpenLayers map is created once. Markers and the route live in their
 // own vector sources, which are refilled whenever those props change, so
 // the map itself (and the user's zoom/pan) is not rebuilt each time.
-function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: MapViewProps) {
+function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route = null, onMarkerClick }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<OlMap | null>(null)
   const markerSourceRef = useRef<VectorSource | null>(null)
   const routeSourceRef = useRef<VectorSource | null>(null)
+  const fittedMarkerKeyRef = useRef('')
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -86,6 +95,8 @@ function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: Ma
     })
 
     mapRef.current = map
+    // A new map has not been zoomed to any markers yet (StrictMode remounts it)
+    fittedMarkerKeyRef.current = ''
     markerSourceRef.current = markerSource
     routeSourceRef.current = routeSource
 
@@ -116,10 +127,15 @@ function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: Ma
         const feature = new Feature(new Point(fromLonLat(marker.location)))
         feature.setId(marker.id)
         feature.set('markerId', marker.id)
-        feature.setStyle(markerStyle(marker.label, marker.kind))
         return feature
       }),
     )
+
+    // Only zoom when the markers themselves moved. The markers array is also
+    // rebuilt when the user picks a place, and that must not reset the view.
+    const markerKey = markers.map((marker) => `${marker.id}@${marker.location.join(',')}`).join('|')
+    if (markerKey === fittedMarkerKeyRef.current) return
+    fittedMarkerKeyRef.current = markerKey
 
     const markerExtent = source.getExtent()
     if (markers.length > 0 && markerExtent) {
@@ -130,16 +146,31 @@ function MapView({ center, zoom, markers = [], route = null, onMarkerClick }: Ma
     }
   }, [markers])
 
+  // Styling lives in its own effect so a changed highlight only restyles the
+  // markers. It also runs after the effect above, which creates fresh features.
+  useEffect(() => {
+    markers.forEach((marker) => {
+      markerSourceRef.current
+        ?.getFeatureById(marker.id)
+        ?.setStyle(markerStyle(marker.label, marker.kind, marker.id === highlightedMarkerId))
+    })
+  }, [markers, highlightedMarkerId])
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !onMarkerClick) return
 
-    const handleClick = (event: { pixel: number[] }) => {
-      map.forEachFeatureAtPixel(event.pixel, (feature) => {
-        const markerId = feature.get('markerId')
-        if (typeof markerId === 'string') onMarkerClick(markerId)
-        return true
-      })
+    // Finds the marker by distance instead of forEachFeatureAtPixel, which reads
+    // pixels back from a canvas and makes the browser log a willReadFrequently warning
+    const handleClick = (event: { coordinate: number[]; pixel: number[] }) => {
+      const feature = markerSourceRef.current?.getClosestFeatureToCoordinate(event.coordinate)
+      const geometry = feature?.getGeometry()
+      if (!feature || !(geometry instanceof Point)) return
+
+      const markerPixel = map.getPixelFromCoordinate(geometry.getCoordinates())
+      const distance = Math.hypot(markerPixel[0] - event.pixel[0], markerPixel[1] - event.pixel[1])
+      const markerId = feature.get('markerId')
+      if (distance <= CLICK_RADIUS_PX && typeof markerId === 'string') onMarkerClick(markerId)
     }
 
     map.on('click', handleClick)

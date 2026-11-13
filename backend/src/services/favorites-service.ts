@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { FavoriteList } from "../models/favorite-list.js";
 import { Location } from "../models/location.js";
 import { AppError } from "../utils/app-error.js";
+import { pageMeta, skipFor, type Pagination } from "../utils/pagination.js";
 
 const DEFAULT_LIST_NAME = "Favorites";
 
@@ -53,12 +54,25 @@ async function createLocation(input: LocationInput) {
   return { location, locationId };
 }
 
-export async function listFavorites(userId: string) {
+// The default list is pinned first, the rest are newest first.
+// Without pagination every list is returned: the "save to list" pickers need
+// all of them.
+export async function listFavorites(userId: string, pagination?: Pagination) {
   await getDefaultList(userId);
-  return FavoriteList.find({ user: objectId(userId) })
-    .sort({ isDefault: -1, name: 1 })
-    .populate("locations")
-    .lean();
+  const filter = { user: objectId(userId) };
+  const query = FavoriteList.find(filter)
+    .sort({ isDefault: -1, createdAt: -1, _id: -1 })
+    .populate("locations");
+
+  if (!pagination) {
+    return { lists: await query.lean() };
+  }
+
+  const [lists, total] = await Promise.all([
+    query.skip(skipFor(pagination)).limit(pagination.limit).lean(),
+    FavoriteList.countDocuments(filter),
+  ]);
+  return { lists, ...pageMeta(pagination, total) };
 }
 
 export async function createFavorite(userId: string, input: LocationInput) {

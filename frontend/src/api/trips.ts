@@ -99,6 +99,7 @@ export function saveTrip(
     destinations: plan.destinations.map((destination) => ({
       name: destination.name,
       location: destination.location,
+      ...(destination.description ? { description: destination.description } : {}),
     })),
     route: plan.route,
     breakpoints: plan.breakPoints.map((breakPoint) => ({
@@ -142,8 +143,10 @@ export function updateSavedTrip(
   })
 }
 
-export function listTrips(): Promise<ListTripsResponse> {
-  return apiGet<ListTripsResponse>('/api/trips')
+export const TRIPS_PAGE_SIZE = 10
+
+export function listTrips(page = 1): Promise<ListTripsResponse> {
+  return apiGet<ListTripsResponse>(`/api/trips?page=${page}&limit=${TRIPS_PAGE_SIZE}`)
 }
 
 export function getTrip(id: string): Promise<TripDetailResponse> {

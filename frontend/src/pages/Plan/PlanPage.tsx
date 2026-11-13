@@ -4,11 +4,12 @@ import { ApiError } from '../../api/client.ts'
 import { getHealth } from '../../api/health.ts'
 import { getTrip, optimizeBlockedReason, planTrip, saveTrip, updateSavedTrip } from '../../api/trips.ts'
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
-import TripSummary from '../../components/TripSummary/TripSummary.tsx'
 import { useAuth } from '../../context/auth-context.ts'
-import type { AccommodationType, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
+import type { AccommodationType, Breakpoint, Destination, GeocodeResult, PlanResponse } from '../../types/api.ts'
 import styles from './PlanPage.module.css'
 import ConfirmationPopup from '../../components/ConfirmationPopup/ConfiramtionPopup.tsx'
+import PopupBase from '../../components/PopupBase/PopupBase.tsx'
+import RenameForm from '../../components/RenameForm/RenameForm.tsx'
 import DestinationsStep from '../../components/PlanPageSteps/DestinationsStep.tsx'
 import PreferencesStep from '../../components/PlanPageSteps/PreferencesStep.tsx'
 import AccommodationStep from '../../components/PlanPageSteps/AccommodationStep.tsx'
@@ -108,6 +109,7 @@ function PlanPage() {
   const [editLoadError, setEditLoadError] = useState<string | null>(null)
   const [duplicateDestinationError, setDuplicateDestinationError] = useState<string | null>(null)
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false)
+  const [showNamePopup, setShowNamePopup] = useState(false)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(storedPlan?.step ?? 1)
   const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
   // Phone layout: how far the planning panel is slid up over the map
@@ -273,7 +275,22 @@ function PlanPage() {
     }
   }
 
-  async function handleSave() {
+  // A new trip asks for a name first. An existing trip already has one, so editing saves directly.
+  function handleSaveClick() {
+    if (editTripId) {
+      void handleSave()
+    } else {
+      setShowNamePopup(true)
+    }
+  }
+
+  // Empty name means "name later": the backend then makes a default name
+  function handleNameChosen(name: string) {
+    setShowNamePopup(false)
+    void handleSave(name || undefined)
+  }
+
+  async function handleSave(name?: string) {
     // A plan is required because the save request must contain the planned route.
     if (!user || !plan || saving) return
 
@@ -285,7 +302,7 @@ function PlanPage() {
         await updateSavedTrip(editTripId, plan, maxDrivingSeconds, accommodationTypes, tripName)
         navigate(`/trips/${editTripId}`)
       } else {
-        await saveTrip(plan, undefined, accommodationTypes, maxDrivingSeconds)
+        await saveTrip(plan, name, accommodationTypes, maxDrivingSeconds)
         setSavedMessage('Trip saved.')
       }
     } catch (err) {
@@ -298,6 +315,8 @@ function PlanPage() {
 
   function chooseAccommodation(breakPointIndex: number, accommodationId: string) {
     if (!plan) return
+    // Any edit makes the saved copy outdated, so the save button must work again
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) =>
@@ -310,6 +329,7 @@ function PlanPage() {
 
   function skipBreakPoint(breakPointIndex: number) {
     if (!plan) return
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) => {
@@ -322,6 +342,7 @@ function PlanPage() {
 
   function undoSkipBreakPoint(breakPointIndex: number) {
     if (!plan) return
+    setSavedMessage(null)
     setPlan({
       ...plan,
       breakPoints: plan.breakPoints.map((breakPoint, index) =>
@@ -374,18 +395,31 @@ function PlanPage() {
         ]
       }
 
-      const destinationMarkers = (plan?.destinations ?? destinations).map((destination, index) => ({
-        id: destination.id,
-        location: destination.location,
-        label: String(index + 1),
-        kind: 'destination' as const,
-      }))
-      const breakpointMarkers = (plan?.breakPoints ?? []).map((breakPoint, index) => ({
-        id: `breakpoint-${index}`,
-        location: breakPoint.location,
-        label: `S${index + 1}`,
-        kind: 'breakpoint' as const,
-      }))
+      // A round trip ends where it starts, so the first marker is left out and
+      // the last one (the return stop) shows the final number
+      const isRoundTrip = plan?.destinations.some((destination) => destination.id.endsWith('-return')) ?? false
+      const destinationMarkers = (plan?.destinations ?? destinations)
+        .map((destination, index) => ({
+          id: destination.id,
+          location: destination.location,
+          label: String(index + 1),
+          kind: 'destination' as const,
+        }))
+        .filter((_marker, index) => !(isRoundTrip && index === 0))
+      // On the overview a chosen accommodation replaces its break point marker,
+      // since the two would sit on top of each other. Skipped or unchosen stops keep theirs.
+      const hasShownAccommodation = (breakPoint: Breakpoint) =>
+        step === 4 && !breakPoint.skipped && breakPoint.accommodation.some((place) => place.id === breakPoint.selectedAccommodationId)
+      const breakpointMarkers = (plan?.breakPoints ?? []).flatMap((breakPoint, index) =>
+        hasShownAccommodation(breakPoint)
+          ? []
+          : [{
+            id: `breakpoint-${index}`,
+            location: breakPoint.location,
+            label: `S${index + 1}`,
+            kind: 'breakpoint' as const,
+          }],
+      )
       const selectedAccommodationMarkers = step === 4
         ? (plan?.breakPoints ?? []).flatMap((breakPoint, breakPointIndex) =>
           breakPoint.accommodation
@@ -404,6 +438,20 @@ function PlanPage() {
   )
 
   const activeBreakpoint = plan?.breakPoints[activeBreakpointIndex]
+  // The chosen place is the highlighted one, whether it was picked in the list or on the map
+  const highlightedMarkerId = step === 3 && activeBreakpoint?.selectedAccommodationId && !activeBreakpoint.skipped
+    ? `accommodation-${activeBreakpointIndex}-${activeBreakpoint.selectedAccommodationId}`
+    : null
+
+  // Earlier stops stay editable: only the first stop goes back to preferences
+  function backFromBreakpoint() {
+    if (activeBreakpointIndex > 0) {
+      setActiveBreakpointIndex((index) => index - 1)
+    } else {
+      setStep(2)
+    }
+  }
+
   const selectAccommodationMarker = (markerId: string) => {
     const placeId = markerId.replace(`accommodation-${activeBreakpointIndex}-`, '')
     if (activeBreakpoint?.accommodation.some((place) => place.id === placeId)) {
@@ -417,7 +465,7 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <section className="mainSection">
+    <section className="mainSection disableScrolling" aria-label="Trip planner">
       {editLoading && <Loader />}
       {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
@@ -430,12 +478,27 @@ function PlanPage() {
         />
       )}
 
+      {showNamePopup && (
+        <PopupBase onCancel={() => setShowNamePopup(false)} isOpen={showNamePopup}>
+          <h2>Name your trip</h2>
+          <RenameForm
+            label="Give your trip a name now, or leave it empty to name it later:"
+            placeholder="Trip name"
+            submitLabel="Save"
+            secondaryLabel="Name later"
+            onSecondary={() => handleNameChosen('')}
+            onSubmit={handleNameChosen}
+          />
+        </PopupBase>
+      )}
+
       {!editLoading && (!editMode || !editLoadError) && <SheetLayout className={styles.planLayout}>
         <BottomSheet
           label="Trip planner"
           snap={sheetSnap}
           onSnapChange={setSheetSnap}
           className={styles.planPanel}
+          bodyClassName={styles.planBody}
           // Step 3 reuses the same panel for each stop, so the stop counts too
           scrollResetKey={`${step}-${activeBreakpointIndex}`}
           header={
@@ -525,13 +588,11 @@ function PlanPage() {
               onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
               onSkip={() => skipBreakPoint(activeBreakpointIndex)}
               onUndoSkip={() => undoSkipBreakPoint(activeBreakpointIndex)}
-              onBack={() => setStep(2)}
+              onBack={backFromBreakpoint}
               onNext={continueFromBreakpoint}
               onStartOver={() => setShowConfirmationPopup(true)}
             />
           )}
-
-          {plan && (step === 4) && <TripSummary plan={plan} />}
 
           {plan && step === 4 && (
             <OverviewStep
@@ -540,7 +601,7 @@ function PlanPage() {
               saving={saving}
               savedMessage={savedMessage}
               saveError={saveError}
-              onSave={() => void handleSave()}
+              onSave={handleSaveClick}
               onBack={() => setStep(plan.breakPoints.length > 0 ? 3 : 2)}
               onStartOver={() => setShowConfirmationPopup(true)}
               saveButtonLabel={editMode ? 'Save changes' : undefined}
@@ -552,6 +613,7 @@ function PlanPage() {
           center={SWEDEN_CENTER}
           zoom={5}
           markers={markers}
+          highlightedMarkerId={highlightedMarkerId}
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
         />

@@ -75,7 +75,7 @@ function AccommodationStep({
           <Button type="button" variant="tertiary" onClick={onStartOver}>Start over</Button>
           <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
           <Button type="button" onClick={onNext}>
-            {activeBreakpointIndex < plan.breakPoints.length - 1 ? 'Next stop' : 'Overview'}
+            {activeBreakpointIndex < plan.breakPoints.length - 1 ? 'Next' : 'Overview'}
           </Button>
         </div>
     </>

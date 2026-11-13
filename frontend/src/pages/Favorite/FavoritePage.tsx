@@ -1,5 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { addFavoriteToList, createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
+import {
+  addFavoriteToList,
+  createFavoriteList,
+  fetchFavoriteLists,
+  fetchFavoriteListsPage,
+} from '../../api/favorites.ts'
 import type { FavoriteList, FavoriteLocationInput, GeocodeResult } from '../../types/api.ts'
 import styles from './FavoritePage.module.css'
 import { Button } from '../../components/atoms/Button.tsx'
@@ -20,15 +25,42 @@ function FavoritePage() {
   const [showCreateListForLocation, setShowCreateListForLocation] = useState(false)
   const [savingLocation, setSavingLocation] = useState(false)
   const [locationError, setLocationError] = useState<string | null>(null)
+  const [page, setPage] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  // The page shows only the loaded pages, but the popup must offer every list
+  const [pickerLists, setPickerLists] = useState<FavoriteList[]>([])
+  const [loadingPickerLists, setLoadingPickerLists] = useState(false)
 
-  useEffect(() => {
-    fetchFavoriteLists()
-      .then(({ lists: loadedLists }) => setLists(loadedLists))
+  // Loads one page and appends it. The first call (page 1) runs on mount.
+  function loadPage(pageToLoad: number) {
+    setLoading(true)
+    fetchFavoriteListsPage(pageToLoad)
+      .then((response) => {
+        // Skip lists we already have: a list created on this page shifts the pages
+        setLists((current) => {
+          const known = new Set(current.map((list) => list._id))
+          return [...current, ...response.lists.filter((list) => !known.has(list._id))]
+        })
+        setPage(response.page)
+        setHasMore(response.hasMore)
+        setError(null)
+      })
       .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Could not load favorites.')
       })
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadPage(1)
   }, [])
+
+  // Matches the backend order: the default list stays first, a new list comes right after it
+  function withNewList(current: FavoriteList[], list: FavoriteList): FavoriteList[] {
+    const pinned = current.filter((item) => item.isDefault)
+    const rest = current.filter((item) => !item.isDefault)
+    return [...pinned, list, ...rest]
+  }
 
   async function handleCreateList(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -38,7 +70,7 @@ function FavoritePage() {
 
     try {
       const { list } = await createFavoriteList(name)
-      setLists((current) => [...current, list])
+      setLists((current) => withNewList(current, list))
       setNewListName('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the list.')
@@ -58,6 +90,13 @@ function FavoritePage() {
     setSelectedLocation(location)
     setShowCreateListForLocation(false)
     setLocationError(null)
+    setLoadingPickerLists(true)
+    fetchFavoriteLists()
+      .then(({ lists: allLists }) => setPickerLists(allLists))
+      .catch((err: unknown) => {
+        setLocationError(err instanceof Error ? err.message : 'Could not load your lists.')
+      })
+      .finally(() => setLoadingPickerLists(false))
   }
 
   function closeLocationPopup() {
@@ -98,7 +137,7 @@ function FavoritePage() {
     try {
       const { list } = await createFavoriteList(name)
       const { location } = await addFavoriteToList(list._id, locationInput(selectedLocation))
-      setLists((current) => [...current, { ...list, locations: [...list.locations, location] }])
+      setLists((current) => withNewList(current, { ...list, locations: [...list.locations, location] }))
       setSavingLocation(false)
       closeLocationPopup()
     } catch (err) {
@@ -116,8 +155,8 @@ function FavoritePage() {
 
       {selectedLocation && !showCreateListForLocation && (
         <FavoriteListPopup
-          lists={lists}
-          loading={loading}
+          lists={pickerLists}
+          loading={loadingPickerLists}
           saving={savingLocation}
           isOpen
           error={locationError}
@@ -210,6 +249,10 @@ function FavoritePage() {
         ))}
 
       </div>
+
+      {hasMore && !loading && (
+        <Button variant="secondary" onClick={() => loadPage(page + 1)}>Load more</Button>
+      )}
     </section>
   )
 }

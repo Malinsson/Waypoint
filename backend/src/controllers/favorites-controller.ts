@@ -14,6 +14,7 @@ import {
 } from "../services/favorites-service.js";
 import { requireUserId } from "../middleware/auth.js";
 import { AppError } from "../utils/app-error.js";
+import { paginationQuerySchema } from "../utils/pagination.js";
 
 const locationSchema = z.object({
   name: z.string("Name is required").trim().min(1).max(80),
@@ -44,7 +45,9 @@ function locationInput(req: Request): LocationInput {
 }
 
 export async function listFavoritesController(req: Request, res: Response) {
-  res.json({ lists: await listFavorites(requireUserId(req)) });
+  const isPaged = req.query.page !== undefined || req.query.limit !== undefined;
+  const pagination = isPaged ? paginationQuerySchema.parse(req.query) : undefined;
+  res.json(await listFavorites(requireUserId(req), pagination));
 }
 
 export async function createFavoriteController(req: Request, res: Response) {

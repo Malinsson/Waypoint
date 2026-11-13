@@ -19,6 +19,7 @@ function HomePage() {
           <NavLink to="/plan" className={`decorativeBorder ${styles.planButton}`}>Plan your trip</NavLink>
         </div>
         <img src="/Images/hero.webp" alt="A scenic road winding through mountains" className={styles.heroImage} />
+        <div className="decorativeDivider decorativeDivider--bottom" aria-hidden="true" />
       </section>
 
       <section className={`mainSection`} aria-labelledby="intro-heading">

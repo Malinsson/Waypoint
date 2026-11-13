@@ -1,13 +1,23 @@
 import type {
   FavoriteList,
+  FavoriteListsPageResponse,
   FavoriteListsResponse,
   FavoriteLocation,
   FavoriteLocationInput,
 } from '../types/api.ts'
 import { apiDelete, apiGet, apiPatch, apiPost } from './client.ts'
 
+// Every list, for the "save to list" pickers
 export function fetchFavoriteLists(): Promise<FavoriteListsResponse> {
   return apiGet<FavoriteListsResponse>('/api/favorites')
+}
+
+export const FAVORITES_PAGE_SIZE = 10
+
+export function fetchFavoriteListsPage(page = 1): Promise<FavoriteListsPageResponse> {
+  return apiGet<FavoriteListsPageResponse>(
+    `/api/favorites?page=${page}&limit=${FAVORITES_PAGE_SIZE}`,
+  )
 }
 
 export function fetchFavoriteList(listId: string): Promise<{ list: FavoriteList }> {
