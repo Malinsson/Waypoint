@@ -135,6 +135,7 @@ function FavoriteDetailPage() {
               onSnapChange={setSheetSnap}
               className={styles.panel}
               bodyClassName={styles.favoriteDetail}
+              allowPageScrollAtEdges
               header={
                 <div className={styles.head}>
                   <h1>{favoriteList.name}</h1>

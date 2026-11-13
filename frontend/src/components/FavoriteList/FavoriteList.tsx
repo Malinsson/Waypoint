@@ -4,7 +4,6 @@ import styles from './FavoriteList.module.css'
 import PopupBase from '../PopupBase/PopupBase.tsx'
 import { Button } from '../atoms/Button.tsx'
 import Loader from '../atoms/Loader.tsx'
-import { Plus } from 'lucide-react'
 
 type FavoriteListProps = {
   lists?: FavoriteListType[]

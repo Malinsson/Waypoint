@@ -16,12 +16,14 @@ import PrivacyPopup from './components/PrivacyPopup/PrivacyPopup.tsx'
 import TripEditPage from './pages/TripEdit/TripEditPage.tsx'
 import NotFoundPage from './pages/NotFound/NotFoundPage.tsx'
 import ProfilePage from './pages/Profile/ProfilePage.tsx'
+import ScrollToTop from './components/ScrollToTop/ScrollToTop.tsx'
 
 function App() {
 
 
   return (
     <>
+      <ScrollToTop />
       <Header />
       <main>
         <PrivacyPopup />

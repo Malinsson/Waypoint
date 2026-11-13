@@ -465,7 +465,7 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <section className="mainSection disableScrolling" aria-label="Trip planner">
+    <section className="mainSection" aria-label="Trip planner">
       {editLoading && <Loader />}
       {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
 
@@ -499,6 +499,7 @@ function PlanPage() {
           onSnapChange={setSheetSnap}
           className={styles.planPanel}
           bodyClassName={styles.planBody}
+          allowPageScrollAtEdges
           // Step 3 reuses the same panel for each stop, so the stop counts too
           scrollResetKey={`${step}-${activeBreakpointIndex}`}
           header={

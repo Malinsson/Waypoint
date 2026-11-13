@@ -96,8 +96,8 @@
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
-    /* Reaching the end of the list must not start scrolling the page behind */
-    overscroll-behavior: contain;
+    /* Let scrolling continue onto the page when the panel reaches an edge. */
+    overscroll-behavior: auto;
     /* Last resort: nothing in the sheet should ever scroll sideways */
     overflow-x: hidden;
     /* Hide the scrollbar; scrolling by touch still works */
