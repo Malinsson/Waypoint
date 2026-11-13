@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 import { z } from "zod";
 import { requireUserId } from "../middleware/auth.js";
-import { getUserById, loginUser, registerUser } from "../services/auth-service.js";
+import { changePassword, getUserById, loginUser, registerUser } from "../services/auth-service.js";
+import { getProfileStats } from "../services/profile-service.js";
 
 // Normalized to lowercase here so "Anna@x.com" and "anna@x.com" are the
 // same account both when registering and when logging in
@@ -32,6 +33,14 @@ const loginSchema = z.object({
   password: z.string("Password is required").min(1, "Password is required"),
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string("Current password is required").min(1, "Current password is required"),
+  newPassword: z
+    .string("New password is required")
+    .min(8, "Password must be at least 8 characters")
+    .max(72, "Password must be at most 72 characters"),
+});
+
 // parse() throws a ZodError on invalid input, which the error handler
 // turns into 400 VALIDATION_ERROR
 export async function register(req: Request, res: Response) {
@@ -49,4 +58,14 @@ export async function login(req: Request, res: Response) {
 export async function me(req: Request, res: Response) {
   const user = await getUserById(requireUserId(req));
   res.json({ user });
+}
+
+export async function stats(req: Request, res: Response) {
+  res.json({ stats: await getProfileStats(requireUserId(req)) });
+}
+
+export async function updatePassword(req: Request, res: Response) {
+  const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+  await changePassword(requireUserId(req), currentPassword, newPassword);
+  res.status(204).end();
 }

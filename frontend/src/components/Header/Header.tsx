@@ -30,7 +30,7 @@ function Header() {
         {!loading &&
           (user ? (
             <>
-              <span>{user.displayName}</span>
+              <NavLink to="/profile">{user.displayName}</NavLink>
               <Button 
               type="button" 
               className={styles.logoutButton} 
@@ -62,7 +62,7 @@ function Header() {
         {!loading &&
           (user ? (
             <>
-              <span>{user.displayName}</span>
+              <NavLink to="/profile">{user.displayName}</NavLink>
               <Button 
               type="button" 
               onClick={logout}

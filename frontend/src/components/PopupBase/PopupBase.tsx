@@ -14,6 +14,15 @@ type PopupBaseProps = {
 function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
 
     const popupRef = useRef<HTMLDivElement>(null);
+
+    // Callers usually pass an inline arrow function, which is a new function on
+    // every render. If the keyboard effect depended on it, every re-render
+    // (e.g. each keystroke in a form inside the popup) would re-run the effect
+    // and move focus back to the first field. So the latest one is kept in a ref.
+    const onCancelRef = useRef(onCancel);
+    useEffect(() => {
+        onCancelRef.current = onCancel;
+    });
     
     useEffect(() => {
         const app = document.getElementById("root");
@@ -56,7 +65,7 @@ function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === 'Escape') {
-                onCancel();
+                onCancelRef.current();
                 return;
             }
 
@@ -90,7 +99,7 @@ function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
             };
 
 
-    }, [isOpen, onCancel]);
+    }, [isOpen]);
 
 
     // Close the popup when clicking outside of it

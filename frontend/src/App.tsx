@@ -15,6 +15,7 @@ import FavoriteDetailPage from './pages/FavoriteDetail/FavoriteDetailPage.tsx'
 import PrivacyPopup from './components/PrivacyPopup/PrivacyPopup.tsx'
 import TripEditPage from './pages/TripEdit/TripEditPage.tsx'
 import NotFoundPage from './pages/NotFound/NotFoundPage.tsx'
+import ProfilePage from './pages/Profile/ProfilePage.tsx'
 
 function App() {
 
@@ -39,6 +40,8 @@ function App() {
             <Route path="/trips" element={<TripsPage />} />
             <Route path="/trips/:id" element={<TripDetailPage />} />
             <Route path="/trips/:id/edit" element={<TripEditPage />} />
+
+            <Route path="/profile" element={<ProfilePage />} />
           </Route>
 
         </Routes>

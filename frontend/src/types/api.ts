@@ -21,6 +21,19 @@ export type MeResponse = {
   user: User
 }
 
+export type ProfileStats = {
+  favorites: number
+  tripsSaved: number
+  tripsCompleted: number
+  kilometersDriven: number
+  destinationsVisited: number
+}
+
+export type ChangePasswordInput = {
+  currentPassword: string
+  newPassword: string
+}
+
 export type RegisterInput = {
   email: string
   password: string

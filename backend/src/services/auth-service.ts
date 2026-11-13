@@ -128,3 +128,16 @@ export async function updateMaxDrivingSeconds(userId: string, maxDrivingSeconds:
   );
   if (result.matchedCount === 0) throw new AppError(401, "UNAUTHORIZED", "Please log in again");
 }
+
+export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+  const user = Types.ObjectId.isValid(userId) ? await User.findById(userId).select("+passwordHash") : null;
+  if (!user) throw new AppError(401, "UNAUTHORIZED", "Please log in again");
+
+  // 400, not 401: the client treats a 401 as an expired session and logs the user out
+  if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+    throw new AppError(400, "INVALID_CURRENT_PASSWORD", "Current password is wrong");
+  }
+
+  user.passwordHash = await bcrypt.hash(newPassword, BCRYPT_COST);
+  await user.save();
+}
