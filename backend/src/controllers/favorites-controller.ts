@@ -21,7 +21,8 @@ const locationSchema = z.object({
   description: z.string().trim().min(1).max(200).optional(),
   latitude: z.number("Latitude is required").min(-90).max(90),
   longitude: z.number("Longitude is required").min(-180).max(180),
-  wikidataId: z.string().trim().max(100).optional(),
+  // Same format as for trips: the id is stored on a shared place, so a made-up value must not get in
+  wikidataId: z.string().trim().max(100).regex(/^Q\d+$/, "Wikidata ID must look like Q123").optional(),
 });
 
 const listNameSchema = z.object({

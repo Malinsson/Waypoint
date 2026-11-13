@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { Location } from "../models/location.js";
+import { findOrCreateLocation } from "./location-service.js";
 import { Trip } from "../models/trip.js";
 import { AppError } from "../utils/app-error.js";
 import { pageMeta, skipFor, type Pagination } from "../utils/pagination.js";
@@ -58,27 +58,67 @@ async function getOwnedTrip(userId: string, id: string) {
   return trip;
 }
 
-async function upsertLocation(input: TripDestinationInput) {
+function findOrCreateDestinationLocation(input: TripDestinationInput) {
   const [longitude, latitude] = input.location;
-  const name = input.name.slice(0, 80);
-  const description = input.description?.slice(0, 200);
-  const filter = input.wikidataId
-    ? { wikidataId: input.wikidataId }
-    : { name, longitude, latitude };
+  return findOrCreateLocation({
+    name: input.name,
+    description: input.description,
+    longitude,
+    latitude,
+    wikidataId: input.wikidataId,
+  });
+}
 
-  return Location.findOneAndUpdate(
-    filter,
-    {
-      $set: {
-        name,
-        ...(description === undefined ? {} : { description }),
-        longitude,
-        latitude,
-        ...(input.wikidataId ? { wikidataId: input.wikidataId } : {}),
-      },
-    },
-    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
-  );
+// Checked before any Location is created, so a bad request leaves nothing behind
+function assertSelectionsBelongToStops(breakpoints: BreakpointInput[]) {
+  for (const breakpoint of breakpoints) {
+    if (
+      breakpoint.selectedAccommodationId
+      && !breakpoint.accommodation?.some(({ id }) => id === breakpoint.selectedAccommodationId)
+    ) {
+      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
+    }
+  }
+}
+
+type StoredRating = { stars: number; comment?: string | undefined } | undefined;
+
+// Copied field by field so the result is plain data, not a Mongoose subdocument
+function copyRating(rating: StoredRating): { rating?: { stars: number; comment?: string } } {
+  if (!rating) return {};
+  return { rating: { stars: rating.stars, ...(rating.comment ? { comment: rating.comment } : {}) } };
+}
+
+function toBreakpointDocs(breakpoints: BreakpointInput[], ratings: StoredRating[] = []) {
+  return breakpoints.map((breakpoint, index) => ({
+    longitude: breakpoint.longitude,
+    latitude: breakpoint.latitude,
+    ...copyRating(ratings[index]),
+    ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
+    ...(breakpoint.skipped ? { skipped: true } : {}),
+    ...(breakpoint.accommodation
+      ? {
+          accommodation: breakpoint.accommodation.map((place) => ({
+            id: place.id,
+            name: place.name,
+            type: place.type,
+            longitude: place.location[0],
+            latitude: place.location[1],
+            distanceMeters: place.distanceMeters,
+            ...(place.address === undefined ? {} : { address: place.address }),
+          })),
+        }
+      : {}),
+  }));
+}
+
+// Same stops in the same order, to the precision we store (about 10 cm)
+function sameBreakpointPositions(
+  oldStops: { longitude: number; latitude: number }[],
+  newStops: { longitude: number; latitude: number }[],
+): boolean {
+  const key = (stop: { longitude: number; latitude: number }) => `${stop.longitude.toFixed(6)},${stop.latitude.toFixed(6)}`;
+  return oldStops.length === newStops.length && oldStops.every((stop, index) => key(stop) === key(newStops[index]!));
 }
 
 export async function saveTrip(userId: string, input: SaveTripInput) {
@@ -88,40 +128,15 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
     throw new AppError(409, "TRIP_LIMIT_REACHED", "You can save at most 50 trips");
   }
 
-  const locations = await Promise.all(input.destinations.map(upsertLocation));
-  for (const breakpoint of input.breakpoints) {
-    if (
-      breakpoint.selectedAccommodationId
-      && !breakpoint.accommodation?.some(({ id }) => id === breakpoint.selectedAccommodationId)
-    ) {
-      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
-    }
-  }
+  assertSelectionsBelongToStops(input.breakpoints);
+  const locations = await Promise.all(input.destinations.map(findOrCreateDestinationLocation));
   const name = input.name ?? `${input.destinations[0]?.name ?? "Origin"} to ${input.destinations.at(-1)?.name ?? "Destination"}`;
 
   return Trip.create({
     userId: ownerId,
     name,
     destinations: locations.map((location) => ({ locationId: location._id })),
-    breakpoints: input.breakpoints.map((breakpoint) => ({
-      longitude: breakpoint.longitude,
-      latitude: breakpoint.latitude,
-      ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
-      ...(breakpoint.skipped ? { skipped: true } : {}),
-      ...(breakpoint.accommodation
-        ? {
-            accommodation: breakpoint.accommodation.map((place) => ({
-              id: place.id,
-              name: place.name,
-              type: place.type,
-              longitude: place.location[0],
-              latitude: place.location[1],
-              distanceMeters: place.distanceMeters,
-              ...(place.address === undefined ? {} : { address: place.address }),
-            })),
-          }
-        : {}),
-    })),
+    breakpoints: toBreakpointDocs(input.breakpoints),
     route: input.route,
     roundTrip: input.roundTrip,
     maxDrivingHours: input.maxDrivingHours,
@@ -165,40 +180,40 @@ export async function renameTrip(userId: string, id: string, name: string) {
 
 export async function updateTrip(userId: string, id: string, input: SaveTripInput) {
   const trip = await getOwnedTrip(userId, id);
-  const locations = await Promise.all(input.destinations.map(upsertLocation));
+  assertSelectionsBelongToStops(input.breakpoints);
+  const locations = await Promise.all(input.destinations.map(findOrCreateDestinationLocation));
 
-  for (const breakpoint of input.breakpoints) {
-    if (
-      breakpoint.selectedAccommodationId
-      && !breakpoint.accommodation?.some(({ id: accommodationId }) => accommodationId === breakpoint.selectedAccommodationId)
-    ) {
-      throw new AppError(400, "INVALID_BREAKPOINT_SELECTION", "The selected accommodation is not part of this stop");
-    }
-  }
+  // Ratings live inside destinations[] and breakpoints[], so replacing the
+  // arrays would erase them. A destination keeps its rating if the same place
+  // is still on the trip. The nth visit of a place matches the nth visit
+  // before (a round trip starts and ends at the same place).
+  const visitKey = (locationId: { toString(): string }, seen: Map<string, number>) => {
+    const visit = seen.get(locationId.toString()) ?? 0;
+    seen.set(locationId.toString(), visit + 1);
+    return `${locationId.toString()}#${visit}`;
+  };
+  const oldSeen = new Map<string, number>();
+  const oldRatings = new Map<string, StoredRating>(
+    trip.destinations.map((destination) => [visitKey(destination.locationId, oldSeen), destination.rating]),
+  );
+  const newSeen = new Map<string, number>();
+
+  // Stop ratings are tied to a position in the list, so they only survive
+  // when every stop is exactly where it was. If the plan changed, they would
+  // describe different places, so they are dropped.
+  const stopsUnchanged = sameBreakpointPositions(trip.breakpoints, input.breakpoints);
 
   trip.name = input.name ?? trip.name;
-  trip.destinations = locations.map((location) => ({ locationId: location._id }));
+  trip.destinations = locations.map((location) => ({
+    locationId: location._id,
+    ...copyRating(oldRatings.get(visitKey(location._id, newSeen))),
+  }));
   trip.route = input.route;
   trip.roundTrip = input.roundTrip;
-  trip.breakpoints = input.breakpoints.map((breakpoint) => ({
-    longitude: breakpoint.longitude,
-    latitude: breakpoint.latitude,
-    ...(breakpoint.selectedAccommodationId ? { selectedAccommodationId: breakpoint.selectedAccommodationId } : {}),
-    ...(breakpoint.skipped ? { skipped: true } : {}),
-    ...(breakpoint.accommodation
-      ? {
-          accommodation: breakpoint.accommodation.map((place) => ({
-            id: place.id,
-            name: place.name,
-            type: place.type,
-            longitude: place.location[0],
-            latitude: place.location[1],
-            distanceMeters: place.distanceMeters,
-            ...(place.address === undefined ? {} : { address: place.address }),
-          })),
-        }
-      : {}),
-  }));
+  trip.breakpoints = toBreakpointDocs(
+    input.breakpoints,
+    stopsUnchanged ? trip.breakpoints.map((breakpoint) => breakpoint.rating) : [],
+  );
   trip.maxDrivingHours = input.maxDrivingHours;
   trip.accommodationPreference = input.accommodationPreference;
   await trip.save();
