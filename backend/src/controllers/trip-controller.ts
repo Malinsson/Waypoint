@@ -16,6 +16,7 @@ import {
 } from "../services/trip-service.js";
 import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
+import { paginationQuerySchema } from "../utils/pagination.js";
 import { getMaxDrivingSeconds, updateMaxDrivingSeconds } from "../services/auth-service.js";
 
 // [longitude, latitude], the same order as GeoJSON
@@ -150,7 +151,8 @@ export async function replaceTrip(req: Request, res: Response) {
 }
 
 export async function listTrips(req: Request, res: Response) {
-  res.json({ trips: await listTripsService(requireUserId(req)) });
+  const pagination = paginationQuerySchema.parse(req.query);
+  res.json(await listTripsService(requireUserId(req), pagination));
 }
 
 export async function getTrip(req: Request, res: Response) {

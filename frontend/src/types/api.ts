@@ -61,9 +61,20 @@ export type FavoriteList = {
   locations: FavoriteLocation[]
 }
 
+// Mirrors backend/src/utils/pagination.ts, keep in sync
+export type PageInfo = {
+  page: number
+  limit: number
+  total: number
+  hasMore: boolean
+}
+
+// Without page/limit the backend returns every list and no page info
 export type FavoriteListsResponse = {
   lists: FavoriteList[]
 }
+
+export type FavoriteListsPageResponse = FavoriteListsResponse & PageInfo
 
 export type FavoriteLocationInput = Omit<FavoriteLocation, '_id'>
 
@@ -177,7 +188,7 @@ export type SaveTripResponse = {
   trip: SavedTrip
 }
 
-export type ListTripsResponse = {
+export type ListTripsResponse = PageInfo & {
   trips: SavedTrip[]
 }
 

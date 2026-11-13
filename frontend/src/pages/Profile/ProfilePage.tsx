@@ -124,7 +124,7 @@ function ProfilePage() {
                 <Settings className={styles.settingsIcon} onClick={() => setShowChangePasswordForm(true)} />
             </div>
 
-        <h2>Statistics</h2>
+        <h2>Here are your statistics</h2>
         {statsError && (
             <p className="error" role="alert">
             {statsError}

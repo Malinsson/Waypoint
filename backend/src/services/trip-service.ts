@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { Location } from "../models/location.js";
 import { Trip } from "../models/trip.js";
 import { AppError } from "../utils/app-error.js";
+import { pageMeta, skipFor, type Pagination } from "../utils/pagination.js";
 
 export type TripDestinationInput = {
   name: string;
@@ -128,11 +129,19 @@ export async function saveTrip(userId: string, input: SaveTripInput) {
   });
 }
 
-export async function listTrips(userId: string) {
-  return Trip.find({ userId: objectId(userId, "User id is not valid") })
-    .sort({ updatedAt: -1 })
-    .populate("destinations.locationId")
-    .lean();
+export async function listTrips(userId: string, pagination: Pagination) {
+  const filter = { userId: objectId(userId, "User id is not valid") };
+  // _id breaks ties so two trips with the same updatedAt never swap pages.
+  const [trips, total] = await Promise.all([
+    Trip.find(filter)
+      .sort({ updatedAt: -1, _id: -1 })
+      .skip(skipFor(pagination))
+      .limit(pagination.limit)
+      .populate("destinations.locationId")
+      .lean(),
+    Trip.countDocuments(filter),
+  ]);
+  return { trips, ...pageMeta(pagination, total) };
 }
 
 export async function getTrip(userId: string, id: string) {
