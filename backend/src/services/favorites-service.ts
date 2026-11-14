@@ -34,15 +34,16 @@ async function getOwnedList(userId: string, listId: string) {
   return list;
 }
 
-// Adds the place to the list unless it is already there. The place itself is
-// shared with trips and other users' favorites, so it is found or created,
-// never changed or deleted from here.
+// Adds the place to the list, or answers 409 if it is already there. The place
+// itself is shared with trips and other users' favorites, so it is found or
+// created, never changed or deleted from here.
 async function addPlaceToList(list: Awaited<ReturnType<typeof getOwnedList>>, input: LocationInput) {
   const location = await findOrCreateLocation(input);
-  if (!list.locations.some((id) => id.equals(location._id))) {
-    list.locations.push(location._id);
-    await list.save();
+  if (list.locations.some((id) => id.equals(location._id))) {
+    throw new AppError(409, "ALREADY_IN_LIST", `This place is already in "${list.name}"`);
   }
+  list.locations.push(location._id);
+  await list.save();
   return location;
 }
 

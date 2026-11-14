@@ -71,11 +71,16 @@ test("when two requests insert the same wikidataId, the loser reads the winner's
 
 test("favoriting a place does not create a second copy of a shared place", async (t) => {
   const { calls, idOf } = mockLocations(t);
-  const list = { locations: [] as Types.ObjectId[], save: async () => undefined };
+  const list = { name: "Favorites", locations: [] as Types.ObjectId[], save: async () => undefined };
   t.mock.method(FavoriteList, "findOneAndUpdate", async () => list);
+  const place = { name: "Liseberg", description: undefined, longitude: 1, latitude: 2, wikidataId: "Q1" };
 
-  await createFavorite(userId, { name: "Liseberg", description: undefined, longitude: 1, latitude: 2, wikidataId: "Q1" });
-  await createFavorite(userId, { name: "Liseberg", description: undefined, longitude: 1, latitude: 2, wikidataId: "Q1" });
+  await createFavorite(userId, place);
+  // The second save of the same place is refused with 409
+  await assert.rejects(
+    createFavorite(userId, place),
+    (error: unknown) => error instanceof Error && "code" in error && error.code === "ALREADY_IN_LIST",
+  );
 
   assert.equal(calls.length, 2);
   assert.deepEqual(calls[0]?.filter, { wikidataId: "Q1" });

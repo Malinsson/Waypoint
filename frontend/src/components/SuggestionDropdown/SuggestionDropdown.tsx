@@ -6,6 +6,7 @@ import { optionId } from '../../utils/combobox.ts'
 import FavoriteButton from '../FavoriteButton/FavoriteButton.tsx'
 import FavoriteListPopup from '../FavoriteList/FavoriteList.tsx'
 import { addFavoriteToList, createFavoriteList, fetchFavoriteLists } from '../../api/favorites.ts'
+import { isInList } from '../../utils/favorites.ts'
 import { BuildingComplex, MapPin, Sparkles } from 'lucide-react'
 
 
@@ -163,6 +164,7 @@ function SuggestionDropdown({
           isOpen={Boolean(selectedSuggestion)}
           error={favoriteError}
           onSelect={(list) => void saveToList(list)}
+          isSaved={(list) => isInList(list, locationInput(selectedSuggestion))}
           onCreateNew={() => setShowCreateList(true)}
           onClose={closeFavoritePopup}
         />

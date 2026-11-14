@@ -14,6 +14,7 @@ import { NavLink } from 'react-router-dom'
 import AddDestinationForm from '../../components/AddDestinationForm/AddDestinationForm.tsx'
 import FavoriteListPopup from '../../components/FavoriteList/FavoriteList.tsx'
 import Loader from '../../components/atoms/Loader.tsx'
+import { isInList } from '../../utils/favorites.ts'
 
 function FavoritePage() {
   const [lists, setLists] = useState<FavoriteList[]>([])
@@ -161,6 +162,7 @@ function FavoritePage() {
           isOpen
           error={locationError}
           onSelect={(list) => void saveLocationToList(list)}
+          isSaved={(list) => isInList(list, locationInput(selectedLocation))}
           onCreateNew={() => setShowCreateListForLocation(true)}
           onClose={closeLocationPopup}
         />
