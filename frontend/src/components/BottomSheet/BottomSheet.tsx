@@ -156,7 +156,6 @@ function BottomSheet({
       : pageScrollTop + window.innerHeight < document.documentElement.scrollHeight
 
     if (pageCanScroll) {
-      event.preventDefault()
       window.scrollBy({ top: event.deltaY, behavior: 'auto' })
     }
   }

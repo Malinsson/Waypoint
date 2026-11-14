@@ -462,7 +462,7 @@ function PlanPage() {
   return (
     <section className="mainSection" aria-label="Trip planner">
       {editLoading && <Loader />}
-      {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
+      {!editLoading && editMode && editLoadError && <p className="error banner" role="alert">{editLoadError}</p>}
 
       {!editLoading && (!editMode || !editLoadError) && showConfirmationPopup && (
         <ConfirmationPopup 
@@ -512,7 +512,7 @@ function PlanPage() {
                 biasLocation={destinations.at(-1)?.location}
               />
               {duplicateDestinationError && (
-                <p className="error" role="alert">
+                <p className="error banner" role="alert">
                   {duplicateDestinationError}
                 </p>
               )}
