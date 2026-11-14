@@ -102,6 +102,15 @@ main {
   min-height: calc(100vh - var(--mobile-nav-height));
 }
 
+/* On phones 100vh is the tallest viewport (URL bar hidden), and the header
+   sits above main. Together they made every page taller than the screen,
+   so the page scrolled and left blank space at the bottom. */
+@media (max-width: 767px) {
+  main {
+    min-height: calc(100svh - var(--mobile-header-height) - var(--mobile-nav-height));
+  }
+}
+
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-family: var(--font-detail);
