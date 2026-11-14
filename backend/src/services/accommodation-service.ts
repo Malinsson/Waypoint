@@ -146,7 +146,11 @@ export async function findAccommodation(
 
   let radiusMeters = initialRadiusMeters;
   let byType = await searchAtRadius(radiusMeters);
-  if (radiusMeters === 10_000 && [...byType.values()].every((places) => places.length === 0) && !limitReached) {
+  // byType only holds types whose search succeeded. If it is empty, every
+  // search failed (or was refused by the budget): a wider radius would fail
+  // the same way and only spend more quota.
+  const searchWorked = byType.size > 0;
+  if (radiusMeters === 10_000 && searchWorked && [...byType.values()].every((places) => places.length === 0) && !limitReached) {
     radiusMeters = 25_000;
     byType = await searchAtRadius(radiusMeters);
   }
