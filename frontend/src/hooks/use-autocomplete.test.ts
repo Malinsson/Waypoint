@@ -118,6 +118,18 @@ describe('useAutocomplete', () => {
     expect(result.current.status).toBe('ok')
   })
 
+  it('does not show results from the previous query while the next one is debouncing', async () => {
+    mockFetch.mockResolvedValueOnce(response('Liseberg')).mockReturnValueOnce(deferred<SuggestionResponse>().promise)
+    const { result, rerender } = renderAutocomplete()
+
+    rerender({ text: 'Lise' })
+    await advance(DEBOUNCE_MS)
+    expect(result.current.suggestions.map((s) => s.label)).toEqual(['Liseberg'])
+
+    rerender({ text: 'Goth' })
+    expect(result.current.suggestions).toEqual([])
+  })
+
   it('pauses for 30 seconds after a 429 instead of retrying', async () => {
     mockFetch.mockRejectedValueOnce(new SuggestionsRateLimitedError('Too many requests'))
     const { result, rerender } = renderAutocomplete()

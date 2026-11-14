@@ -115,6 +115,21 @@ test("plan still returns the route with a warning when the Python service fails"
   assert.deepEqual(result.warnings.map((w) => w.code), ["BREAK_POINTS_UNAVAILABLE"]);
 });
 
+test("a leg the Python request check rejects gives a warning, not a 400", async (t) => {
+  // A leg drawn as one single point fails the "at least 2 points" check in
+  // our own Zod schema before any request is sent
+  const body = routingBody([STOCKHOLM, MALMO], [20_000]);
+  body.features[0]!.geometry.coordinates = [[STOCKHOLM]];
+  const calls = mockServices(t, { routing: () => json(body) });
+
+  const result = await planTrip(planInput([STOCKHOLM, MALMO]));
+
+  assert.equal(result.route.legs.length, 1);
+  assert.deepEqual(result.breakPoints, []);
+  assert.deepEqual(result.warnings.map((w) => w.code), ["BREAK_POINTS_UNAVAILABLE"]);
+  assert.equal(calls.some((url) => url.pathname.endsWith("/find-break-points")), false);
+});
+
 test("a failed accommodation search gives an empty list and a warning, not an error", async (t) => {
   mockServices(t, {
     routing: () => json(routingBody([STOCKHOLM, MALMO], [20_000])),

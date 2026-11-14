@@ -4,6 +4,7 @@ import styles from './FavoriteList.module.css'
 import PopupBase from '../PopupBase/PopupBase.tsx'
 import { Button } from '../atoms/Button.tsx'
 import Loader from '../atoms/Loader.tsx'
+import { Check } from 'lucide-react'
 
 type FavoriteListProps = {
   lists?: FavoriteListType[]
@@ -13,6 +14,8 @@ type FavoriteListProps = {
   isOpen: boolean
   error: string | null
   onSelect?: (list: FavoriteListType) => void
+  // True when the place being saved is already in that list
+  isSaved?: (list: FavoriteListType) => boolean
   onCreateNew?: () => void
   onCreate?: (name: string) => void
   onCancelCreate?: () => void
@@ -27,6 +30,7 @@ function FavoriteList({
   error,
   isOpen,
   onSelect,
+  isSaved,
   onCreateNew,
   onCreate,
   onCancelCreate,
@@ -50,7 +54,7 @@ function FavoriteList({
           </button>
         </div>
 
-        {error && <p className="error" role="alert">{error}</p>}
+        {error && <p className="error banner" role="alert">{error}</p>}
 
         {mode === 'create' ? (
           <form onSubmit={handleSubmit}>
@@ -82,7 +86,7 @@ function FavoriteList({
                 onClick={onCreateNew}
                 disabled={saving}
               >
-                Create new list
+                Create new list +
               </Button>
               {lists.map((list) => (
                 <Button
@@ -90,9 +94,14 @@ function FavoriteList({
                   type="button"
                   className={styles.favoriteListItem}
                   onClick={() => onSelect?.(list)}
-                  disabled={saving}
+                  disabled={saving || isSaved?.(list)}
                 >
                   {list.name}
+                  {isSaved?.(list) && (
+                    <span className={styles.saved}>
+                      <Check aria-hidden="true" /> Already saved
+                    </span>
+                  )}
                 </Button>
               ))}
             </div>

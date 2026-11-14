@@ -227,8 +227,11 @@ export async function planTrip(input: PlanInput): Promise<PlanResult> {
     });
     breakPoints = result.breakPoints;
   } catch (error) {
-    if (!(error instanceof UpstreamError)) throw error;
-    console.warn("Break-point service unavailable:", error.message);
+    // Any failure counts, not only UpstreamError: the request is checked with
+    // Zod before it is sent, so an odd leg from the router (e.g. one point)
+    // throws a ZodError. Break points are a bonus, so the route is still returned.
+    const reason = error instanceof Error ? error.message : String(error);
+    console.warn("Break-point service unavailable:", reason);
     warnings.push({
       code: "BREAK_POINTS_UNAVAILABLE",
       message: "We created the route, but stop suggestions are temporarily unavailable.",

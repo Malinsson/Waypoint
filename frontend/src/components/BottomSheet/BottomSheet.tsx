@@ -7,6 +7,7 @@ import {
   type FocusEvent,
   type PointerEvent,
   type ReactNode,
+  type WheelEvent,
 } from 'react'
 import styles from './BottomSheet.module.css'
 import { clampOffset, nearestSnap, nextSnap, snapOffsets, type SnapOffsets, type SnapPoint } from './snap.ts'
@@ -29,6 +30,8 @@ type BottomSheetProps = {
   bodyClassName?: string
   // When this value changes the body is scrolled back to the top, e.g. a step number
   scrollResetKey?: string | number
+  // Pass wheel scrolling to the document when this panel reaches an edge
+  allowPageScrollAtEdges?: boolean
 }
 
 // Elements that must keep their normal click/typing behaviour instead of starting a drag
@@ -48,6 +51,7 @@ function BottomSheet({
   className = '',
   bodyClassName = '',
   scrollResetKey,
+  allowPageScrollAtEdges = false,
 }: BottomSheetProps) {
   const sheetRef = useRef<HTMLElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -135,6 +139,27 @@ function BottomSheet({
     if (snap === 'collapsed' && event.target.matches('input, textarea, select')) onSnapChange('half')
   }
 
+  function handleBodyWheel(event: WheelEvent<HTMLDivElement>) {
+    if (!allowPageScrollAtEdges || event.deltaY === 0) return
+
+    const body = event.currentTarget
+    const canScrollUp = body.scrollTop > 0
+    const canScrollDown = body.scrollTop + body.clientHeight < body.scrollHeight
+    const scrollingUp = event.deltaY < 0
+    const panelCanScroll = scrollingUp ? canScrollUp : canScrollDown
+
+    if (panelCanScroll) return
+
+    const pageScrollTop = window.scrollY
+    const pageCanScroll = scrollingUp
+      ? pageScrollTop > 0
+      : pageScrollTop + window.innerHeight < document.documentElement.scrollHeight
+
+    if (pageCanScroll) {
+      window.scrollBy({ top: event.deltaY, behavior: 'auto' })
+    }
+  }
+
   const offset = dragOffset ?? offsets?.[snap] ?? 0
 
   return (
@@ -183,7 +208,12 @@ function BottomSheet({
         </div>
         {pinned}
       </div>
-      <div id={bodyId} ref={bodyRef} className={`${styles.body} ${bodyClassName}`}>
+      <div
+        id={bodyId}
+        ref={bodyRef}
+        className={`${styles.body} ${bodyClassName}`}
+        onWheel={handleBodyWheel}
+      >
         {children}
       </div>
     </aside>

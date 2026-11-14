@@ -146,12 +146,6 @@ function PlanPage() {
       .finally(() => setEditLoading(false))
   }, [editTripId])
 
-  useEffect(() => {
-    if (!storedPlan && !editMode) {
-      setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
-    }
-  }, [storedPlan, user])
-
   // Render's free services sleep when idle. A quiet request when the page
   // opens wakes the backend, so it is ready when the user starts typing.
   // The answer and any error are ignored on purpose.
@@ -232,6 +226,7 @@ function PlanPage() {
   function startOver() {
     updateDestinations([])
     setRoundTrip(false)
+    setMaxDrivingSeconds(DEFAULT_MAX_DRIVING_SECONDS)
     localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
     setResetCount((count) => count + 1)
     setShowConfirmationPopup(false)
@@ -465,9 +460,9 @@ function PlanPage() {
   const canAddMore = destinations.length < MAX_DESTINATIONS
 
   return (
-    <section className="mainSection disableScrolling" aria-label="Trip planner">
+    <section className="mainSection" aria-label="Trip planner">
       {editLoading && <Loader />}
-      {!editLoading && editMode && editLoadError && <p className="error" role="alert">{editLoadError}</p>}
+      {!editLoading && editMode && editLoadError && <p className="error banner" role="alert">{editLoadError}</p>}
 
       {!editLoading && (!editMode || !editLoadError) && showConfirmationPopup && (
         <ConfirmationPopup 
@@ -499,6 +494,7 @@ function PlanPage() {
           onSnapChange={setSheetSnap}
           className={styles.planPanel}
           bodyClassName={styles.planBody}
+          allowPageScrollAtEdges
           // Step 3 reuses the same panel for each stop, so the stop counts too
           scrollResetKey={`${step}-${activeBreakpointIndex}`}
           header={
@@ -516,7 +512,7 @@ function PlanPage() {
                 biasLocation={destinations.at(-1)?.location}
               />
               {duplicateDestinationError && (
-                <p className="error" role="alert">
+                <p className="error banner" role="alert">
                   {duplicateDestinationError}
                 </p>
               )}

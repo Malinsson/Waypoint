@@ -1,18 +1,12 @@
 import { Types } from "mongoose";
 import { FavoriteList } from "../models/favorite-list.js";
-import { Location } from "../models/location.js";
+import { findOrCreateLocation, type LocationInput } from "./location-service.js";
 import { AppError } from "../utils/app-error.js";
 import { pageMeta, skipFor, type Pagination } from "../utils/pagination.js";
 
 const DEFAULT_LIST_NAME = "Favorites";
 
-export type LocationInput = {
-  name: string;
-  description: string | undefined;
-  latitude: number;
-  longitude: number;
-  wikidataId?: string | undefined;
-};
+export type { LocationInput };
 
 function objectId(id: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(id)) {
@@ -40,18 +34,17 @@ async function getOwnedList(userId: string, listId: string) {
   return list;
 }
 
-async function createLocation(input: LocationInput) {
-  const locationId = new Types.ObjectId();
-  const locationData = {
-    _id: locationId,
-    name: input.name,
-    description: input.description,
-    latitude: input.latitude,
-    longitude: input.longitude,
-    ...(input.wikidataId === undefined ? {} : { wikidataId: input.wikidataId }),
-  };
-  const location = await Location.create(locationData);
-  return { location, locationId };
+// Adds the place to the list, or answers 409 if it is already there. The place
+// itself is shared with trips and other users' favorites, so it is found or
+// created, never changed or deleted from here.
+async function addPlaceToList(list: Awaited<ReturnType<typeof getOwnedList>>, input: LocationInput) {
+  const location = await findOrCreateLocation(input);
+  if (list.locations.some((id) => id.equals(location._id))) {
+    throw new AppError(409, "ALREADY_IN_LIST", `This place is already in "${list.name}"`);
+  }
+  list.locations.push(location._id);
+  await list.save();
+  return location;
 }
 
 // The default list is pinned first, the rest are newest first.
@@ -76,11 +69,7 @@ export async function listFavorites(userId: string, pagination?: Pagination) {
 }
 
 export async function createFavorite(userId: string, input: LocationInput) {
-  const list = await getDefaultList(userId);
-  const { location, locationId } = await createLocation(input);
-  list.locations.push(locationId);
-  await list.save();
-  return location;
+  return addPlaceToList(await getDefaultList(userId), input);
 }
 
 export async function deleteFavorite(userId: string, locationId: string) {
@@ -93,7 +82,7 @@ export async function deleteFavorite(userId: string, locationId: string) {
   if (result.modifiedCount === 0) {
     throw new AppError(404, "NOT_FOUND", "Favorite was not found");
   }
-  await Location.findByIdAndDelete(locationObjectId);
+  // The Location is not deleted: saved trips and other users may still use it
 }
 
 export async function createFavoriteList(userId: string, name: string) {
@@ -129,11 +118,7 @@ export async function addLocationToList(
   listId: string,
   input: LocationInput,
 ) {
-  const list = await getOwnedList(userId, listId);
-  const { location, locationId } = await createLocation(input);
-  list.locations.push(locationId);
-  await list.save();
-  return location;
+  return addPlaceToList(await getOwnedList(userId, listId), input);
 }
 
 export async function removeLocationFromList(userId: string, listId: string, locationId: string) {

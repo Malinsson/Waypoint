@@ -15,6 +15,7 @@ export const RATE_LIMIT_PAUSE_MS = 30_000
 // old response replace a newer one.
 export function useAutocomplete(text: string, mapCenter?: LonLat) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
+  const [suggestionsQuery, setSuggestionsQuery] = useState('')
   const [status, setStatus] = useState<AutocompleteStatus>('idle')
   const [partial, setPartial] = useState(false)
 
@@ -32,7 +33,13 @@ export function useAutocomplete(text: string, mapCenter?: LonLat) {
   const tooShort = query.length < MIN_TEXT_LENGTH
 
   useEffect(() => {
-    if (tooShort) return
+    if (tooShort) {
+      setSuggestions([])
+      setSuggestionsQuery('')
+      setPartial(false)
+      setStatus('idle')
+      return
+    }
     // The state already says 'rateLimited' from the 429 that started the
     // pause, so there is nothing to update, only nothing to send
     if (Date.now() < pausedUntilRef.current) return
@@ -51,12 +58,14 @@ export function useAutocomplete(text: string, mapCenter?: LonLat) {
         })
         if (controller.signal.aborted) return
         setSuggestions(response.results)
+        setSuggestionsQuery(query)
         setPartial(response.partial)
         setStatus(response.results.length > 0 ? 'ok' : 'empty')
       } catch (err) {
         // A cancelled request is expected, not an error
         if (controller.signal.aborted) return
         setSuggestions([])
+        setSuggestionsQuery(query)
         setPartial(false)
         if (err instanceof SuggestionsRateLimitedError) {
           pausedUntilRef.current = Date.now() + RATE_LIMIT_PAUSE_MS
@@ -78,5 +87,9 @@ export function useAutocomplete(text: string, mapCenter?: LonLat) {
   // Too short text means "no search", whatever an earlier search left in
   // state. Deriving it here avoids an extra render from setting state.
   if (tooShort) return { suggestions: [], status: 'idle' as const, partial: false }
-  return { suggestions, status, partial }
+  return {
+    suggestions: suggestionsQuery === query ? suggestions : [],
+    status,
+    partial,
+  }
 }

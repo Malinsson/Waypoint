@@ -48,10 +48,29 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreach
     if (!draggedId || draggedId === destinations[index]?.id || isReturnDestination(destinations[index]!)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
-    setDropIndex(index)
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const insertAfter = event.clientY >= bounds.top + bounds.height / 2
+    const nextDropIndex = insertAfter ? index + 1 : index
+    setDropIndex((current) => (current === nextDropIndex ? current : nextDropIndex))
   }
 
-  function handleDrop(event: DragEvent<HTMLLIElement>) {
+  function updateDropIndexFromGap(event: DragEvent<HTMLOListElement>) {
+    if (!draggedId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+
+    const rows = Array.from(event.currentTarget.querySelectorAll<HTMLLIElement>('li'))
+    const rowIndex = rows.findIndex((row) => {
+      const bounds = row.getBoundingClientRect()
+      return event.clientY < bounds.top + bounds.height / 2
+    })
+    const nextDropIndex = rowIndex < 0 ? destinations.length : rowIndex
+    const target = destinations[nextDropIndex]
+    if (target && (target.id === draggedId || isReturnDestination(target))) return
+    setDropIndex((current) => (current === nextDropIndex ? current : nextDropIndex))
+  }
+
+  function handleDrop(event: DragEvent<HTMLLIElement | HTMLOListElement>) {
     event.preventDefault()
     const id = event.dataTransfer.getData('text/plain') || draggedId
     if (!id || dropIndex === null) return
@@ -61,6 +80,10 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreach
     if (fromIndex < 0 || fromIndex === dropIndex) return
     const [movedId] = ids.splice(fromIndex, 1)
     const targetIndex = fromIndex < dropIndex ? dropIndex - 1 : dropIndex
+    if (targetIndex === fromIndex) {
+      clearDrag()
+      return
+    }
     ids.splice(targetIndex, 0, movedId!)
     onReorder(ids)
     setDraggedId(null)
@@ -72,21 +95,47 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreach
     setDropIndex(null)
   }
 
+  const draggedIndex = draggedId ? destinations.findIndex((destination) => destination.id === draggedId) : -1
+
   return (
     <>
       {/* The number is written out (not left to <ol>) so it is always
           visible and clearly matches the number on the map marker */}
-      <ol className={styles.destinationList}>
+      <ol
+        className={styles.destinationList}
+        onDragOver={updateDropIndexFromGap}
+        onDrop={handleDrop}
+      >
         {destinations.map((destination, index) => {
           const isReturn = isReturnDestination(destination)
           const isDragging = draggedId === destination.id
-          const isDropTarget = dropIndex === index && !isDragging
+          const isDropBefore = dropIndex === index && !isDragging
+          const isDropAfter = dropIndex === index + 1 && !isDragging
           const isUnreachable = unreachableIds.includes(destination.id)
+          const shiftsDown =
+            dropIndex !== null &&
+            draggedIndex > dropIndex &&
+            index >= dropIndex &&
+            index < draggedIndex &&
+            !isDragging
+          const shiftsUp =
+            dropIndex !== null &&
+            draggedIndex >= 0 &&
+            draggedIndex < dropIndex &&
+            index > draggedIndex &&
+            index <= dropIndex
 
           return (
           <li
             key={destination.id}
-            className={`${isDragging ? styles.dragging : ''} ${isDropTarget ? styles.dropTarget : ''} ${isUnreachable ? styles.unreachable : ''}`}
+            className={[
+              isDragging ? styles.dragging : '',
+              isDropBefore ? styles.dropBefore : '',
+              isDropAfter ? styles.dropAfter : '',
+              shiftsDown ? styles.shiftDown : '',
+              shiftsUp ? styles.shiftUp : '',
+              isUnreachable ? styles.unreachable : '',
+            ].join(' ')}
             draggable={!disabled && !isReturn}
             onDragStart={(event) => handleDragStart(event, destination.id)}
             onDragOver={(event) => handleDragOver(event, index)}
@@ -94,7 +143,6 @@ function DestinationList({ destinations, onRemove, onReorder, roundTrip, unreach
             onDragEnd={clearDrag}
           >
             <div className={styles.destinationContent}>
-              <span className={styles.dragHandle} aria-hidden="true">⠿</span>
               {!isReturn && (
                 <span className={styles.moveButtons}>
                   <Button

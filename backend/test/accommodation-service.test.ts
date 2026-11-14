@@ -51,6 +51,29 @@ test("finder drops unnamed places, sorts by distance, and passes its category", 
   assert.deepEqual(result.map((item) => item.id), ["near", "far"]);
 });
 
+test("no retry at 25 km when every search failed", async () => {
+  const radii: number[] = [];
+  const result = await findAccommodation(point, ["hotel", "camping"], async (_categories, _point, radius) => {
+    radii.push(radius);
+    throw new Error("Geoapify down");
+  });
+  // One request per type at 10 km, and nothing more
+  assert.deepEqual(radii, [10_000, 10_000]);
+  assert.equal(result.unavailable, true);
+  assert.equal(result.radiusMeters, 10_000);
+});
+
+test("retry at 25 km still happens when one type failed and the other found nothing", async () => {
+  const radii: number[] = [];
+  const result = await findAccommodation(point, ["hotel", "camping"], async (categories, _point, radius) => {
+    radii.push(radius);
+    if (categories[0] === "accommodation.hotel") throw new Error("hotel search failed");
+    return [];
+  });
+  assert.deepEqual(radii, [10_000, 10_000, 25_000, 25_000]);
+  assert.equal(result.radiusMeters, 25_000);
+});
+
 test("empty first search retries once at 25 km", async () => {
   const radii: number[] = [];
   const result = await findAccommodation(point, ["hotel"], async (_categories, _point, radius) => {

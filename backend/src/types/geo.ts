@@ -53,3 +53,5 @@ export type Accommodation = {
 };
 
 export const MAX_DRIVING_HOURS = 16;
+// Used when a plan request does not set a limit. The same for every user.
+export const DEFAULT_MAX_DRIVING_SECONDS = 6 * 3_600;

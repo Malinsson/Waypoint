@@ -24,14 +24,6 @@ const userSchema = new Schema(
       minlength: 1,
       maxlength: 50,
     },
-    maxDrivingSeconds: {
-      type: Number,
-      required: true,
-      default: 21_600,
-      min: 3_600,
-      max: 57_600,
-      validate: { validator: Number.isInteger, message: "maxDrivingSeconds must be an integer" },
-    },
   },
   { timestamps: true },
 );

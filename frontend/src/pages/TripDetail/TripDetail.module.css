@@ -87,7 +87,7 @@
     .tripBody {
         min-height: 0;
         overflow-y: auto;
-        overscroll-behavior: contain;
+        overscroll-behavior: auto;
     }
 
     .actions {

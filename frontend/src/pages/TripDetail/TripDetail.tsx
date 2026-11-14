@@ -217,6 +217,7 @@ function TripsDetailPage() {
             onSnapChange={setSheetSnap}
             className={styles.tripInfo}
             bodyClassName={styles.tripBody}
+            allowPageScrollAtEdges
             header={
               <div className={styles.row}>
                 <h1>{trip.name}</h1>

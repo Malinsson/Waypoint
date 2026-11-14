@@ -43,7 +43,7 @@ Required changes to the existing model:
 - `address` is `required`, but Wikidata suggestions have a description, not an address. Decide: make it optional, or fill it with a fallback (see open questions). Do not let a save fail for this reason.
 - `name` (max 80) and `address` (max 200): truncate in the mapper instead of failing the whole save.
 
-Upsert rule (server side, when saving a trip): if `wikidataId` exists, `findOneAndUpdate({ wikidataId }, ..., { upsert: true })`. Otherwise match on exact (`name`, `latitude`, `longitude`) and create if missing. Duplicates between sources with slightly different coordinates are accepted in v1.
+Upsert rule (server side, when saving a trip): if `wikidataId` exists, `findOneAndUpdate({ wikidataId }, ..., { upsert: true })`. Otherwise match on exact (`name`, `latitude`, `longitude`) and create if missing. Duplicates between sources with slightly different coordinates are accepted in v1. An existing Location is **never modified or deleted** by a user action (the update uses `$setOnInsert`, the first saver's data wins), because other users' trips and favorites point at it. Favorites use the same find-or-create helper (`services/location-service.ts`), and removing a favorite only removes the reference from the list. When a trip is replaced with `PUT`, a destination keeps its rating if the same place is still on the trip (the nth visit of a place matches the nth visit before). Stop (breakpoint) ratings are kept only if every stop is at the same position as before, otherwise all stop ratings are dropped.
 
 Coordinates: `Location` stores `latitude` and `longitude`; the API contract uses `location: [lon, lat]`. Convert in one pair of mapper functions (`toLocationDoc`, `toApiLocation`) and nowhere else.
 

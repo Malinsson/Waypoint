@@ -1,5 +1,9 @@
 .favoriteListPopup {
   color: var(--color-text);
+  max-height: 45dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
 }
 
 .header {
@@ -31,6 +35,9 @@
   color: inherit;
   text-align: left;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .favoriteListItem:hover,
@@ -52,4 +59,17 @@
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.saved svg {
+  width: 1rem;
+  height: 1rem;
 }
