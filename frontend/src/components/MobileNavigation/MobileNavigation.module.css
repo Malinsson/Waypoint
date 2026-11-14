@@ -7,7 +7,9 @@
     right: 0;
     padding: 0.5rem;
     z-index: 1000;
-    
+    /* The map pages subtract this variable to size themselves, so the nav
+       must be exactly this tall instead of whatever its content adds up to */
+    height: var(--mobile-nav-height);
 }
 
 .mobileNav a {
