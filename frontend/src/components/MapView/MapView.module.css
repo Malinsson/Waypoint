@@ -4,6 +4,13 @@
   width: 100%;
 }
 
+/* OpenLayers defaults to pan-x pan-y, which lets the browser take one-finger
+   drags for page scrolling. The map then cannot pan, and the page scroll
+   moves the browser's URL bar. The map must receive all touch gestures itself. */
+.map :global(.ol-viewport) {
+  touch-action: none;
+}
+
 /* On phones the map fills its SheetLayout, and the sheet slides over it */
 @media (max-width: 767px) {
   .map {
