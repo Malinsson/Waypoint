@@ -8,7 +8,6 @@ export type User = {
   id: string
   email: string
   displayName: string
-  maxDrivingSeconds: number
 }
 
 // Returned by both register and login

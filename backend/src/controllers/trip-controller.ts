@@ -14,10 +14,9 @@ import {
   clearTripRating as clearTripRatingService,
   type RatingTarget,
 } from "../services/trip-service.js";
-import { ACCOMMODATION_TYPES, MAX_DRIVING_HOURS } from "../types/geo.js";
+import { ACCOMMODATION_TYPES, DEFAULT_MAX_DRIVING_SECONDS, MAX_DRIVING_HOURS } from "../types/geo.js";
 import { AppError } from "../utils/app-error.js";
 import { paginationQuerySchema } from "../utils/pagination.js";
-import { getMaxDrivingSeconds, updateMaxDrivingSeconds } from "../services/auth-service.js";
 
 // [longitude, latitude], the same order as GeoJSON
 const lonLatSchema = z.tuple([
@@ -89,11 +88,11 @@ export const planSchema = z.object({
 
 export async function plan(req: Request, res: Response) {
   const input = planSchema.parse(req.body);
+  // Planning saves nothing and guests and logged-in users are treated the same
   const maxDrivingSeconds = input.options.maxDrivingSeconds
     ?? (input.options.maxDrivingHours === undefined
-      ? req.user ? await getMaxDrivingSeconds(req.user.id) : 21_600
+      ? DEFAULT_MAX_DRIVING_SECONDS
       : input.options.maxDrivingHours * 3_600);
-  if (req.user) await updateMaxDrivingSeconds(req.user.id, maxDrivingSeconds);
   const result = await planTrip({
     ...input,
     options: { ...input.options, maxDrivingSeconds },

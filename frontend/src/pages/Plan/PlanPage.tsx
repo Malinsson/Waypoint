@@ -146,12 +146,6 @@ function PlanPage() {
       .finally(() => setEditLoading(false))
   }, [editTripId])
 
-  useEffect(() => {
-    if (!storedPlan && !editMode) {
-      setMaxDrivingSeconds(user?.maxDrivingSeconds ?? DEFAULT_MAX_DRIVING_SECONDS)
-    }
-  }, [storedPlan, user])
-
   // Render's free services sleep when idle. A quiet request when the page
   // opens wakes the backend, so it is ready when the user starts typing.
   // The answer and any error are ignored on purpose.
@@ -232,6 +226,7 @@ function PlanPage() {
   function startOver() {
     updateDestinations([])
     setRoundTrip(false)
+    setMaxDrivingSeconds(DEFAULT_MAX_DRIVING_SECONDS)
     localStorage.removeItem(LAST_PLAN_STORAGE_KEY)
     setResetCount((count) => count + 1)
     setShowConfirmationPopup(false)

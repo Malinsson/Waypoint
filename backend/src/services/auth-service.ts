@@ -16,7 +16,6 @@ export type PublicUser = {
   id: string;
   email: string;
   displayName: string;
-  maxDrivingSeconds: number;
 };
 
 export type AuthResult = {
@@ -28,7 +27,6 @@ type UserFields = {
   _id: Types.ObjectId;
   email: string;
   displayName: string;
-  maxDrivingSeconds: number;
 };
 
 // The only shape a user is ever sent to the client in, so passwordHash
@@ -38,7 +36,6 @@ function toPublicUser(user: UserFields): PublicUser {
     id: user._id.toString(),
     email: user.email,
     displayName: user.displayName,
-    maxDrivingSeconds: user.maxDrivingSeconds,
   };
 }
 
@@ -113,20 +110,6 @@ export async function getUserById(userId: string): Promise<PublicUser> {
   }
 
   return toPublicUser(user);
-}
-
-export async function getMaxDrivingSeconds(userId: string): Promise<number> {
-  const user = Types.ObjectId.isValid(userId) ? await User.findById(userId).select("maxDrivingSeconds") : null;
-  if (!user) throw new AppError(401, "UNAUTHORIZED", "Please log in again");
-  return user.maxDrivingSeconds;
-}
-
-export async function updateMaxDrivingSeconds(userId: string, maxDrivingSeconds: number): Promise<void> {
-  const result = await User.updateOne(
-    { _id: Types.ObjectId.isValid(userId) ? userId : null },
-    { $set: { maxDrivingSeconds } },
-  );
-  if (result.matchedCount === 0) throw new AppError(401, "UNAUTHORIZED", "Please log in again");
 }
 
 export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
