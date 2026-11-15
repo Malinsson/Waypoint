@@ -11,6 +11,14 @@
     margin: 0;
 }
 
+.tripHeader {
+    justify-content: flex-end;
+}
+
+.tripHeader h1 {
+    margin-right: auto;
+}
+
 .completed {
     color: var(--sandy-brown);
     font-weight: bold;

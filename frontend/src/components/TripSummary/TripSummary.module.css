@@ -1,12 +1,12 @@
+.tripSummary  {
+  margin: 0;
+}
+
 .legList {
   list-style: none;
   padding-left: 0;
 }
 
 .legList li {
-  margin-bottom: 0.5rem;
-}
-
-.error {
-  color: #c62828;
+  margin-bottom: 0.75rem;
 }

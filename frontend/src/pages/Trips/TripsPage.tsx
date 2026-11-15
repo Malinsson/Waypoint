@@ -58,7 +58,7 @@ function TripsPage() {
                       <StarRating
                       label="Trip Rating"
                       value={trip.totalRating.stars}
-                      onChange={() => {}}
+                      readOnly
                       />
                       <p>{trip.totalRating.stars}/5</p>
                     </div>

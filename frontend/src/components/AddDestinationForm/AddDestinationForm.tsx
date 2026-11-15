@@ -97,7 +97,14 @@ function AddDestinationForm({ onAdd, disabled, biasLocation }: AddDestinationFor
       <form onSubmit={handleSubmit}>
         <label htmlFor="destination-query">Add a destination</label>
         <div className={styles.addDestinationRow}>
-          <div className={styles.combobox}>
+          <div
+            className={styles.combobox}
+            // Close the list only when focus leaves the whole combobox. Tabbing
+            // from the input to a favorite button inside the list must keep it open.
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+            }}
+          >
             <Search className={styles.searchIcon} />
             <input
               id="destination-query"
@@ -115,7 +122,6 @@ function AddDestinationForm({ onAdd, disabled, biasLocation }: AddDestinationFor
               onChange={(event) => handleChange(event.target.value)}
               onKeyDown={handleKeyDown}
               onClick={() => setOpen(true)}
-              onBlur={() => setOpen(false)}
               placeholder="City or address"
               disabled={disabled}
               className="inputField"
@@ -139,7 +145,7 @@ function AddDestinationForm({ onAdd, disabled, biasLocation }: AddDestinationFor
       </form>
 
       {message && (
-        <p className="error" role="alert">
+        <p className="error banner" role="alert">
           {message}
         </p>
       )}

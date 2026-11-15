@@ -72,7 +72,7 @@ function RegisterPage() {
           autoComplete="new-password"
         />
         {formError && (
-          <p className={styles.error} role="alert">
+          <p className="error banner" role="alert">
             {formError}
           </p>
         )}

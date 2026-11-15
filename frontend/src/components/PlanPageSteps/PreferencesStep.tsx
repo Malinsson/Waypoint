@@ -2,7 +2,7 @@ import { Button } from '../atoms/Button.tsx'
 import type { AccommodationType, PlanResponse } from '../../types/api.ts'
 import shared from '../../pages/Plan/PlanPage.module.css'
 import styles from './PreferencesStep.module.css'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TripSummary from '../TripSummary/TripSummary.tsx'
 import { SquareExclamationPoint } from 'lucide-react'
 
@@ -52,6 +52,20 @@ function PreferencesStep({
   const [editing, setEditing] = useState(false)
   const showPreferences = plan === null || editing
 
+  // Opening or closing the editor removes the button that was just pressed.
+  // Focus goes to the matching element on the other side instead of <body>.
+  const editHeadingRef = useRef<HTMLHeadingElement>(null)
+  const editButtonRef = useRef<HTMLButtonElement>(null)
+  const isFirstRender = useRef(true)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    if (editing) editHeadingRef.current?.focus()
+    else editButtonRef.current?.focus()
+  }, [editing])
+
   return (
     <>
       {showPreferences ? (
@@ -59,7 +73,7 @@ function PreferencesStep({
       <div className={shared.planContent}>
         {plan !== null && (
           <div className={styles.editingBanner}>
-            <h2>Edit preferences</h2>
+            <h2 ref={editHeadingRef} tabIndex={-1}>Edit preferences</h2>
             <Button 
             type="button" 
             variant="tertiary" 
@@ -136,7 +150,7 @@ function PreferencesStep({
               {accommodationTypes.map((type) => type[0].toUpperCase() + type.slice(1)).join(', ')}
               {' · '}max {maxDrivingSeconds / 3_600} h driving between stops
             </p>
-            <Button type="button" variant="secondary" onClick={() => setEditing(true)} disabled={planning}>
+            <Button ref={editButtonRef} type="button" variant="secondary" onClick={() => setEditing(true)} disabled={planning}>
               Edit preferences
             </Button>
           </div>

@@ -30,6 +30,17 @@ it('focuses the first field on open but keeps focus where the user is when the p
   expect(document.activeElement).toBe(second)
 })
 
+it('is named after its heading, so a screen reader does not just say "dialog"', () => {
+  render(
+    <PopupBase isOpen onCancel={() => undefined}>
+      <h2>Change password</h2>
+      <input aria-label="field" />
+    </PopupBase>,
+  )
+
+  expect(screen.getByRole('dialog', { name: 'Change password' })).toBeTruthy()
+})
+
 it('still calls the latest onCancel when Escape is pressed', () => {
   const onClose = vi.fn()
   render(<Host onClose={onClose} />)

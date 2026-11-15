@@ -121,7 +121,14 @@ function ProfilePage() {
         <div className={styles.content}>
             <div className={styles.header}>
                 <h1>Hello, {user?.displayName}!</h1>
-                <Settings className={styles.settingsIcon} onClick={() => setShowChangePasswordForm(true)} />
+                <button
+                    type="button"
+                    className={styles.settingsButton}
+                    aria-label="Change password"
+                    onClick={() => setShowChangePasswordForm(true)}
+                >
+                    <Settings aria-hidden="true" />
+                </button>
             </div>
 
         <h2>Here are your statistics</h2>

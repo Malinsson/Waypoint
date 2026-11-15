@@ -66,6 +66,12 @@
   outline-offset: 2px;
 }
 
+/* Headings that scripts move focus to (tabIndex -1) are not in the Tab order,
+   so a ring on them would only be noise */
+:is(h1, h2, h3)[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--verdigris) transparent;
@@ -266,5 +272,8 @@ nav {
   nav {
     background-color: var(--background-color);
   }
+
+  /* #c62828 is only about 2:1 on the dark background; this is about 5.5:1 */
+
 
 }

@@ -139,7 +139,7 @@ function FavoriteDetailPage() {
               header={
                 <div className={styles.head}>
                   <h1>{favoriteList.name}</h1>
-                  <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
+                  <Button type="button" aria-label="Rename list" onClick={() => setShowRenamePopup(true)}><Pencil size={16} aria-hidden="true" /></Button>
                 </div>
               }
             >
@@ -155,7 +155,7 @@ function FavoriteDetailPage() {
                             <strong>{index + 1}. {location.name}</strong>
                             {location.description && <span> - {location.description}</span>}
                           </div>
-                          <Button type="button" variant="secondary" onClick={() => handleRemoveLocation(location._id)}><Trash size={16} /></Button>
+                          <Button type="button" variant="secondary" aria-label={`Remove ${location.name} from list`} onClick={() => handleRemoveLocation(location._id)}><Trash size={16} aria-hidden="true" /></Button>
                         </li>
                     ))}
                     </ul>

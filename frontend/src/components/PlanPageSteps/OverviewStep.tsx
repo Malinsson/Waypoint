@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../atoms/Button.tsx'
 import type { PlanResponse } from '../../types/api.ts'
-import styles from '../../pages/Plan/PlanPage.module.css'
 import TripSummary from '../TripSummary/TripSummary.tsx'
+import shared from '../../pages/Plan/PlanPage.module.css'
+import styles from './OverviewStep.module.css'
 
 type OverviewStepProps = {
   plan: PlanResponse
@@ -18,10 +19,11 @@ type OverviewStepProps = {
 
 function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSave, onBack, onStartOver, saveButtonLabel = 'Save trip' }: OverviewStepProps) {
   return (
-    <section aria-label="Trip overview" className={styles.planOverview}>
+    <section aria-label="Trip overview" className={shared.planOverview}>
+
         <TripSummary plan={plan} />
 
-        <section aria-label="Selected accommodation stops" className={styles.planContent}>
+        <section aria-label="Selected accommodation stops" className={`${styles.planContent}`}>
           <h2>Accommodation stops:</h2>
           <p className="hint">Your selected places to stay along the route.</p>
           <ol>
@@ -49,8 +51,8 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
             })}
           </ol>
         </section>
-        <section aria-label="Save trip" className={styles.planOverviewActions}>
-          <div className={styles.planActions}>
+        <section aria-label="Save trip" className={shared.planOverviewActions}>
+          <div className={shared.planActions}>
             <Button type="button" variant="tertiary" onClick={onStartOver}>Plan new trip</Button>
             <Button type="button" variant="secondary" onClick={onBack}>Back</Button>
           {isLoggedIn ? (
