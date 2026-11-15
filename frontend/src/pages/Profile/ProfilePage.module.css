@@ -33,8 +33,19 @@
     margin: 0;
 }
 
-.settingsIcon {
+/* A plain button around the icon, so it can be reached with the keyboard */
+.settingsButton {
+  display: flex;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: inherit;
   cursor: pointer;
+}
+
+.settingsButton:focus-visible {
+  outline: 3px solid var(--burnt-peach);
+  outline-offset: 2px;
 }
 
 

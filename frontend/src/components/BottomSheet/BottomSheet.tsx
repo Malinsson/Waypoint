@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useId,
   useLayoutEffect,
   useRef,
@@ -38,6 +39,20 @@ type BottomSheetProps = {
 const INTERACTIVE = 'input, button, a, select, textarea, label'
 // Smaller movements count as a tap, not a drag
 const DRAG_THRESHOLD_PX = 4
+// Must match the max-width breakpoint in BottomSheet.module.css
+const PHONE_QUERY = '(max-width: 767px)'
+
+// True while the sheet is the sliding phone version
+function useIsPhone(): boolean {
+  const [isPhone, setIsPhone] = useState(() => window.matchMedia(PHONE_QUERY).matches)
+  useEffect(() => {
+    const query = window.matchMedia(PHONE_QUERY)
+    const update = () => setIsPhone(query.matches)
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+  return isPhone
+}
 
 // On phones this is a panel that slides over the map. On wider screens the
 // CSS turns it into a normal side panel and the sliding does nothing.
@@ -63,6 +78,15 @@ function BottomSheet({
   const [dragOffset, setDragOffset] = useState<number | null>(null)
   const dragStart = useRef<{ pointerY: number; startOffset: number } | null>(null)
   const didDrag = useRef(false)
+  const isPhone = useIsPhone()
+
+  // A collapsed sheet is only pushed off screen, so without this Tab would
+  // stop on controls nobody can see. `inert` removes them from the tab order
+  // and from screen readers. Only on phones: on wide screens the sheet is a
+  // normal panel and "collapsed" means nothing.
+  useEffect(() => {
+    if (bodyRef.current) bodyRef.current.inert = isPhone && snap === 'collapsed'
+  }, [isPhone, snap])
 
   // Measure before the browser paints, and again whenever a size changes
   // (rotating the phone, or the pinned part getting taller)

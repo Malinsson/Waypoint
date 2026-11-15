@@ -1,5 +1,5 @@
 import styles from './PopupBase.module.css'
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 
 type PopupBaseProps = {
@@ -14,6 +14,7 @@ type PopupBaseProps = {
 function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
 
     const popupRef = useRef<HTMLDivElement>(null);
+    const headingId = useId();
 
     // Callers usually pass an inline arrow function, which is a new function on
     // every render. If the keyboard effect depended on it, every re-render
@@ -44,6 +45,15 @@ function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
         if (!popup) return;
 
         const previouslyFocused = document.activeElement as HTMLElement;
+
+        // The children bring their own heading, so the dialog is named after the
+        // first one instead of every caller having to pass a title. Without a
+        // name a screen reader only announces "dialog".
+        const heading = popup.querySelector('h1, h2, h3');
+        if (heading) {
+            if (!heading.id) heading.id = headingId;
+            popup.setAttribute("aria-labelledby", heading.id);
+        }
 
         const focusableSelector = [
         "button:not([disabled])",
@@ -99,7 +109,7 @@ function PopupBase({ children, onCancel, isOpen }: PopupBaseProps) {
             };
 
 
-    }, [isOpen]);
+    }, [isOpen, headingId]);
 
 
     // Close the popup when clicking outside of it

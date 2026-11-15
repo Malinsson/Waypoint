@@ -267,4 +267,9 @@ nav {
     background-color: var(--background-color);
   }
 
+  /* #c62828 is only about 2:1 on the dark background; this is about 5.5:1 */
+  .error {
+    color: #ffab9f;
+  }
+
 }

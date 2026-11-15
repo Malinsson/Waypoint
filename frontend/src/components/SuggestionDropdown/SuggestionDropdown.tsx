@@ -124,21 +124,27 @@ function SuggestionDropdown({
       {/* Always rendered, so the input's aria-controls points to a real element */}
       <ul id={listboxId} role="listbox" className={styles.listbox} hidden={!expanded}>
         {suggestions.map((suggestion, index) => (
+          // The row itself is only layout. The option is the inner div, because a
+          // button is not allowed inside an option; the favorite button is its
+          // sibling and can be reached with Tab.
           <li
             key={suggestion.id}
-            id={optionId(listboxId, index)}
-            role="option"
-            aria-selected={index === highlightedIndex}
-            // The comma gives screen readers a pause between the two parts
-            aria-label={suggestion.description ? `${suggestion.label}, ${suggestion.description}` : suggestion.label}
+            role="presentation"
             className={index === highlightedIndex ? `${styles.option} ${styles.highlighted}` : styles.option}
-            // Keep focus in the input; otherwise the input's blur closes the
-            // list before the click is registered
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => onSelect(suggestion)}
-            onMouseEnter={() => onHighlight(index)}
           >
-            <div className={styles.content}>
+            <div
+              id={optionId(listboxId, index)}
+              role="option"
+              aria-selected={index === highlightedIndex}
+              // The comma gives screen readers a pause between the two parts
+              aria-label={suggestion.description ? `${suggestion.label}, ${suggestion.description}` : suggestion.label}
+              className={styles.content}
+              // Keep focus in the input; otherwise the input's blur closes the
+              // list before the click is registered
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onSelect(suggestion)}
+              onMouseEnter={() => onHighlight(index)}
+            >
               <span className={styles.icon} aria-hidden="true">
                 {KIND_ICONS[suggestion.kind]}
               </span>
@@ -149,9 +155,9 @@ function SuggestionDropdown({
               </span>
             </div>
 
-              {isLoggedIn && (
-                <FavoriteButton onClick={() => void openFavoriteLists(suggestion)} />
-              )}
+            {isLoggedIn && (
+              <FavoriteButton onClick={() => void openFavoriteLists(suggestion)} />
+            )}
           </li>
         ))}
       </ul>
