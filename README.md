@@ -70,7 +70,6 @@ Browser (React + TypeScript + OpenLayers)
 ├── frontend/      React app (pages, components, api client, hooks)
 ├── geo-service/   Flask break-point service and pytest tests
 ├── specs/         Feature specifications
-├── bash-tests/    Throwaway scripts used to compare places providers
 ├── CLAUDE.md      Project specification and working guidelines
 └── README.md
 ```
@@ -213,6 +212,15 @@ covered by tests (`backend/test/trip-ownership.test.ts`).
 - Full UI test coverage is outside the project scope.
 - Not built (by design): OAuth, email verification, password reset, booking,
   admin roles, offline mode.
+
+## Further development ideas
+
+- Ability to select favorited locations from a list and start planning a new trip with those locations
+- Reverse geolocation, ability to click on the map and retrive the location to add to the trip as a destination
+- Navigation mode with turn by turn navigation and live instructions
+- Integrate hotel booking services such as Hotels.com/Booking.com ect
+- Online functionality with other users, plan trips togheter, share trips
+- Global destination ratings that all users can see
 
 See [CLAUDE.md](./CLAUDE.md) for the full specification and
 [specs/](./specs/) for feature-level requirements.
