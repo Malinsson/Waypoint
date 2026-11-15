@@ -23,6 +23,7 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
 
         <TripSummary plan={plan} />
 
+        {plan.breakPoints.length > 0 && (
         <section aria-label="Selected accommodation stops" className={`${styles.planContent}`}>
           <h2>Accommodation stops:</h2>
           <p className="hint">Your selected places to stay along the route.</p>
@@ -51,6 +52,7 @@ function OverviewStep({ plan, isLoggedIn, saving, savedMessage, saveError, onSav
             })}
           </ol>
         </section>
+        )}
         <section aria-label="Save trip" className={shared.planOverviewActions}>
           <div className={shared.planActions}>
             <Button type="button" variant="tertiary" onClick={onStartOver}>Plan new trip</Button>
