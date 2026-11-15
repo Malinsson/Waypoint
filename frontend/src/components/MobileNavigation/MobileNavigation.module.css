@@ -10,6 +10,11 @@
     /* The map pages subtract this variable to size themselves, so the nav
        must be exactly this tall instead of whatever its content adds up to */
     height: var(--mobile-nav-height);
+    /* Own compositing layer: mobile browsers resize the viewport while the URL
+       bar collapses on scroll, and without this the fixed nav repaints late
+       and appears to jump */
+    transform: translateZ(0);
+    will-change: transform;
 }
 
 .mobileNav a {

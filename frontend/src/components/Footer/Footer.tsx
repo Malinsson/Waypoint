@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import styles from './Footer.module.css'
 
 
@@ -13,10 +14,7 @@ function Footer() {
                 
                 <ul className={styles.links}>
                     <li>
-                        <a href="/privacy">Privacy Policy</a>
-                    </li>
-                    <li>
-                        <a href="/cookie">Cookie Policy</a>
+                        <Link to="/privacy">Privacy Policy</Link>
                     </li>
                     <li>
                         <a href="/contact">Contact</a>

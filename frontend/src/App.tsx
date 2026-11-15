@@ -16,6 +16,7 @@ import PrivacyPopup from './components/PrivacyPopup/PrivacyPopup.tsx'
 import TripEditPage from './pages/TripEdit/TripEditPage.tsx'
 import NotFoundPage from './pages/NotFound/NotFoundPage.tsx'
 import ProfilePage from './pages/Profile/ProfilePage.tsx'
+import PrivacyPage from './pages/Privacy/PrivacyPage.tsx'
 import ScrollToTop from './components/ScrollToTop/ScrollToTop.tsx'
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="/plan" element={<PlanPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
 
           {/* Protected routes */}
           <Route element={ <RequireAuth><AppLayout /></RequireAuth> }>
