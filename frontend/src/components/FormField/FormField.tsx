@@ -8,10 +8,11 @@ type FormFieldProps = {
   onChange: (value: string) => void
   error?: string | undefined
   autoComplete: string
+  maxLength?: number
 }
 
 // One labelled input with its validation message underneath
-function FormField({ id, label, type, value, onChange, error, autoComplete }: FormFieldProps) {
+function FormField({ id, label, type, value, onChange, error, autoComplete, maxLength }: FormFieldProps) {
   const errorId = `${id}-error`
 
   return (
@@ -29,6 +30,7 @@ function FormField({ id, label, type, value, onChange, error, autoComplete }: Fo
         // Every form field in the app is required. The forms use noValidate, so
         // the browser's own required handling is off and this tells screen readers.
         aria-required="true"
+        maxLength={maxLength}
         className="decorativeBorder"
       />
       {error && (

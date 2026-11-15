@@ -23,8 +23,8 @@ const registerSchema = z.object({
   displayName: z
     .string("Display name is required")
     .trim()
-    .min(1, "Display name is required")
-    .max(50, "Display name must be at most 50 characters"),
+    .min(3, "Display name must be at least 3 characters")
+    .max(15, "Display name must be at most 15 characters"),
 });
 
 // No length rules on login: the password is only compared, never stored

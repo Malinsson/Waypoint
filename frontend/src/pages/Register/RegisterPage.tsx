@@ -52,6 +52,7 @@ function RegisterPage() {
           onChange={setDisplayName}
           error={fieldErrors.displayName}
           autoComplete="nickname"
+          maxLength={15}
         />
         <FormField
           id="email"
