@@ -191,6 +191,13 @@ function SuggestionDropdown({
 
       {/* A live region, so screen readers announce these short messages */}
       <div role="status" className={styles.messages}>
+        {/* The spinner is only visual, so this says the same in words */}
+        {open && status === 'loading' && <span className={styles.srOnly}>Searching…</span>}
+        {expanded && (
+          <span className={styles.srOnly}>
+            {suggestions.length} {suggestions.length === 1 ? 'suggestion' : 'suggestions'} available, use the arrow keys to browse
+          </span>
+        )}
         {open && status === 'empty' && <p className="hint">No results</p>}
         {open && expanded && partial && <p className="hint">Some suggestions may be missing</p>}
         {open && (status === 'error' || status === 'rateLimited') && (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { NavLink, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { getTrip, deleteTrip, completeTrip, renameTrip, rateTrip, clearTripRating } from '../../api/trips.ts';
 import MapView, { type MapMarker } from '../../components/MapView/MapView.tsx'
 import RatingPopup from '../../components/RatingPopup/RatingPopup.tsx'
@@ -20,6 +20,7 @@ import type { SnapPoint } from '../../components/BottomSheet/snap.ts';
 
 function TripsDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [trip, setTrip] = useState<TripDetailResponse['trip'] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -219,10 +220,10 @@ function TripsDetailPage() {
             bodyClassName={styles.tripBody}
             allowPageScrollAtEdges
             header={
-              <div className={styles.row}>
+              <div className={`${styles.row} ${styles.tripHeader}`}>
                 <h1>{trip.name}</h1>
                 {!trip.completedAt && (
-                  <Button type="button" onClick={() => setShowRenamePopup(true)}><Pencil size={16} /></Button>
+                  <Button type="button" aria-label="Rename trip" onClick={() => setShowRenamePopup(true)}><Pencil size={16} aria-hidden="true" /></Button>
                 )}
               </div>
             }
@@ -320,9 +321,8 @@ function TripsDetailPage() {
               </>
             ) : (
             <>
-              <Button type="button">
-                <NavLink to={`/trips/${trip._id}/edit`}>Edit trip</NavLink>
-              </Button>
+              {/* A link inside a button is invalid HTML, so the button navigates itself */}
+              <Button type="button" onClick={() => navigate(`/trips/${trip._id}/edit`)}>Edit trip</Button>
               <Button type="button" onClick={handleCompleteTrip}>Mark as completed</Button>
             </>
             )}

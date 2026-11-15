@@ -124,6 +124,19 @@ function PlanPage() {
     setSheetSnap('half')
   }, [step])
 
+  // The buttons the user just pressed are gone when the step changes, which
+  // would drop keyboard focus on <body>. The heading is the new starting point.
+  // Not on the first render, or the page would grab focus when it opens.
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null)
+  const isFirstStepRender = useRef(true)
+  useEffect(() => {
+    if (isFirstStepRender.current) {
+      isFirstStepRender.current = false
+      return
+    }
+    stepHeadingRef.current?.focus()
+  }, [step, activeBreakpointIndex])
+
   useEffect(() => {
     if (!editTripId) return
 
@@ -500,7 +513,7 @@ function PlanPage() {
           header={
             <div className={styles.stepHeader}>
               <p className={styles.stepLabel}>Step {step} of 4</p>
-              <h1>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
+              <h1 ref={stepHeadingRef} tabIndex={-1}>{step === 1 ? 'Add destinations' : step === 2 ? 'Set trip preferences' : step === 3 ? 'Choose your stops' : 'Trip overview'}</h1>
             </div>
           }
           pinned={step === 1 && (

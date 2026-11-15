@@ -45,7 +45,7 @@ function LoginPage() {
   return (
     <section className="mainSection">
       <h1>Log in</h1>
-      {sessionMessage && <p className={styles.notice}>{sessionMessage}</p>}
+      {sessionMessage && <p className={styles.notice} role="status">{sessionMessage}</p>}
       {/* noValidate: show our own messages instead of the browser's pop-ups */}
       <form className={styles.authForm} onSubmit={handleSubmit} noValidate>
         <FormField
@@ -67,7 +67,7 @@ function LoginPage() {
           autoComplete="current-password"
         />
         {formError && (
-          <p className="error" role="alert">
+          <p className="error banner" role="alert">
             {formError}
           </p>
         )}

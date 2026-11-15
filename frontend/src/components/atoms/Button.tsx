@@ -8,6 +8,10 @@ type ButtonProps = {
     type?: 'button' | 'submit' | 'reset'
     variant?: 'primary' | 'secondary' | 'tertiary'
     className?: string
+    // Needed when the content is only an icon
+    'aria-label'?: string
+    // Lets a parent move focus here, e.g. after the button it was on disappeared
+    ref?: React.Ref<HTMLButtonElement>
 }
 
 export function Button({
@@ -17,14 +21,18 @@ export function Button({
     type = 'button',
     variant = 'primary',
     className = '',
+    'aria-label': ariaLabel,
+    ref,
 }: ButtonProps) {
 
 
     return (
         <button
+            ref={ref}
             type={type}
             onClick={onClick}
             disabled={disabled}
+            aria-label={ariaLabel}
             className={`decorativeBorder ${styles.buttonBase} ${styles[variant]} ${className}`}
         >
             {children}

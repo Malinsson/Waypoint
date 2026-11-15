@@ -18,6 +18,16 @@
     cursor: not-allowed;
 }
 
+/* Visible to screen readers only */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
 .filled {
     fill: var(--sandy-brown);
     color: var(--sandy-brown);

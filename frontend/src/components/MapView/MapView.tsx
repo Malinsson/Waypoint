@@ -42,7 +42,7 @@ function markerStyle(label: string, kind: MapMarker['kind'], highlighted = false
     image: new Circle({
       radius: highlighted ? 17 : 12,
       fill: new Fill({
-        color: kind === 'accommodation' ? '#2e7d32' : kind === 'breakpoint' ? '#ef6c00' : '#1976d2',
+        color: kind === 'accommodation' ? '#2e7d32' : kind === 'breakpoint' ? '#bf360c' : '#1976d2',
       }),
       stroke: highlighted
         ? new Stroke({ color: '#111', width: 4 })
@@ -191,7 +191,9 @@ function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route
     map.getView().fit(line.getExtent(), { padding: FIT_PADDING })
   }, [route])
 
-  return <div ref={containerRef} className={styles.map} tabIndex={0} />
+  // The map is focusable so the arrow keys can pan it. The markers can only be
+  // clicked, but every stop is also listed as text next to the map.
+  return <div ref={containerRef} className={styles.map} tabIndex={0} role="region" aria-label="Route map" />
 }
 
 export default MapView

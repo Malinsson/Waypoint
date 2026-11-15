@@ -31,6 +31,21 @@ describe('StarRating', () => {
     expect(pressed).toEqual(['true', 'true', 'false', 'false', 'false'])
   })
 
+  it('read-only mode has no buttons, so it can sit inside a link, and says the rating in words', () => {
+    render(<StarRating label="Trip rating" value={4} readOnly />)
+
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    expect(screen.getByRole('img', { name: 'Trip rating: 4 out of 5' })).toBeTruthy()
+  })
+
+  it('announces the current rating, and that it was cleared', () => {
+    const { rerender } = render(<StarRating label="Liseberg" value={3} onChange={() => undefined} />)
+    expect(screen.getByRole('status').textContent).toBe('3 out of 5')
+
+    rerender(<StarRating label="Liseberg" value={undefined} onChange={() => undefined} />)
+    expect(screen.getByRole('status').textContent).toBe('No rating')
+  })
+
   it('cannot be changed while disabled', () => {
     const onChange = vi.fn()
     render(<StarRating label="Liseberg" value={undefined} onChange={onChange} disabled />)
