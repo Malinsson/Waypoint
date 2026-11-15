@@ -18,6 +18,8 @@ type BottomSheetProps = {
   // e.g. open it when a new step starts
   snap: SnapPoint
   onSnapChange: (snap: SnapPoint) => void
+  // Called with the height in pixels the sheet covers when settled (0 on wide screens)
+  onCoverChange?: (coverPx: number) => void
   // Accessible name of the panel
   label: string
   // Always visible and draggable (together with the handle): usually a title
@@ -59,6 +61,7 @@ function useIsPhone(): boolean {
 function BottomSheet({
   snap,
   onSnapChange,
+  onCoverChange,
   label,
   header,
   pinned,
@@ -183,6 +186,14 @@ function BottomSheet({
       window.scrollBy({ top: event.deltaY, behavior: 'auto' })
     }
   }
+
+  // Tell the page how much of the map the settled sheet covers, so the map
+  // can keep its markers in the part that is still visible
+  useEffect(() => {
+    const sheet = sheetRef.current
+    if (!onCoverChange || !sheet || !offsets) return
+    onCoverChange(isPhone ? Math.max(sheet.offsetHeight - offsets[snap], 0) : 0)
+  }, [onCoverChange, isPhone, offsets, snap])
 
   const offset = dragOffset ?? offsets?.[snap] ?? 0
 

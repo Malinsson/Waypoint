@@ -12,6 +12,7 @@ import OSM from 'ol/source/OSM'
 import VectorSource from 'ol/source/Vector'
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style'
 import { fromLonLat } from 'ol/proj'
+import type { Extent } from 'ol/extent'
 import 'ol/ol.css'
 import type { LonLat } from '../../types/api.ts'
 
@@ -33,6 +34,9 @@ type MapViewProps = {
   // The route line in [lon, lat] points, or null for no route
   route?: LonLat[] | null
   onMarkerClick?: (markerId: string) => void
+  // Height covered by something on top of the map (the phone bottom sheet).
+  // Fitting keeps markers and route above it.
+  bottomInsetPx?: number
 }
 
 function markerStyle(label: string, kind: MapMarker['kind'], highlighted = false): Style {
@@ -61,7 +65,8 @@ const routeStyle = new Style({
 })
 
 // Space between the route and the map edge when zooming to fit it
-const FIT_PADDING = [40, 40, 40, 40]
+const FIT_PADDING_PX = 40
+const MAX_INSET_SHARE = 0.6
 const MARKER_MAX_ZOOM = 15
 // Matches the marker circle (radius 12), so clicks just outside it do nothing
 const CLICK_RADIUS_PX = 14
@@ -69,12 +74,21 @@ const CLICK_RADIUS_PX = 14
 // The OpenLayers map is created once. Markers and the route live in their
 // own vector sources, which are refilled whenever those props change, so
 // the map itself (and the user's zoom/pan) is not rebuilt each time.
-function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route = null, onMarkerClick }: MapViewProps) {
+function MapView({
+  center,
+  zoom,
+  markers = [],
+  highlightedMarkerId = null,
+  route = null,
+  onMarkerClick,
+  bottomInsetPx = 0,
+}: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<OlMap | null>(null)
   const markerSourceRef = useRef<VectorSource | null>(null)
   const routeSourceRef = useRef<VectorSource | null>(null)
   const fittedMarkerKeyRef = useRef('')
+  const lastFitRef = useRef<{ extent: Extent; maxZoom?: number } | null>(null)
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -102,7 +116,12 @@ function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route
 
     // OpenLayers only measures its container on load, so a changed size
     // (rotating the phone, the browser toolbar hiding) needs an explicit update
-    const resizeObserver = new ResizeObserver(() => map.updateSize())
+    const resizeObserver = new ResizeObserver(() => {
+      map.updateSize()
+      // The content was fitted for the old size
+      const lastFit = lastFitRef.current
+      if (lastFit) refitRef.current(lastFit.extent, lastFit.maxZoom)
+    })
     resizeObserver.observe(containerRef.current)
 
     // Detach the map on unmount. Without this, StrictMode's double mount
@@ -115,6 +134,33 @@ function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route
     // only the starting view
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Zooms so the extent fits in the part of the map the bottom sheet does not cover
+  function fitTo(extent: Extent, maxZoom?: number) {
+    const map = mapRef.current
+    if (!map) return
+    lastFitRef.current = { extent, maxZoom }
+    // Never reserve more than most of the map, or a fully open sheet would zoom far out
+    const mapHeight = map.getSize()?.[1] ?? 0
+    const bottomPadding = FIT_PADDING_PX + Math.min(bottomInsetPx, mapHeight * MAX_INSET_SHARE)
+    map.getView().fit(extent, {
+      padding: [FIT_PADDING_PX, FIT_PADDING_PX, bottomPadding, FIT_PADDING_PX],
+      maxZoom,
+    })
+  }
+
+  // The resize observer lives in the effect that creates the map, so it needs
+  // a way to reach the newest fitTo (which knows the current bottom inset)
+  const refitRef = useRef(fitTo)
+  useEffect(() => {
+    refitRef.current = fitTo
+  })
+
+  // When the sheet moves, fit the same content again into the new free space
+  useEffect(() => {
+    if (lastFitRef.current) fitTo(lastFitRef.current.extent, lastFitRef.current.maxZoom)
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [bottomInsetPx])
 
   useEffect(() => {
     const source = markerSourceRef.current
@@ -138,12 +184,9 @@ function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route
     fittedMarkerKeyRef.current = markerKey
 
     const markerExtent = source.getExtent()
-    if (markers.length > 0 && markerExtent) {
-      map.getView().fit(markerExtent, {
-        padding: FIT_PADDING,
-        maxZoom: MARKER_MAX_ZOOM,
-      })
-    }
+    if (markers.length > 0 && markerExtent) fitTo(markerExtent, MARKER_MAX_ZOOM)
+    // fitTo only reads refs, so it is safe to leave out of the dependencies
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [markers])
 
   // Styling lives in its own effect so a changed highlight only restyles the
@@ -188,7 +231,8 @@ function MapView({ center, zoom, markers = [], highlightedMarkerId = null, route
     const line = new LineString(route.map((point) => fromLonLat(point)))
     source.addFeature(new Feature(line))
     // Zoom and pan so the whole route is visible
-    map.getView().fit(line.getExtent(), { padding: FIT_PADDING })
+    fitTo(line.getExtent())
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [route])
 
   // The map is focusable so the arrow keys can pan it. The markers can only be
