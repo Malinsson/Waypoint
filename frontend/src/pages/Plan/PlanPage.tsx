@@ -114,6 +114,9 @@ function PlanPage() {
   const [activeBreakpointIndex, setActiveBreakpointIndex] = useState(storedPlan?.activeBreakpointIndex ?? 0)
   // Phone layout: how far the planning panel is slid up over the map
   const [sheetSnap, setSheetSnap] = useState<SnapPoint>('half')
+  // How many pixels of the map the sheet covers, so the map can fit its content above it
+  const [sheetCoverPx, setSheetCoverPx] = useState(0)
+  const [focusRequest, setFocusRequest] = useState<{ placeId: string } | null>(null)
   const warmupPromise = useRef<Promise<unknown> | null>(null)
   // Changing the key of AddDestinationForm remounts it, which is a simple
   // way to clear its search field and matches on "Start over"
@@ -464,8 +467,9 @@ function PlanPage() {
     const placeId = markerId.replace(`accommodation-${activeBreakpointIndex}-`, '')
     if (activeBreakpoint?.accommodation.some((place) => place.id === placeId)) {
       chooseAccommodation(activeBreakpointIndex, placeId)
-      // Phone: get the panel out of the way so the user can see the map
-      setSheetSnap('collapsed')
+      // Phone: make sure the list is visible, then focus the chosen place's button
+      setSheetSnap((snap) => (snap === 'collapsed' ? 'half' : snap))
+      setFocusRequest({ placeId })
     }
   }
 
@@ -505,6 +509,7 @@ function PlanPage() {
           label="Trip planner"
           snap={sheetSnap}
           onSnapChange={setSheetSnap}
+          onCoverChange={setSheetCoverPx}
           className={styles.planPanel}
           bodyClassName={styles.planBody}
           allowPageScrollAtEdges
@@ -594,6 +599,7 @@ function PlanPage() {
               plan={plan}
               activeBreakpoint={activeBreakpoint}
               activeBreakpointIndex={activeBreakpointIndex}
+              focusRequest={focusRequest}
               onChoose={(accommodationId) => chooseAccommodation(activeBreakpointIndex, accommodationId)}
               onSkip={() => skipBreakPoint(activeBreakpointIndex)}
               onUndoSkip={() => undoSkipBreakPoint(activeBreakpointIndex)}
@@ -625,6 +631,7 @@ function PlanPage() {
           highlightedMarkerId={highlightedMarkerId}
           route={plan ? plan.route.geometry.coordinates : null}
           onMarkerClick={selectAccommodationMarker}
+          bottomInsetPx={sheetCoverPx}
         />
       </SheetLayout>}
     </section>
