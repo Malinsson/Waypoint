@@ -1,0 +1,13 @@
+.privacy {
+    max-width: 45rem;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.privacy h2 {
+    margin-top: 1.5rem;
+}
+
+.privacy a {
+    text-decoration: underline;
+}
