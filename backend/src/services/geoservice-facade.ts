@@ -3,13 +3,16 @@ import { config } from "../config/env.js";
 import type { GeoServiceInput, GeoServiceResult } from "./geoservice-service.js";
 import { UpstreamError } from "../utils/upstream-error.js";
 
-const TIMEOUT_MS = 60_000;
+// Short per-attempt timeout: a request that hangs while the instance boots is
+// cancelled and retried, which nudges Render to keep waking the service.
+const TIMEOUT_MS = 15_000;
 const SERVICE_URL = config.geoServiceUrl.replace(/\/+$/, "");
 
 // Render's free tier answers 429/502/503/504 while an instance is waking up or
 // overloaded, so those are worth retrying. Other 4xx (wrong key, bad request)
-// would fail the same way again. Two retries, so three attempts in total.
-const RETRY_DELAYS_MS = [3_000, 6_000];
+// would fail the same way again. A cold start can take a minute or more, so
+// the delays plus attempt timeouts cover roughly 75-100 seconds in total.
+const RETRY_DELAYS_MS = [3_000, 5_000, 8_000, 10_000, 10_000, 10_000];
 const MAX_RETRY_AFTER_MS = 10_000;
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 
