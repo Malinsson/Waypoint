@@ -5,14 +5,14 @@ import { UpstreamError } from "../utils/upstream-error.js";
 
 // Short per-attempt timeout: a request that hangs while the instance boots is
 // cancelled and retried, which nudges Render to keep waking the service.
-const TIMEOUT_MS = 15_000;
+const TIMEOUT_MS = 25_000;
 const SERVICE_URL = config.geoServiceUrl.replace(/\/+$/, "");
 
 // Render's free tier answers 429/502/503/504 while an instance is waking up or
 // overloaded, so those are worth retrying. Other 4xx (wrong key, bad request)
 // would fail the same way again. A cold start can take a minute or more, so
 // the delays plus attempt timeouts cover roughly 75-100 seconds in total.
-const RETRY_DELAYS_MS = [3_000, 5_000, 8_000, 10_000, 10_000, 10_000];
+const RETRY_DELAYS_MS = [3_000, 5_000, 8_000, 10_000];
 const MAX_RETRY_AFTER_MS = 10_000;
 const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 
@@ -42,7 +42,10 @@ async function fetchWithRetry(
     try {
       response = await fetch(url, init());
       if (!RETRYABLE_STATUSES.has(response.status) || !retriesLeft) return response;
+      console.warn(`Geoservice ${url} attempt ${attempt + 1} returned ${response.status}, retrying`);
     } catch (error) {
+      const reason = error instanceof Error ? `${error.message} (${String(error.cause ?? "")})` : String(error);
+      console.warn(`Geoservice ${url} attempt ${attempt + 1} failed: ${reason}`);
       if (!retriesLeft) throw error;
     }
     await wait(delayBeforeRetry(response, retryDelaysMs[attempt]!));
@@ -128,10 +131,12 @@ export async function checkHealth(retryDelaysMs: number[] = RETRY_DELAYS_MS): Pr
       signal: AbortSignal.timeout(TIMEOUT_MS),
     }), retryDelaysMs);
   } catch (error) {
+    console.error("Geoservice health check failed:", error);
     return false;
   }
 
   if (!response.ok) {
+    console.error(`Geoservice health check returned ${response.status}`);
     return false;
   }
 
