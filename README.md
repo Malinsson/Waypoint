@@ -8,6 +8,9 @@ This is a five-week degree project built solo with AI assistance (Claude Code),
 following spec-driven development: [CLAUDE.md](./CLAUDE.md) and
 [specs/](./specs/) are the living specification.
 
+**IF BREAKPOINTS ARE UNAVALIABLE, THEN THE GEOSERVICE IS ALSEEP**
+Visit [geoservice/health](https://waypoint-python.onrender.com/health) to wake it up. (It randomly decided that it didn't want to wake up from the fetches anymore)
+
 ## Features
 
 **Without an account (guests)**
