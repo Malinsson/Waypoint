@@ -8,6 +8,10 @@ import { UpstreamError } from "../utils/upstream-error.js";
 const TIMEOUT_MS = 25_000;
 const SERVICE_URL = config.geoServiceUrl.replace(/\/+$/, "");
 
+// Cloudflare in front of Render challenged requests with Node's bare default
+// User-Agent, so we identify ourselves like a normal API client.
+const USER_AGENT = "Waypoint-backend/1.0";
+
 // Render's free tier answers 429/502/503/504 while an instance is waking up or
 // overloaded, so those are worth retrying. Other 4xx (wrong key, bad request)
 // would fail the same way again. A cold start can take a minute or more, so
@@ -93,6 +97,7 @@ export async function resolveBreakPoints(
     response = await fetchWithRetry(`${SERVICE_URL}/find-break-points`, () => ({
       method: "POST",
       headers: {
+        "User-Agent": USER_AGENT,
         "Content-Type": "application/json",
         "X-Service-Key": config.geoserviceApiKey,
       },
@@ -136,6 +141,7 @@ export async function checkHealth(retryDelaysMs: number[] = RETRY_DELAYS_MS): Pr
   try {
     response = await fetchWithRetry(`${SERVICE_URL}/health`, () => ({
       method: "GET",
+      headers: { "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     }), retryDelaysMs);
   } catch (error) {
