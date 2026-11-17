@@ -42,7 +42,15 @@ async function fetchWithRetry(
     try {
       response = await fetch(url, init());
       if (!RETRYABLE_STATUSES.has(response.status) || !retriesLeft) return response;
-      console.warn(`Geoservice ${url} attempt ${attempt + 1} returned ${response.status}, retrying`);
+      // This response is discarded and retried, so reading its body is safe.
+      // Body and headers show whether Render's edge or our Flask app answered.
+      const body = await response.text().catch(() => "");
+      console.warn(
+        `Geoservice ${url} attempt ${attempt + 1} returned ${response.status}, ` +
+          `Retry-After: ${response.headers.get("Retry-After") ?? "none"}, ` +
+          `Server: ${response.headers.get("Server") ?? "none"}, ` +
+          `body: ${body.slice(0, 200)}`,
+      );
     } catch (error) {
       const reason = error instanceof Error ? `${error.message} (${String(error.cause ?? "")})` : String(error);
       console.warn(`Geoservice ${url} attempt ${attempt + 1} failed: ${reason}`);
